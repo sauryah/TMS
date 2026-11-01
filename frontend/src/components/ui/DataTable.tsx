@@ -1,0 +1,173 @@
+import React from 'react'
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Skeleton } from './Skeleton'
+import { EmptyState } from './EmptyState'
+
+export interface Column<T = object> {
+  key: string
+  label: string
+  sortable?: boolean
+  render?: (row: T) => React.ReactNode
+  isNumeric?: boolean
+}
+
+export interface DataTableProps<T = object> {
+  columns: Column<T>[]
+  rows: T[]
+  onRowClick?: (row: T) => void
+  loading?: boolean
+  emptyMessage?: string
+  sortField?: string
+  sortOrder?: 'asc' | 'desc' | string
+  onSort?: (field: string) => void
+  // Selection props
+  selectedIds?: Set<string>
+  onSelectId?: (id: string, checked: boolean) => void
+  onSelectAll?: (checked: boolean) => void
+}
+
+export function DataTable<T extends object = object>({
+  columns,
+  rows,
+  onRowClick,
+  loading = false,
+  emptyMessage = 'No records found.',
+  sortField,
+  sortOrder,
+  onSort,
+  selectedIds,
+  onSelectId,
+  onSelectAll
+}: DataTableProps<T>) {
+  const handleHeaderClick = (col: Column<T>) => {
+    if (col.sortable && onSort) {
+      onSort(col.key)
+    }
+  }
+
+  const renderSortIcon = (col: Column<T>) => {
+    if (!col.sortable) return null
+    if (sortField !== col.key) {
+      return <ArrowUpDown className="ml-1.5 h-3 w-3 opacity-40 shrink-0" />
+    }
+    return sortOrder === 'asc' 
+      ? <ArrowUp className="ml-1.5 h-3 w-3 text-blue-500 shrink-0" />
+      : <ArrowDown className="ml-1.5 h-3 w-3 text-blue-500 shrink-0" />
+  }
+
+  return (
+    <div className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm overflow-hidden">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[800px]">
+          <thead>
+            <tr className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border-visible)] select-none">
+              {selectedIds && onSelectAll && (
+                <th className="py-2 px-2 w-10 text-center align-middle">
+                  <label className="min-h-[28px] min-w-[28px] inline-flex items-center justify-center cursor-pointer m-0 p-1">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all rows"
+                      checked={rows.length > 0 && rows.every(row => selectedIds.has(String((row as Record<string, unknown>).die_id || (row as Record<string, unknown>).id)))}
+                      onChange={(e) => onSelectAll(e.target.checked)}
+                      className="h-3.5 w-3.5 rounded-none border-[var(--color-border-visible)] bg-[var(--color-surface)] text-blue-500 focus:ring-0 cursor-pointer"
+                    />
+                  </label>
+                </th>
+              )}
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  onClick={() => handleHeaderClick(col)}
+                  aria-sort={col.sortable ? (sortField === col.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
+                  className={`py-2.5 px-3 text-[11px] font-medium uppercase tracking-wider text-[var(--color-muted)] font-mono ${
+                    col.sortable ? 'cursor-pointer hover:text-[var(--color-text)] transition-colors' : ''
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <span>{col.label}</span>
+                    {renderSortIcon(col)}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border)]">
+            {loading ? (
+              // Loading state: render 5 rows of Skeleton block cells
+              Array.from({ length: 5 }).map((_, rIdx) => (
+                <tr key={rIdx} className="bg-transparent">
+                  {selectedIds && onSelectAll && (
+                    <td className="py-2 px-3 w-10 text-center align-middle">
+                      <Skeleton width="w-3.5" height="h-3.5" />
+                    </td>
+                  )}
+                  {columns.map((col) => (
+                    <td key={col.key} className="py-2 px-3">
+                      <Skeleton width="w-2/3" height="h-3.5" />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : rows.length === 0 ? (
+              // Empty state
+              <tr>
+                <td colSpan={columns.length + (selectedIds ? 1 : 0)} className="p-0">
+                  <div className="py-12">
+                    <EmptyState message={emptyMessage} />
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              // Normal rows
+              rows.map((row, rIdx) => {
+                const rowObj = row as Record<string, unknown>
+                const rowId = String(rowObj.die_id || rowObj.id)
+                const isSelected = selectedIds?.has(rowId) ?? false
+                return (
+                  <tr
+                    key={String(rowObj.id || rowObj.die_id || rIdx)}
+                    onClick={() => onRowClick && onRowClick(row)}
+                    className={`group transition-colors duration-100 ${
+                      onRowClick ? 'cursor-pointer hover:bg-[var(--color-surface-2)]' : ''
+                    } ${isSelected ? 'bg-[var(--color-surface-2)] border-l-2 border-l-blue-500' : 'bg-transparent hover:bg-[var(--color-surface-2)]'}`}
+                  >
+                    {selectedIds && onSelectId && (
+                      <td 
+                        className="py-1.5 px-2 w-10 text-center align-middle"
+                        onClick={(e) => e.stopPropagation()} // Prevent triggering onRowClick
+                      >
+                        <label className="min-h-[28px] min-w-[28px] inline-flex items-center justify-center cursor-pointer m-0 p-1">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select row ${rowId}`}
+                            checked={isSelected}
+                            onChange={(e) => onSelectId(rowId, e.target.checked)}
+                            className="h-3.5 w-3.5 rounded-none border-[var(--color-border-visible)] bg-[var(--color-surface)] text-blue-500 focus:ring-0 cursor-pointer"
+                          />
+                        </label>
+                      </td>
+                    )}
+                    {columns.map((col) => {
+                      const val = rowObj[col.key]
+                      const isNumericVal = typeof val === 'number' || col.isNumeric || col.key.includes('size') || col.key.includes('width') || col.key.includes('thickness') || col.key.includes('id') || col.key.includes('count')
+                      return (
+                        <td 
+                          key={col.key} 
+                          className={`py-2 px-3 text-[13px] text-[var(--color-text)] align-middle ${
+                            isNumericVal ? 'font-mono tracking-tight' : 'font-mono'
+                          }`}
+                        >
+                          {col.render ? col.render(row) : ((val as React.ReactNode) ?? '—')}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

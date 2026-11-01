@@ -1,0 +1,16 @@
+.git
+.github
+.vscode
+*.md
+LICENSE
+backups/
+docs/
+design-system/
+*.ps1
+*.sh
+!entrypoint.sh
+__pycache__
+*.pyc
+.env
+.env.*
+!.env.example

@@ -1,0 +1,43 @@
+import logging
+import meilisearch
+from django.conf import settings
+from tms.testing import IS_TESTING
+
+logger = logging.getLogger(__name__)
+
+# Initialize client
+client = meilisearch.Client(settings.MEILI_HOST, settings.MEILI_MASTER_KEY)
+
+# Use a separate index for tests
+INDEX_NAME = 'dies_test' if IS_TESTING else 'dies'
+
+def init_meilisearch():
+    try:
+        # Create index if it does not exist
+        client.create_index(INDEX_NAME, {'primaryKey': 'id'})
+    except Exception as e:
+        logger.info(f"Meilisearch index already exists or initialization note: {e}")
+    
+    try:
+        index = client.index(INDEX_NAME)
+        index.update_settings({
+            'searchableAttributes': ['die_id', 'casing', 'status', 'rack', 'shelf_number', 'set', 'machine', 'size_str', 'width_str', 'thickness_str', 'size', 'width', 'thickness'],
+            'filterableAttributes': ['die_type', 'status', 'casing', 'rack', 'shelf_number', 'size', 'width', 'thickness', 'machine'],
+            'sortableAttributes':   ['die_id'],
+            'typoTolerance': {
+                'enabled': True,
+                'minWordSizeForTypos': {'oneTypo': 5, 'twoTypos': 9},
+            },
+        })
+        logger.info(f"Meilisearch index '{INDEX_NAME}' initialized successfully")
+    except Exception as e:
+        logger.error(f"Meilisearch connection/init failed: {e}")
+
+def sync_die(die):
+    from search.tasks import sync_die_task
+    sync_die_task.delay(die.id)
+
+def delete_die_document(die_db_id):
+    from search.tasks import delete_die_document_task
+    delete_die_document_task.delay(die_db_id)
+

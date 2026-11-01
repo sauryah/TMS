@@ -1,0 +1,242 @@
+import React, { createContext, useContext, useState, useEffect } from 'react'
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
+
+function clearAuthStorage() {
+  localStorage.removeItem('tms_token')
+  localStorage.removeItem('tms_refresh_token')
+  localStorage.removeItem('tms_role')
+  localStorage.removeItem('tms_username')
+  localStorage.removeItem('tms_user_id')
+  localStorage.removeItem('tms_authorized_for_tools')
+  localStorage.removeItem('tms_authorized_tools')
+}
+
+interface AuthContextValue {
+  token: string | null
+  refreshToken: string | null
+  role: string | null
+  username: string | null
+  userId: number | null
+  isAuthorizedForTools: boolean
+  authorizedTools: string[]
+  login: (newToken: string, refresh: string, userRole: string, userN: string, id?: number, authorizedForTools?: boolean, authTools?: string[]) => void
+  logout: () => void
+  refetchPermissions: () => Promise<void>
+  setToken: React.Dispatch<React.SetStateAction<string | null>>
+  setRefreshToken: React.Dispatch<React.SetStateAction<string | null>>
+  handleRefreshFailure: () => number
+  shouldBlockRefresh: () => boolean
+  resetRefreshFailures: () => void
+}
+
+const AuthContext = createContext<AuthContextValue>({} as AuthContextValue)
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const refreshFailuresRef = React.useRef(0)
+  const [token, setToken] = useState<string | null>(() => {
+    const stored = localStorage.getItem('tms_token')
+    if (stored && isTokenExpired(stored)) {
+      clearAuthStorage()
+      return null
+    }
+    return stored
+  })
+  const [refreshToken, setRefreshToken] = useState<string | null>(() => localStorage.getItem('tms_refresh_token'))
+  const [role, setRole] = useState<string | null>(() => localStorage.getItem('tms_role'))
+  const [username, setUsername] = useState<string | null>(() => localStorage.getItem('tms_username'))
+  const [userId, setUserId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('tms_user_id')
+    return stored ? parseInt(stored, 10) : null
+  })
+  const [isAuthorizedForTools, setIsAuthorizedForTools] = useState<boolean>(() => {
+    return localStorage.getItem('tms_authorized_for_tools') === 'true'
+  })
+  const [authorizedTools, setAuthorizedTools] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('tms_authorized_tools')
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  })
+
+  const logout = React.useCallback(() => {
+    refreshFailuresRef.current = 0
+    const activeToken = localStorage.getItem('tms_token') || token
+    if (activeToken) {
+      fetch('/api/v1/auth/logout/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${activeToken}`,
+          'X-Requested-With': 'XMLHttpRequest',
+        }
+      }).catch(err => console.error('Failed to notify backend logout:', err))
+    }
+    clearAuthStorage()
+    setToken(null)
+    setRefreshToken(null)
+    setRole(null)
+    setUsername(null)
+    setUserId(null)
+    setIsAuthorizedForTools(false)
+    setAuthorizedTools([])
+  }, [token])
+
+  const refetchPermissions = React.useCallback(async () => {
+    const activeToken = localStorage.getItem('tms_token') || token
+    if (!activeToken) return
+    try {
+      const res = await fetch('/api/v1/auth/me/', {
+        headers: {
+          'Authorization': `Bearer ${activeToken}`,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      if (res && res.status === 401) {
+        logout()
+        return
+      }
+      if (res && res.ok && typeof res.json === 'function') {
+        const data = await res.json()
+        if (data.role) setRole(data.role)
+        if (typeof data.is_authorized_for_tools === 'boolean') {
+          setIsAuthorizedForTools(data.is_authorized_for_tools)
+        }
+        if (Array.isArray(data.authorized_tools)) {
+          setAuthorizedTools(data.authorized_tools)
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to live-sync user permissions:', err)
+    }
+  }, [token, logout])
+
+  useEffect(() => {
+    if (!token) return
+
+    refetchPermissions()
+
+    const interval = setInterval(refetchPermissions, 30000)
+    const onFocus = () => refetchPermissions()
+
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [token, refetchPermissions])
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('tms_token', token)
+    } else {
+      localStorage.removeItem('tms_token')
+    }
+  }, [token])
+
+  useEffect(() => {
+    // Refresh token is httponly cookie-only; never persist to localStorage
+  }, [refreshToken])
+
+  useEffect(() => {
+    if (role) {
+      localStorage.setItem('tms_role', role)
+    } else {
+      localStorage.removeItem('tms_role')
+    }
+  }, [role])
+
+  useEffect(() => {
+    if (username) {
+      localStorage.setItem('tms_username', username)
+    } else {
+      localStorage.removeItem('tms_username')
+    }
+  }, [username])
+
+  useEffect(() => {
+    if (userId !== null) {
+      localStorage.setItem('tms_user_id', String(userId))
+    } else {
+      localStorage.removeItem('tms_user_id')
+    }
+  }, [userId])
+
+  useEffect(() => {
+    localStorage.setItem('tms_authorized_for_tools', String(isAuthorizedForTools))
+  }, [isAuthorizedForTools])
+
+  useEffect(() => {
+    localStorage.setItem('tms_authorized_tools', JSON.stringify(authorizedTools))
+  }, [authorizedTools])
+
+  const login = (newToken: string, refresh: string, userRole: string, userN: string, id?: number, authorizedForTools?: boolean, authTools?: string[]) => {
+    refreshFailuresRef.current = 0
+    setToken(newToken)
+    setRefreshToken(refresh)
+    setRole(userRole)
+    setUsername(userN)
+    if (id !== undefined) setUserId(id)
+    if (authorizedForTools !== undefined) {
+      setIsAuthorizedForTools(authorizedForTools)
+    } else {
+      setIsAuthorizedForTools(userRole === 'ROOT')
+    }
+    if (authTools !== undefined) {
+      setAuthorizedTools(authTools)
+    } else {
+      setAuthorizedTools(userRole === 'ROOT' ? ['wire-drawing-calculator', 'die-series-generator'] : [])
+    }
+  }
+
+  const handleRefreshFailure = () => {
+    refreshFailuresRef.current += 1
+    if (refreshFailuresRef.current >= 2) {
+      logout()
+      window.location.hash = '/login'
+    }
+    return refreshFailuresRef.current
+  }
+
+  const shouldBlockRefresh = () => {
+    return refreshFailuresRef.current >= 2
+  }
+
+  const resetRefreshFailures = () => {
+    refreshFailuresRef.current = 0
+  }
+
+  return (
+    <AuthContext.Provider value={{
+      token,
+      refreshToken,
+      role,
+      username,
+      userId,
+      isAuthorizedForTools: role === 'ROOT' || isAuthorizedForTools,
+      authorizedTools: role === 'ROOT' ? ['wire-drawing-calculator', 'die-series-generator'] : authorizedTools,
+      login,
+      logout,
+      refetchPermissions,
+      setToken,
+      setRefreshToken,
+      handleRefreshFailure,
+      shouldBlockRefresh,
+      resetRefreshFailures
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export const useAuth = () => useContext(AuthContext)
+

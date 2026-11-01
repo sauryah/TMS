@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/32x32.png" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/icons/128x128.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="TMS (Tool Management System) - A high-performance local network platform for manufacturing die inventory tracking, signal-driven auditing, and CAD visualization." />
+    <meta name="author" content="Sahil Pradhan" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="keywords" content="tool management system, tms, manufacturing, warehouse tracker, CAD layout, inventory, industrial LAN, postgresql, go, react" />
+    <title>TMS — Tool Management System</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered successfully!', reg.scope))
+            .catch(err => console.log('Service Worker registration failed:', err));
+        });
+      }
+    </script>
+  </body>
+</html>

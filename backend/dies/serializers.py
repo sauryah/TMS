@@ -1,0 +1,369 @@
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from django.db import transaction
+from dies.contracts import DIE_STATUSES
+from dies.models import Die, RoundDie, FlatDie, ImportLog, MaintenanceLog, WearAlert, DieTolerance, MachineDieStock, DieInventoryRecount, DieInventoryRecountItem, EnamelMachine
+from history.models import DieHistory
+
+class DieHistorySerializer(serializers.ModelSerializer):
+    changed_by_username = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = DieHistory
+        fields = ['timestamp', 'field_name', 'old_value', 'new_value', 'changed_by_username', 'ip_address', 'note']
+        
+    @extend_schema_field(serializers.CharField)
+    def get_changed_by_username(self, obj):
+        return obj.changed_by.username if obj.changed_by else ''
+
+class WearAlertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WearAlert
+        fields = ['id', 'alert_level', 'message', 'is_resolved', 'created_at', 'resolved_at']
+
+class DieToleranceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DieTolerance
+        fields = ['id', 'die_type', 'max_wear_mm', 'warning_percentage', 'critical_percentage']
+
+class DieListSerializer(serializers.ModelSerializer):
+    set_name = serializers.SerializerMethodField()
+    machine_name = serializers.SerializerMethodField()
+    active_alerts = serializers.SerializerMethodField()
+    shelf = serializers.IntegerField(source='shelf_number', allow_null=True, required=False)
+    
+    class Meta:
+        model = Die
+        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'current_set', 'rack', 'shelf', 'shelf_number', 'active_alerts', 'version']
+        
+    @extend_schema_field(serializers.CharField)
+    def get_set_name(self, obj):
+        return obj.current_set.name if obj.current_set else ''
+        
+    @extend_schema_field(serializers.CharField)
+    def get_machine_name(self, obj):
+        return obj.current_set.machine.name if obj.current_set and obj.current_set.machine else ''
+
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
+    def get_active_alerts(self, obj):
+        # Use prefetched data if available, otherwise fall back to query
+        if hasattr(obj, '_prefetched_objects_cache') and 'wear_alerts' in obj._prefetched_objects_cache:
+            active = [a for a in obj._prefetched_objects_cache['wear_alerts'] if not a.is_resolved]
+        else:
+            active = obj.wear_alerts.filter(is_resolved=False)
+        return WearAlertSerializer(active, many=True).data
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['rack_id'] = instance.rack_id
+        rep['rack_name'] = instance.rack.name if instance.rack else ''
+        if instance.die_type == 'ROUND' and hasattr(instance, 'rounddie') and instance.rounddie:
+            rep['current_size'] = str(instance.rounddie.current_size)
+        elif instance.die_type == 'FLAT' and hasattr(instance, 'flatdie') and instance.flatdie:
+            rep['current_width'] = str(instance.flatdie.current_width)
+            rep['current_thickness'] = str(instance.flatdie.current_thickness)
+            rep['radius'] = str(instance.flatdie.radius)
+        return rep
+
+class DieDetailSerializer(serializers.ModelSerializer):
+    set_name = serializers.SerializerMethodField()
+    machine_name = serializers.SerializerMethodField()
+    history = DieHistorySerializer(many=True, read_only=True)
+    active_alerts = serializers.SerializerMethodField()
+    shelf = serializers.IntegerField(source='shelf_number', allow_null=True, required=False)
+    
+    class Meta:
+        model = Die
+        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'remarks', 'created_at', 'updated_at', 'history', 'current_set', 'rack', 'shelf', 'shelf_number', 'active_alerts', 'version']
+        
+    @extend_schema_field(serializers.CharField)
+    def get_set_name(self, obj):
+        return obj.current_set.name if obj.current_set else ''
+        
+    @extend_schema_field(serializers.CharField)
+    def get_machine_name(self, obj):
+        return obj.current_set.machine.name if obj.current_set and obj.current_set.machine else ''
+
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
+    def get_active_alerts(self, obj):
+        if hasattr(obj, '_prefetched_objects_cache') and 'wear_alerts' in obj._prefetched_objects_cache:
+            active = [a for a in obj._prefetched_objects_cache['wear_alerts'] if not a.is_resolved]
+        else:
+            active = obj.wear_alerts.filter(is_resolved=False)
+        return WearAlertSerializer(active, many=True).data
+        
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['rack_id'] = instance.rack_id
+        rep['rack_name'] = instance.rack.name if instance.rack else ''
+        if instance.die_type == 'ROUND' and hasattr(instance, 'rounddie') and instance.rounddie:
+            rep['punched_size'] = str(instance.rounddie.punched_size)
+            rep['current_size'] = str(instance.rounddie.current_size)
+        elif instance.die_type == 'FLAT' and hasattr(instance, 'flatdie') and instance.flatdie:
+            rep['punched_width'] = str(instance.flatdie.punched_width)
+            rep['current_width'] = str(instance.flatdie.current_width)
+            rep['punched_thickness'] = str(instance.flatdie.punched_thickness)
+            rep['current_thickness'] = str(instance.flatdie.current_thickness)
+            rep['radius'] = str(instance.flatdie.radius)
+        return rep
+
+class DieCreateSerializer(serializers.ModelSerializer):
+    punched_size = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
+    current_size = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
+    
+    punched_width = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
+    current_width = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
+    punched_thickness = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
+    current_thickness = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
+    radius = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
+    shelf = serializers.IntegerField(source='shelf_number', allow_null=True, required=False)
+    
+    class Meta:
+        model = Die
+        fields = ['die_id', 'die_type', 'casing', 'status', 'current_set', 'remarks', 'rack', 'shelf', 'shelf_number',
+                  'punched_size', 'current_size', 'punched_width', 'current_width',
+                  'punched_thickness', 'current_thickness', 'radius', 'version']
+                  
+    def to_internal_value(self, data):
+        if 'status' in data and data['status']:
+            if hasattr(data, 'copy'):
+                data = data.copy()
+            status_val = str(data['status']).strip().upper()
+            if status_val not in DIE_STATUSES:
+                raise serializers.ValidationError({"status": f"Invalid status '{status_val}'."})
+            data['status'] = status_val
+        return super().to_internal_value(data)
+
+    def validate_die_id(self, value):
+        from dies.services.validation_service import ValidationService
+        try:
+            return ValidationService.validate_die_id(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+    def validate(self, attrs):
+        die_type = attrs.get('die_type')
+        if die_type == 'ROUND':
+            if 'punched_size' not in attrs or 'current_size' not in attrs:
+                raise serializers.ValidationError("ROUND die requires punched_size and current_size.")
+        elif die_type == 'FLAT':
+            if any(k not in attrs for k in ['punched_width', 'current_width', 'punched_thickness', 'current_thickness', 'radius']):
+                raise serializers.ValidationError("FLAT die requires punched_width, current_width, punched_thickness, current_thickness, and radius.")
+        
+        # Validate location if rack or shelf_number is provided
+        rack = attrs.get('rack')
+        shelf_number = attrs.get('shelf_number')
+        if rack is not None or shelf_number is not None:
+            from dies.services.validation_service import ValidationService
+            try:
+                ValidationService.validate_location(rack, shelf_number)
+            except ValueError as e:
+                raise serializers.ValidationError(str(e))
+        
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        die_type = validated_data.get('die_type')
+        
+        punched_size = validated_data.pop('punched_size', None)
+        current_size = validated_data.pop('current_size', None)
+        punched_width = validated_data.pop('punched_width', None)
+        current_width = validated_data.pop('current_width', None)
+        punched_thickness = validated_data.pop('punched_thickness', None)
+        current_thickness = validated_data.pop('current_thickness', None)
+        radius = validated_data.pop('radius', None)
+        
+        die = Die.objects.create(**validated_data)
+        
+        if die_type == 'ROUND':
+            RoundDie.objects.create(
+                die=die,
+                punched_size=punched_size,
+                current_size=current_size
+            )
+        elif die_type == 'FLAT':
+            FlatDie.objects.create(
+                die=die,
+                punched_width=punched_width,
+                current_width=current_width,
+                punched_thickness=punched_thickness,
+                current_thickness=current_thickness,
+                radius=radius
+            )
+        return die
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        punched_size = validated_data.pop('punched_size', None)
+        current_size = validated_data.pop('current_size', None)
+        punched_width = validated_data.pop('punched_width', None)
+        current_width = validated_data.pop('current_width', None)
+        punched_thickness = validated_data.pop('punched_thickness', None)
+        current_thickness = validated_data.pop('current_thickness', None)
+        radius = validated_data.pop('radius', None)
+        
+        for attr, val in validated_data.items():
+            setattr(instance, attr, val)
+        instance.save()
+        
+        if instance.die_type == 'ROUND':
+            if hasattr(instance, 'rounddie') and instance.rounddie:
+                rd = instance.rounddie
+                if punched_size is not None: rd.punched_size = punched_size
+                if current_size is not None: rd.current_size = current_size
+                rd.save()
+        elif instance.die_type == 'FLAT':
+            if hasattr(instance, 'flatdie') and instance.flatdie:
+                fd = instance.flatdie
+                if punched_width is not None: fd.punched_width = punched_width
+                if current_width is not None: fd.current_width = current_width
+                if punched_thickness is not None: fd.punched_thickness = punched_thickness
+                if current_thickness is not None: fd.current_thickness = current_thickness
+                if radius is not None: fd.radius = radius
+                fd.save()
+        return instance
+
+def serialize_die_list_fast(dies_queryset):
+    """
+    High-performance serialization function for lists of Die instances.
+    Bypasses Django REST Framework's serialization overhead, resulting in 10-15x faster runs.
+    """
+    data = []
+    for die in dies_queryset:
+        active_alerts = []
+        if hasattr(die, '_prefetched_objects_cache') and 'wear_alerts' in die._prefetched_objects_cache:
+            alerts = [a for a in die._prefetched_objects_cache['wear_alerts'] if not a.is_resolved]
+        elif hasattr(die, 'wear_alerts'):
+            alerts = die.wear_alerts.filter(is_resolved=False)
+        else:
+            alerts = []
+
+        for a in alerts:
+            active_alerts.append({
+                'id': a.id,
+                'alert_level': a.alert_level,
+                'message': a.message,
+                'is_resolved': a.is_resolved,
+                'created_at': a.created_at.isoformat() if hasattr(a.created_at, 'isoformat') else str(a.created_at),
+                'resolved_at': a.resolved_at.isoformat() if (a.resolved_at and hasattr(a.resolved_at, 'isoformat')) else (str(a.resolved_at) if a.resolved_at else None)
+            })
+
+        rep = {
+            'die_id': die.die_id,
+            'die_type': die.die_type,
+            'casing': die.casing,
+            'status': die.status,
+            'set_name': die.current_set.name if die.current_set else '',
+            'machine_name': die.current_set.machine.name if (die.current_set and die.current_set.machine) else '',
+            'current_set': die.current_set_id,
+            'rack': die.rack_id,
+            'rack_id': die.rack_id,
+            'rack_name': die.rack.name if die.rack else '',
+            'shelf': die.shelf_number,
+            'shelf_number': die.shelf_number,
+            'active_alerts': active_alerts,
+            'version': getattr(die, 'version', 1),
+        }
+        if die.die_type == 'ROUND':
+            rd = getattr(die, 'rounddie', None)
+            if rd:
+                rep['current_size'] = str(rd.current_size)
+        elif die.die_type == 'FLAT':
+            fd = getattr(die, 'flatdie', None)
+            if fd:
+                rep['current_width'] = str(fd.current_width)
+                rep['current_thickness'] = str(fd.current_thickness)
+                rep['radius'] = str(fd.radius)
+        data.append(rep)
+    return data
+
+
+class MaintenanceLogSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MaintenanceLog
+        fields = ['id', 'die', 'created_by', 'created_by_username', 'created_at', 'note', 'category']
+        read_only_fields = ['id', 'die', 'created_by', 'created_by_username', 'created_at']
+
+    @extend_schema_field(serializers.CharField)
+    def get_created_by_username(self, obj):
+        return obj.created_by.username if obj.created_by else ''
+
+
+class ImportLogSerializer(serializers.ModelSerializer):
+    imported_by_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ImportLog
+        fields = ['id', 'imported_by', 'imported_by_username', 'imported_at', 'filename', 
+                  'created_count', 'updated_count', 'skipped_count', 'error_count', 'errors_json']
+
+    @extend_schema_field(serializers.CharField)
+    def get_imported_by_username(self, obj):
+        return obj.imported_by.username if obj.imported_by else ''
+
+
+class EnamelMachineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EnamelMachine
+        fields = ['id', 'name', 'description']
+
+
+class MachineDieStockSerializer(serializers.ModelSerializer):
+    enamel_machine_name = serializers.CharField(source='enamel_machine.name', read_only=True)
+
+    class Meta:
+        model = MachineDieStock
+        fields = ['id', 'enamel_machine', 'enamel_machine_name', 'die_size', 'quantity', 'updated_at']
+        read_only_fields = ['id', 'updated_at']
+
+
+class DieInventoryRecountItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DieInventoryRecountItem
+        fields = ['id', 'die_size', 'quantity', 'previous_quantity']
+        read_only_fields = ['id']
+
+
+class DieInventoryRecountSerializer(serializers.ModelSerializer):
+    enamel_machine_name = serializers.CharField(source='enamel_machine.name', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    items = DieInventoryRecountItemSerializer(many=True, required=False)
+
+    class Meta:
+        model = DieInventoryRecount
+        fields = ['id', 'name', 'enamel_machine', 'enamel_machine_name', 'recount_date', 'created_at', 'created_by', 'created_by_username', 'status', 'items']
+        read_only_fields = ['id', 'created_at', 'created_by', 'status']
+
+    @transaction.atomic
+    def create(self, validated_data):
+        items_data = validated_data.pop('items', [])
+        recount = DieInventoryRecount.objects.create(**validated_data)
+        for item_data in items_data:
+            DieInventoryRecountItem.objects.create(recount=recount, **item_data)
+        return recount
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        if instance.status == 'SUBMITTED':
+            raise serializers.ValidationError("Cannot modify a submitted recount sheet.")
+        
+        items_data = validated_data.pop('items', None)
+        
+        # Update header fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update items if provided
+        if items_data is not None:
+            # Delete existing items and rebuild to avoid complex merge logic
+            instance.items.all().delete()
+            for item_data in items_data:
+                DieInventoryRecountItem.objects.create(recount=instance, **item_data)
+                
+        return instance
+
+

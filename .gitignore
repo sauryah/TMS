@@ -1,0 +1,68 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.sqlite3
+
+# Environments
+.env
+.env.local
+.env.*.local
+.venv
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Docker logs
+*.log
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.opencode/
+
+# Playwright
+test-results/
+test-results-local/
+playwright-report/
+blob-report/
+
+# Cli
+.agent/
+.agents/
+graphify-out/
+
+# User
+plan.md
+docs/TMS_Engineering_review.md
+
+# Go binaries
+go-api/server
+
+# Backups
+backups/
+
+# Temporary files
+backend/tmp/
+skills-lock.json
+
+# TLS certificates (generated per-machine, never commit private keys or certs)
+certs/*
+!certs/.gitkeep
+
+# Celery beat runtime
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat-schedule*
+
+# Rust build artifacts
+wasm-drawing-engine/target/
+
+TMS-Client-Setup.exe

@@ -1,0 +1,576 @@
+from django.db import transaction
+from django.db.models import Q
+from django.utils.decorators import method_decorator
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from history.models import DieHistory
+from history.serializers import AuditDieHistorySerializer, DashboardDieHistorySerializer
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from users.permissions import IsAdminOrRootOnly
+from django.core.cache import cache
+
+class DieHistoryPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
+class DieHistoryListView(APIView):
+    permission_classes = [IsAdminOrRootOnly]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('die_id', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Die ID'),
+            OpenApiParameter('user', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Username'),
+            OpenApiParameter('from', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Start date (YYYY-MM-DD)'),
+            OpenApiParameter('to', OpenApiTypes.STR, OpenApiParameter.QUERY, description='End date (YYYY-MM-DD)'),
+            OpenApiParameter('field', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by field name'),
+            OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Page number'),
+            OpenApiParameter('page_size', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Items per page'),
+        ],
+        responses={200: AuditDieHistorySerializer(many=True)},
+        description="Retrieve paginated history list of changes for extrusion dies."
+    )
+    def get(self, request, *args, **kwargs):
+        queryset = DieHistory.objects.all().select_related('die', 'changed_by')
+        
+        # Optional filters
+        die_id = request.query_params.get('die_id')
+        if die_id:
+            queryset = queryset.filter(die__die_id__icontains=die_id)
+            
+        user = request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(changed_by__username__icontains=user)
+            
+        field = request.query_params.get('field')
+        if field:
+            queryset = queryset.filter(field_name__icontains=field)
+            
+        from_date = request.query_params.get('from')
+        if from_date:
+            queryset = queryset.filter(timestamp__date__gte=from_date)
+            
+        to_date = request.query_params.get('to')
+        if to_date:
+            queryset = queryset.filter(timestamp__date__lte=to_date)
+            
+        ip = request.query_params.get('ip')
+        if ip:
+            queryset = queryset.filter(ip_address__icontains=ip)
+            
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(note__icontains=search) |
+                Q(old_value__icontains=search) |
+                Q(new_value__icontains=search)
+            )
+            
+        paginator = DieHistoryPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = AuditDieHistorySerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+            
+        serializer = AuditDieHistorySerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+from history.models import MachineHistory
+from history.serializers import AuditMachineHistorySerializer
+
+class MachineHistoryPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
+class MachineHistoryListView(APIView):
+    permission_classes = [IsAdminOrRootOnly]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('entity_type', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Entity Type (MACHINE/SET/CATEGORY)'),
+            OpenApiParameter('entity_name', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Entity Name'),
+            OpenApiParameter('action', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Action (CREATED/UPDATED/DELETED)'),
+            OpenApiParameter('user', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Username'),
+            OpenApiParameter('from', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Start date (YYYY-MM-DD)'),
+            OpenApiParameter('to', OpenApiTypes.STR, OpenApiParameter.QUERY, description='End date (YYYY-MM-DD)'),
+            OpenApiParameter('field', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by field name'),
+            OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Page number'),
+            OpenApiParameter('page_size', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Items per page'),
+        ],
+        responses={200: AuditMachineHistorySerializer(many=True)},
+        description="Retrieve paginated history list of changes for machines, sets, and categories."
+    )
+    def get(self, request, *args, **kwargs):
+        queryset = MachineHistory.objects.all().select_related('changed_by')
+
+        # Optional filters
+        entity_type = request.query_params.get('entity_type')
+        if entity_type:
+            queryset = queryset.filter(entity_type=entity_type)
+
+        entity_name = request.query_params.get('entity_name')
+        if entity_name:
+            queryset = queryset.filter(entity_name__icontains=entity_name)
+
+        action = request.query_params.get('action')
+        if action:
+            queryset = queryset.filter(action=action)
+
+        user = request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(changed_by__username__icontains=user)
+
+        field = request.query_params.get('field')
+        if field:
+            queryset = queryset.filter(field_name__icontains=field)
+
+        from_date = request.query_params.get('from')
+        if from_date:
+            queryset = queryset.filter(timestamp__date__gte=from_date)
+
+        to_date = request.query_params.get('to')
+        if to_date:
+            queryset = queryset.filter(timestamp__date__lte=to_date)
+
+        ip = request.query_params.get('ip')
+        if ip:
+            queryset = queryset.filter(ip_address__icontains=ip)
+
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(old_value__icontains=search) |
+                Q(new_value__icontains=search)
+            )
+
+        paginator = MachineHistoryPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = AuditMachineHistorySerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = AuditMachineHistorySerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
+class DashboardHistoryListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('field', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by field name'),
+            OpenApiParameter('page_size', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Items per page'),
+        ],
+        responses={200: DashboardDieHistorySerializer(many=True)},
+        description="Retrieve limited, non-sensitive status changes and recent activities for the dashboard."
+    )
+    def get(self, request, *args, **kwargs):
+        field = request.query_params.get('field', '')
+        page_size = request.query_params.get('page_size', '10')
+        
+        # Validate page size (max 100 for safety)
+        try:
+            limit = min(int(page_size), 100)
+        except ValueError:
+            limit = 10
+
+        # Construct versioned cache key based on query parameters
+        version = cache.get_or_set("dashboard_history_version", 1)
+        cache_key = f"dashboard_history_v{version}_{field}_{limit}"
+        
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # Query only non-sensitive field history
+        queryset = DieHistory.objects.all().select_related('die', 'changed_by')
+        if field:
+            queryset = queryset.filter(field_name__icontains=field)
+        queryset = queryset.order_by('-timestamp')
+        
+        # Limit to the requested size
+        queryset = queryset[:limit]
+        
+        serializer = DashboardDieHistorySerializer(queryset, many=True)
+        response_data = serializer.data
+        
+        # Cache for 60 seconds (cleared automatically by DieHistory signals)
+        cache.set(cache_key, response_data, 60)
+        
+        return Response(response_data)
+
+
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
+class UnifiedHistoryListView(APIView):
+    permission_classes = [IsAdminOrRootOnly]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('user', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Username'),
+            OpenApiParameter('from', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Start date (YYYY-MM-DD)'),
+            OpenApiParameter('to', OpenApiTypes.STR, OpenApiParameter.QUERY, description='End date (YYYY-MM-DD)'),
+            OpenApiParameter('ip', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by IP address'),
+            OpenApiParameter('search', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Search notes or values'),
+            OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Page number'),
+            OpenApiParameter('page_size', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Items per page'),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
+        description="Retrieve chronological unified history list of changes for dies and machines."
+    )
+    def get(self, request, *args, **kwargs):
+        from django.db import connection
+        
+        user = request.query_params.get('user')
+        from_date = request.query_params.get('from')
+        to_date = request.query_params.get('to')
+        ip = request.query_params.get('ip')
+        search = request.query_params.get('search')
+        try:
+            page = max(int(request.query_params.get('page', 1)), 1)
+            page_size = min(max(int(request.query_params.get('page_size', 25)), 1), 100)
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "Invalid page or page_size query parameter. Must be valid integers."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        offset = (page - 1) * page_size
+
+        # 1. Build SELECT for DieHistory
+        dh_where = []
+        dh_params = []
+        if user:
+            dh_where.append("u.username ILIKE %s")
+            dh_params.append(f"%{user}%")
+        if from_date:
+            dh_where.append("h.timestamp >= %s")
+            dh_params.append(from_date)
+        if to_date:
+            dh_where.append("h.timestamp <= %s")
+            dh_params.append(to_date)
+        if ip:
+            dh_where.append("h.ip_address ILIKE %s")
+            dh_params.append(f"%{ip}%")
+        if search:
+            dh_where.append("(h.note ILIKE %s OR h.old_value ILIKE %s OR h.new_value ILIKE %s)")
+            dh_params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+            
+        dh_where_str = " AND ".join(dh_where)
+        if dh_where_str:
+            dh_where_str = "WHERE " + dh_where_str
+            
+        dh_query = f"""
+            SELECT 
+                'DIE' AS entity_type,
+                h.id,
+                h.die_id AS entity_id,
+                d.die_id AS entity_name,
+                'UPDATED' AS action,
+                h.field_name,
+                h.old_value,
+                h.new_value,
+                u.username AS changed_by_username,
+                h.timestamp,
+                h.ip_address,
+                h.note
+            FROM history_diehistory h
+            LEFT JOIN dies_die d ON h.die_id = d.id
+            LEFT JOIN users_user u ON h.changed_by_id = u.id
+            {dh_where_str}
+        """
+
+        # 2. Build SELECT for MachineHistory
+        mh_where = []
+        mh_params = []
+        if user:
+            mh_where.append("u.username ILIKE %s")
+            mh_params.append(f"%{user}%")
+        if from_date:
+            mh_where.append("m.timestamp >= %s")
+            mh_params.append(from_date)
+        if to_date:
+            mh_where.append("m.timestamp <= %s")
+            mh_params.append(to_date)
+        if ip:
+            mh_where.append("m.ip_address ILIKE %s")
+            mh_params.append(f"%{ip}%")
+        if search:
+            mh_where.append("(m.old_value ILIKE %s OR m.new_value ILIKE %s)")
+            mh_params.extend([f"%{search}%", f"%{search}%"])
+            
+        mh_where_str = " AND ".join(mh_where)
+        if mh_where_str:
+            mh_where_str = "WHERE " + mh_where_str
+            
+        mh_query = f"""
+            SELECT 
+                m.entity_type,
+                m.id,
+                m.entity_id,
+                m.entity_name,
+                m.action,
+                m.field_name,
+                m.old_value,
+                m.new_value,
+                u.username AS changed_by_username,
+                m.timestamp,
+                m.ip_address,
+                '' AS note
+            FROM history_machinehistory m
+            LEFT JOIN users_user u ON m.changed_by_id = u.id
+            {mh_where_str}
+        """
+
+        # 3. Query Execution
+        with connection.cursor() as cursor:
+            # Get total count
+            count_query = f"""
+                SELECT 
+                    (SELECT COUNT(*) FROM history_diehistory h LEFT JOIN users_user u ON h.changed_by_id = u.id {dh_where_str}) +
+                    (SELECT COUNT(*) FROM history_machinehistory m LEFT JOIN users_user u ON m.changed_by_id = u.id {mh_where_str})
+            """
+            cursor.execute(count_query, dh_params + mh_params)
+            total_count = cursor.fetchone()[0]
+            
+            # Get paginated data
+            union_query = f"""
+                SELECT 
+                    entity_type,
+                    id,
+                    entity_id,
+                    entity_name,
+                    action,
+                    field_name,
+                    old_value,
+                    new_value,
+                    changed_by_username,
+                    timestamp,
+                    ip_address,
+                    note
+                FROM (
+                    ({dh_query})
+                    UNION ALL
+                    ({mh_query})
+                ) AS unified
+                ORDER BY timestamp DESC
+                LIMIT %s OFFSET %s
+            """
+            params = dh_params + mh_params + [page_size, offset]
+            cursor.execute(union_query, params)
+            rows = cursor.fetchall()
+
+        results = []
+        for r in rows:
+            results.append({
+                'id': f"{r[0].lower()}_{r[1]}",
+                'entity_type': r[0],
+                'entity_id': r[2],
+                'entity_name': r[3],
+                'action': r[4],
+                'field_name': r[5],
+                'old_value': r[6],
+                'new_value': r[7],
+                'changed_by_username': r[8] if r[8] else 'System',
+                'timestamp': r[9].isoformat() if r[9] else None,
+                'ip_address': r[10] or '',
+                'note': r[11] or '',
+            })
+
+        return Response({
+            'count': total_count,
+            'results': results
+        })
+
+
+from rest_framework import status
+from django.utils import timezone
+from django.db.models.functions import Length
+from history.models import PrintRecord
+from history.serializers import PrintRecordSerializer
+from users.views.auth import get_client_ip
+
+
+def generate_next_doc_ref(doc_type='WIRE_DRAWING_TDS', date_str=None):
+    if not date_str:
+        date_str = timezone.now().strftime('%Y%m%d')
+    prefix = f"TDS-{date_str}-"
+    last_record = (
+        PrintRecord.objects.filter(doc_ref__startswith=prefix)
+        .order_by(Length('doc_ref').desc(), '-doc_ref')
+        .first()
+    )
+    if last_record and last_record.doc_ref:
+        try:
+            seq_part = last_record.doc_ref.split('-')[-1]
+            next_seq = int(seq_part) + 1
+        except (ValueError, IndexError):
+            next_seq = 1
+    else:
+        next_seq = 1
+    return f"{prefix}{next_seq:04d}"
+
+
+def generate_default_work_order(date_str=None):
+    if not date_str:
+        date_str = timezone.now().strftime('%Y%m%d')
+    prefix = f"WO-{date_str}-"
+    last_record = (
+        PrintRecord.objects.filter(work_order__startswith=prefix)
+        .order_by(Length('work_order').desc(), '-work_order')
+        .first()
+    )
+    if last_record and last_record.work_order:
+        try:
+            seq_part = last_record.work_order.split('-')[-1]
+            next_seq = int(seq_part) + 1
+        except (ValueError, IndexError):
+            next_seq = 1
+    else:
+        next_seq = 1
+    return f"{prefix}{next_seq:03d}"
+
+
+class PrintRecordPagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 500
+
+
+class PrintRecordNextRefView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('doc_type', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Document Type', required=False),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
+        description="Retrieve the next available document reference number and default work order for today."
+    )
+    def get(self, request, *args, **kwargs):
+        doc_type = request.query_params.get('doc_type', 'WIRE_DRAWING_TDS')
+        doc_ref = generate_next_doc_ref(doc_type)
+        work_order = generate_default_work_order()
+        return Response({
+            'doc_ref': doc_ref,
+            'default_work_order': work_order,
+        })
+
+
+class PrintRecordListView(APIView):
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return [IsAdminOrRootOnly()]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('doc_ref', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Document Reference'),
+            OpenApiParameter('work_order', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Work Order'),
+            OpenApiParameter('user', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Username'),
+            OpenApiParameter('machine', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Filter by Machine Name'),
+            OpenApiParameter('from', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Start date (YYYY-MM-DD)'),
+            OpenApiParameter('to', OpenApiTypes.STR, OpenApiParameter.QUERY, description='End date (YYYY-MM-DD)'),
+            OpenApiParameter('search', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Search across text fields'),
+            OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Page number'),
+            OpenApiParameter('page_size', OpenApiTypes.INT, OpenApiParameter.QUERY, description='Items per page'),
+        ],
+        responses={200: PrintRecordSerializer(many=True)},
+        description="Retrieve paginated list of print records with filtering."
+    )
+    def get(self, request, *args, **kwargs):
+        queryset = PrintRecord.objects.all().select_related('printed_by')
+
+        doc_ref = request.query_params.get('doc_ref')
+        if doc_ref:
+            queryset = queryset.filter(doc_ref__icontains=doc_ref)
+
+        work_order = request.query_params.get('work_order')
+        if work_order:
+            queryset = queryset.filter(work_order__icontains=work_order)
+
+        user = request.query_params.get('user')
+        if user:
+            queryset = queryset.filter(
+                Q(username__icontains=user) | Q(printed_by__username__icontains=user)
+            )
+
+        machine = request.query_params.get('machine')
+        if machine:
+            queryset = queryset.filter(machine_name__icontains=machine)
+
+        from_date = request.query_params.get('from')
+        if from_date:
+            queryset = queryset.filter(created_at__date__gte=from_date)
+
+        to_date = request.query_params.get('to')
+        if to_date:
+            queryset = queryset.filter(created_at__date__lte=to_date)
+
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(doc_ref__icontains=search) |
+                Q(work_order__icontains=search) |
+                Q(machine_name__icontains=search) |
+                Q(notes__icontains=search) |
+                Q(username__icontains=search)
+            )
+
+        paginator = PrintRecordPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = PrintRecordSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = PrintRecordSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=PrintRecordSerializer,
+        responses={201: PrintRecordSerializer},
+        description="Persist a new print event into the database with client IP and operator attribution."
+    )
+    def post(self, request, *args, **kwargs):
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+
+        with transaction.atomic():
+            candidate_ref = str(data.get('doc_ref', '')).strip()
+            today_str = timezone.now().strftime('%Y%m%d')
+            prefix = f"TDS-{today_str}-"
+
+            if not candidate_ref or PrintRecord.objects.filter(doc_ref=candidate_ref).exists():
+                candidate = generate_next_doc_ref(data.get('doc_type', 'WIRE_DRAWING_TDS'), today_str)
+                attempt = 0
+                while PrintRecord.objects.filter(doc_ref=candidate).exists() and attempt < 50:
+                    seq = int(candidate.split('-')[-1]) + 1
+                    candidate = f"{prefix}{seq:04d}"
+                    attempt += 1
+                data['doc_ref'] = candidate
+            else:
+                data['doc_ref'] = candidate_ref
+
+            if not str(data.get('work_order', '')).strip():
+                data['work_order'] = generate_default_work_order(today_str)
+
+            user = request.user if request.user and request.user.is_authenticated else None
+            username = user.username if user else 'anonymous'
+            user_role = getattr(user, 'role', 'OPERATOR') if user else 'OPERATOR'
+            ip_address = get_client_ip(request)
+
+            serializer = PrintRecordSerializer(data=data)
+            if serializer.is_valid():
+                instance = serializer.save(
+                    printed_by=user,
+                    username=username,
+                    user_role=user_role,
+                    ip_address=ip_address,
+                )
+                return Response(PrintRecordSerializer(instance).data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

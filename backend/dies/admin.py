@@ -1,0 +1,40 @@
+from django.contrib import admin
+from dies.models import Die, RoundDie, FlatDie, DieTolerance, WearAlert
+
+class RoundDieInline(admin.StackedInline):
+    model = RoundDie
+    can_delete = False
+    verbose_name_plural = 'Round Die Specifications'
+
+class FlatDieInline(admin.StackedInline):
+    model = FlatDie
+    can_delete = False
+    verbose_name_plural = 'Flat Die Specifications'
+
+@admin.register(Die)
+class DieAdmin(admin.ModelAdmin):
+    list_display   = ['die_id', 'die_type', 'casing', 'status', 'rack', 'shelf_number', 'current_set', 'updated_at']
+    list_filter    = ['die_type', 'status', 'casing']
+    search_fields  = ['die_id', 'casing', 'remarks']
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [RoundDieInline, FlatDieInline]
+
+@admin.register(RoundDie)
+class RoundDieAdmin(admin.ModelAdmin):
+    list_display  = ['die', 'punched_size', 'current_size']
+    search_fields = ['die__die_id']
+
+@admin.register(FlatDie)
+class FlatDieAdmin(admin.ModelAdmin):
+    list_display  = ['die', 'punched_width', 'current_width', 'punched_thickness', 'current_thickness']
+    search_fields = ['die__die_id']
+
+@admin.register(DieTolerance)
+class DieToleranceAdmin(admin.ModelAdmin):
+    list_display = ['die_type', 'max_wear_mm', 'warning_percentage', 'critical_percentage']
+
+@admin.register(WearAlert)
+class WearAlertAdmin(admin.ModelAdmin):
+    list_display = ['die', 'alert_level', 'is_resolved', 'created_at', 'resolved_at']
+    list_filter = ['alert_level', 'is_resolved']
+    search_fields = ['die__die_id', 'message']

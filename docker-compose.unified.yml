@@ -1,0 +1,115 @@
+# =============================================================================
+# TMS — Simplified Unified Compose (Single Custom Application Container)
+# =============================================================================
+# Usage:
+#   1. Copy .env.example to .env and configure
+#   2. Build the unified image:
+#        docker compose -f docker-compose.unified.yml build
+#   3. Start the services:
+#        docker compose -f docker-compose.unified.yml up -d
+#
+# Note: This compose file replaces Django, Celery, Go API, Frontend, and Traefik
+# with a single monolithic "app" container that runs all custom code.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    command: >
+      postgres
+      -c lock_timeout=30000
+      -c idle_in_transaction_session_timeout=300000
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # Redis (Celery broker + Go API cache)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # Meilisearch (full-text search engine)
+  # ---------------------------------------------------------------------------
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    restart: unless-stopped
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_ENV=production
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # TMS Unified Application (Frontend + Django + Celery + Go API + Nginx)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MEILI_HOST=http://meilisearch:7700
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_SEARCH_KEY=${MEILI_SEARCH_KEY}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_DEBUG=False
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - ROOT_USERNAME=${ROOT_USERNAME}
+      - ROOT_PASSWORD=${ROOT_PASSWORD}
+      - SESSION_IDLE_TIMEOUT_MINUTES=${SESSION_IDLE_TIMEOUT_MINUTES}
+      - SESSION_ABSOLUTE_TIMEOUT_HOURS=${SESSION_ABSOLUTE_TIMEOUT_HOURS}
+      - RUN_MIGRATIONS=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health/"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+
+
+volumes:
+  postgres_data:
+  meili_data:
+  tms_backups:

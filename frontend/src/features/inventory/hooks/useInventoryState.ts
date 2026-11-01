@@ -1,0 +1,524 @@
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '../../../contexts/AuthContext'
+import { useAnnouncer } from '../../../contexts/AccessibilityContext'
+import { useApi } from '../../../hooks/useApi'
+import { useDebounce } from '../../../hooks/useDebounce'
+import { useToast } from '../../../contexts/ToastContext'
+import { useInventoryMutations } from './useInventoryMutations'
+import { MachineSidebarTreeRef, MachineTreeItem, SetTreeItem } from '../components/MachineSidebarTree'
+import { Die, Set as DieSet, Machine } from '../../../types'
+import { compareDiesBySize } from '../../../utils/dieHelpers'
+
+export function useInventoryState() {
+  const { request } = useApi()
+  const { role } = useAuth()
+  const navigate = useNavigate()
+  const { showToast } = useToast()
+  const [searchParams] = useSearchParams()
+  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'rack'>('grid')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+
+
+  // Search parameters states initialized from URL if present
+  const [q, setQ] = useState(searchParams.get('q') || '')
+  const debouncedQ = useDebounce(q, 300)
+  const [dieType, setDieType] = useState(searchParams.get('die_type') || '')
+  const [statusVal, setStatusVal] = useState(searchParams.get('status') || '')
+  const [casing, setCasing] = useState(searchParams.get('casing') || '')
+  
+  // Custom ranges
+  const [sizeMin, setSizeMin] = useState(searchParams.get('size_min') || '')
+  const [sizeMax, setSizeMax] = useState(searchParams.get('size_max') || '')
+  const [widthMin, setWidthMin] = useState(searchParams.get('width_min') || '')
+  const [widthMax, setWidthMax] = useState(searchParams.get('width_max') || '')
+  const [thickMin, setThickMin] = useState(searchParams.get('thick_min') || '')
+  const [thickMax, setThickMax] = useState(searchParams.get('thick_max') || '')
+  const [locationQuery, setLocationQuery] = useState('')
+  const debouncedLocationQuery = useDebounce(locationQuery, 300)
+
+  const [selectedNode, setSelectedNode] = useState<{ type: string; id?: string | number; machineId?: string | number } | null>(() => {
+    const active = !!(
+      searchParams.get('q') || 
+      searchParams.get('die_type') || 
+      searchParams.get('status') || 
+      searchParams.get('casing') || 
+      searchParams.get('size_min') || 
+      searchParams.get('size_max') || 
+      searchParams.get('width_min') || 
+      searchParams.get('width_max') || 
+      searchParams.get('thick_min') || 
+      searchParams.get('thick_max')
+    )
+    return active ? { type: 'search' } : null
+  })
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const isSearchActive = useMemo(() => {
+    return !!(q || dieType || statusVal || casing || sizeMin || sizeMax || widthMin || widthMax || thickMin || thickMax || locationQuery)
+  }, [q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, locationQuery])
+  
+  const [showFilters, setShowFilters] = useState(!!(
+    searchParams.get('die_type') || 
+    searchParams.get('status') || 
+    searchParams.get('casing') || 
+    searchParams.get('size_min') || 
+    searchParams.get('size_max') || 
+    searchParams.get('width_min') || 
+    searchParams.get('width_max') || 
+    searchParams.get('thick_min') || 
+    searchParams.get('thick_max') ||
+    locationQuery
+  ))
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const hasActiveFilter = !!(debouncedQ || dieType || statusVal || casing || sizeMin || sizeMax || widthMin || widthMax || thickMin || thickMax || locationQuery)
+
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedQ, dieType, statusVal, casing, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, debouncedLocationQuery, selectedNode?.type, selectedNode?.id])
+
+
+  const [sortField, setSortField] = useState<string>('relevance')
+  const [sortOrder, setSortOrder] = useState<string>('asc')
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
+
+  // Fetch list of sets for the dropdown
+  const { data: setsList } = useQuery<DieSet[]>({
+    queryKey: ['setsDropdownList'],
+    queryFn: () => request('/api/sets/')
+  })
+
+  // Fetch list of machines
+  const { data: machinesList } = useQuery<Machine[]>({
+    queryKey: ['machinesList'],
+    queryFn: () => request('/api/machines/')
+  })
+
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  // React Query Fetcher
+  const { data: searchData, isLoading, error } = useQuery<{ results?: Die[]; total?: number }>({
+    queryKey: [
+      'dies',
+      debouncedQ,
+      debouncedLocationQuery,
+      dieType,
+      statusVal,
+      casing,
+      sizeMin,
+      sizeMax,
+      widthMin,
+      widthMax,
+      thickMin,
+      thickMax,
+      String(page),
+      String(pageSize),
+      selectedNode?.type || '',
+      selectedNode?.id || ''
+    ],
+    queryFn: ({ signal }: { signal: AbortSignal }) => {
+      let url = '/api/go/search'
+      const params = new URLSearchParams()
+      
+      if (debouncedQ) params.append('q', debouncedQ)
+      if (debouncedLocationQuery) params.append('location', debouncedLocationQuery)
+      if (dieType) params.append('die_type', dieType)
+      if (statusVal) params.append('status', statusVal)
+      if (casing) params.append('casing', casing)
+      
+      if (sizeMin) params.append('size_min', sizeMin)
+      if (sizeMax) params.append('size_max', sizeMax)
+      if (widthMin) params.append('width_min', widthMin)
+      if (widthMax) params.append('width_max', widthMax)
+      if (thickMin) params.append('thick_min', thickMin)
+      if (thickMax) params.append('thick_max', thickMax)
+
+      if (selectedNode) {
+        if (selectedNode.type === 'machine') {
+          params.append('machine_id', String(selectedNode.id))
+        } else if (selectedNode.type === 'set') {
+          params.append('set_id', String(selectedNode.id))
+        } else if (selectedNode.type === 'unassigned') {
+          params.append('unassigned', 'true')
+        }
+      }
+
+      const isPaginated = !selectedNode || selectedNode.type === 'search' || selectedNode.type === 'unassigned'
+      if (isPaginated) {
+        params.append('limit', String(pageSize))
+        params.append('offset', String((page - 1) * pageSize))
+      } else {
+        params.append('limit', '5000')
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+      return request(url, { signal, keepMetadata: true })
+    }
+  })
+
+  const announce = useAnnouncer()
+
+  useEffect(() => {
+    if (searchData) {
+      const count = searchData.results?.length ?? 0
+      announce(`Search results updated. Showing ${count} matching dies.`)
+    }
+  }, [searchData, announce])
+
+  const rawDies = searchData?.results || []
+  const filteredRawDies = rawDies
+
+
+  const sortedDies = useMemo(() => {
+    if (sortField === 'relevance') {
+      return filteredRawDies
+    }
+    return [...filteredRawDies].sort((a, b) => {
+      let valA: string | number = (a as unknown as Record<string, string | number>)[sortField] || ''
+      let valB: string | number = (b as unknown as Record<string, string | number>)[sortField] || ''
+      
+      if (sortField === 'category') {
+        valA = a.die_type || ''
+        valB = b.die_type || ''
+      }
+      
+      if (sortField === 'current_size') {
+        valA = a.die_type === 'ROUND' ? parseFloat(String(a.current_size || 0)) : parseFloat(String(a.current_width || 0))
+        valB = b.die_type === 'ROUND' ? parseFloat(String(b.current_size || 0)) : parseFloat(String(b.current_width || 0))
+      }
+      
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortOrder === 'asc' 
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA)
+      } else {
+        return sortOrder === 'asc' ? Number(valA) - Number(valB) : Number(valB) - Number(valA)
+      }
+    })
+  }, [filteredRawDies, sortField, sortOrder])
+
+
+  const dies = sortedDies
+  const totalCount = searchData?.total ?? dies.length
+
+  // Hook up custom mutations hook:
+  const {
+    createDieMutation,
+    moveDieLocationMutation,
+    reallocateDieMutation,
+    reallocateSetMutation,
+    reorderSetsMutation
+  } = useInventoryMutations(setIsCreateOpen, setCreateError)
+
+  const [activeDragType, setActiveDragType] = useState<string | null>(null)
+
+  const handleDragStartDie = (_id: string) => {
+    setActiveDragType('die')
+  }
+
+  const handleDragEndDie = () => {
+    setActiveDragType(null)
+  }
+
+  const handleCreateSubmit = (payload: Record<string, unknown>) => {
+    setCreateError(null)
+    createDieMutation.mutate(payload)
+  }
+
+  const prevSearchActive = useRef(isSearchActive)
+
+  useEffect(() => {
+    if (isSearchActive && !prevSearchActive.current) {
+      setSelectedNode({ type: 'search' })
+    } else if (!isSearchActive && prevSearchActive.current) {
+      setSelectedNode(null)
+    }
+    prevSearchActive.current = isSearchActive
+  }, [isSearchActive])
+
+  const { unassignedDies, machinesWithData, unassignedCount } = useMemo(() => {
+    const diesBySet: Record<string | number, Die[]> = {}
+    const unassignedDies: Die[] = []
+    
+    dies?.forEach((die: Die) => {
+      if (die.current_set) {
+        if (!diesBySet[die.current_set]) {
+          diesBySet[die.current_set] = []
+        }
+        diesBySet[die.current_set].push(die)
+      } else {
+        unassignedDies.push(die)
+      }
+    })
+
+    const setsByMachine: Record<string | number, (DieSet & { die_count?: number })[]> = {}
+    setsList?.forEach((set) => {
+      if (set.machine) {
+        if (!setsByMachine[set.machine]) {
+          setsByMachine[set.machine] = []
+        }
+        setsByMachine[set.machine].push(set)
+      }
+    })
+
+    const machinesWithData: MachineTreeItem[] = (machinesList || []).map((machine) => {
+      const setsForMachine = setsByMachine[machine.id] || []
+      const machineSets: SetTreeItem[] = setsForMachine.map((set) => {
+        const rawDies = diesBySet[set.id] || []
+        const setDies = [...rawDies].sort((a, b) => compareDiesBySize(a, b, 'desc'))
+        return {
+          id: set.id,
+          name: set.name,
+          machine: set.machine,
+          dies: setDies,
+          die_count: set.die_count || setDies.length || 0
+        }
+      })
+
+      return {
+        id: machine.id,
+        name: machine.name,
+        sets: machineSets,
+        totalDies: machineSets.reduce((sum: number, s) => sum + (s.die_count || 0), 0)
+      }
+    })
+
+    const totalAssignedCount = (setsList || []).reduce((sum: number, s: DieSet & { die_count?: number }) => sum + (s.die_count || 0), 0)
+    const unassignedCount = Math.max(0, totalCount - totalAssignedCount)
+
+    return { unassignedDies, machinesWithData, unassignedCount }
+  }, [dies, machinesList, setsList, totalCount])
+
+  useEffect(() => {
+    if (!selectedNode && !isSearchActive) {
+      if (machinesWithData && machinesWithData.length > 0) {
+        setSelectedNode({ type: 'machine', id: machinesWithData[0].id })
+      } else if (unassignedCount > 0) {
+        setSelectedNode({ type: 'unassigned' })
+      }
+    }
+  }, [machinesWithData, unassignedCount, selectedNode, isSearchActive])
+
+  const activeView = useMemo(() => {
+    if (isSearchActive && (!selectedNode || selectedNode.type === 'search')) {
+      return 'search'
+    }
+    if (selectedNode) {
+      return selectedNode.type
+    }
+    return 'placeholder'
+  }, [selectedNode, isSearchActive])
+
+  const selectedMachine = useMemo(() => {
+    if (selectedNode?.type === 'machine') {
+      return machinesWithData.find((m) => m.id === selectedNode.id) || null
+    }
+    return null
+  }, [selectedNode, machinesWithData])
+
+  const selectedSetData = useMemo(() => {
+    if (selectedNode?.type === 'set') {
+      for (const m of machinesWithData) {
+        const s = m.sets.find((set) => set.id === selectedNode.id)
+        if (s) {
+          return { set: s, machine: m }
+        }
+      }
+    }
+    return null
+  }, [selectedNode, machinesWithData])
+
+  const rawMachine = useMemo(() => {
+    if (selectedNode?.type === 'machine') {
+      return (machinesList || []).find((m) => m.id === selectedNode.id) || null
+    }
+    return null
+  }, [selectedNode, machinesList])
+
+  const rawSetData = useMemo(() => {
+    if (selectedNode?.type === 'set') {
+      const s = (setsList || []).find((set) => set.id === selectedNode.id)
+      if (s) {
+        const m = (machinesList || []).find((mach) => mach.id === s.machine)
+        return { set: s, machine: m }
+      }
+    }
+    return null
+  }, [selectedNode, setsList, machinesList])
+
+  const activeDiesList = useMemo(() => {
+    if (activeView === 'search') return dies || []
+    if (activeView === 'machine') return selectedMachine?.sets.reduce((acc: Die[], s) => [...acc, ...(s.dies || [])], []) || []
+    if (activeView === 'set') return selectedSetData?.set.dies || []
+    if (activeView === 'unassigned') return unassignedDies || []
+    return []
+  }, [activeView, dies, selectedMachine, selectedSetData, unassignedDies])
+
+  const canCreate = role === 'ROOT' || role === 'ADMIN'
+  const sidebarRef = useRef<MachineSidebarTreeRef>(null)
+
+  const handleExpandAll = () => {
+    sidebarRef.current?.expandAll()
+  }
+
+  const handleCollapseAll = () => {
+    sidebarRef.current?.collapseAll()
+  }
+
+  const handleExportCSV = () => {
+    const listToExport = activeDiesList
+    if (!listToExport || listToExport.length === 0) {
+      showToast('No dies to export.', 'error')
+      return
+    }
+
+    const headers = [
+      'Die ID',
+      'Type',
+      'Casing',
+      'Status',
+      'Location',
+      'Assigned Set',
+      'Current Size (mm)',
+      'Punched Size (mm)',
+      'Current Width (mm)',
+      'Punched Width (mm)',
+      'Current Thickness (mm)',
+      'Punched Thickness (mm)',
+      'Radius (mm)',
+      'Remarks'
+    ]
+
+    const rows = listToExport.map((die: Die) => {
+      const isRound = die.die_type === 'ROUND'
+      return [
+        die.die_id || '',
+        die.die_type || '',
+        die.casing || '',
+        die.status || '',
+        die.rack_name && die.shelf ? `${die.rack_name} - Shelf ${die.shelf}` : '',
+        die.set_name || '',
+        isRound ? (die.current_size || '') : '',
+        isRound ? (die.punched_size || '') : '',
+        !isRound ? (die.current_width || '') : '',
+        !isRound ? (die.punched_width || '') : '',
+        !isRound ? (die.current_thickness || '') : '',
+        !isRound ? (die.punched_thickness || '') : '',
+        !isRound ? (die.radius || '') : '',
+        die.remarks ? `"${String(die.remarks).replace(/"/g, '""')}"` : ''
+      ]
+    })
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    
+    const dateStr = new Date().toISOString().split('T')[0]
+    const filename = `die_inventory_${activeView}_${dateStr}.csv`
+    
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    showToast(`Successfully exported ${listToExport.length} dies to CSV.`, 'success')
+  }
+
+  return {
+    q,
+    setQ,
+    dieType,
+    setDieType,
+    statusVal,
+    setStatusVal,
+    casing,
+    setCasing,
+    sizeMin,
+    setSizeMin,
+    sizeMax,
+    setSizeMax,
+    widthMin,
+    setWidthMin,
+    widthMax,
+    setWidthMax,
+    thickMin,
+    setThickMin,
+    thickMax,
+    setThickMax,
+    locationQuery,
+    setLocationQuery,
+    showFilters,
+    setShowFilters,
+    isCreateOpen,
+    setIsCreateOpen,
+    hasActiveFilter,
+    sortField,
+    setSortField,
+    sortOrder,
+    setSortOrder,
+    handleSort,
+    setsList,
+    machinesList,
+    createError,
+    setCreateError,
+    isLoading,
+    error,
+    dies,
+    totalCount,
+    activeDragType,
+    setActiveDragType,
+    handleDragStartDie,
+    handleDragEndDie,
+    handleCreateSubmit,
+    selectedNode,
+    setSelectedNode,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    isSidebarOpen,
+    setIsSidebarOpen,
+    isSearchActive,
+    unassignedCount,
+    machinesWithData,
+    activeView,
+    selectedMachine,
+    selectedSetData,
+    rawMachine,
+    rawSetData,
+    activeDiesList,
+    canCreate,
+    sidebarRef,
+    handleExpandAll,
+    handleCollapseAll,
+    handleExportCSV,
+    viewMode,
+    setViewMode,
+    navigate,
+    createDieMutation,
+    moveDieLocationMutation,
+    reallocateDieMutation,
+    reallocateSetMutation,
+    reorderSetsMutation,
+    page,
+    setPage,
+    pageSize,
+    setPageSize
+  }
+}
