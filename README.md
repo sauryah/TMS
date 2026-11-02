@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sauryah/TMS/releases"><img src="https://img.shields.io/github/v/release/sauryah/TMS?style=flat-square" alt="GitHub Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Proprietary-red.svg?style=flat-square" alt="License: Proprietary"></a>
-  <a href="https://hub.docker.com/r/sauryah/tms-backend"><img src="https://img.shields.io/docker/pulls/sauryah/tms-backend?style=flat-square" alt="Docker Pulls"></a>
-  <a href="https://github.com/sauryah/TMS/actions"><img src="https://img.shields.io/github/actions/workflow/status/sauryah/TMS/docker-publish.yml?branch=main&style=flat-square" alt="Build Status"></a>
-  <a href="https://github.com/sauryah/TMS/stargazers"><img src="https://img.shields.io/github/stars/sauryah/TMS?style=flat-square" alt="GitHub Stars"></a>
+  <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version v1.0.0">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Proprietary-slate?style=flat-square" alt="License: Proprietary"></a>
+  <img src="https://img.shields.io/badge/deployment-Docker%20Compose-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Deployment: Docker Compose">
+  <img src="https://img.shields.io/badge/platform-LAN%20%2F%20Self--Hosted-059669?style=flat-square" alt="Platform: LAN / Self-Hosted">
+  <img src="https://img.shields.io/badge/architecture-Dual--Engine-7c3aed?style=flat-square" alt="Architecture: Dual-Engine">
 </p>
 
 <p align="center">
@@ -635,7 +635,6 @@ Runtime health logs are recorded to `logs/autostart.log`. To remove autostart, r
 Compiles the standalone native `TMS-Client-Setup.exe` with the latest certificate and server IP embedded inside using Windows' built-in C# compiler:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\build-client-exe.ps1
-```
 ```
 
 ---

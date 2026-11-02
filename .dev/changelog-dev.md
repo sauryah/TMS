@@ -1,5 +1,11 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-02 Documentation Badge Standardization
+*   **README Header Badge Standardization**:
+    *   Replaced external dynamic GitHub API and Docker Hub shields.io badges that returned "repo not found" and "no releases" due to private/unreleased endpoints.
+    *   Configured static badges: Version (`v1.0.0`), License (`Proprietary`, neutral slate), Deployment (`Docker Compose`), Platform (`LAN / Self-Hosted`), and Architecture (`Dual-Engine`).
+    *   Corrected formatting syntax in the client installer documentation section.
+
 ### 2026-11-01 Platform v1.0.0 Initial Release
 *   **Initial Production Release**:
     *   Synchronized application version to `1.0.0` (v1.0.0) across frontend (`frontend/package.json`, `frontend/package-lock.json`), backend (`backend/tms/settings.py`, `backend/schema.yml`), and deployment documentation (`DOCKER.md`).
