@@ -6,6 +6,10 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server cmd/server/main.go
 
+# Test Stage
+FROM builder AS test
+RUN CGO_ENABLED=0 go test -v ./...
+
 # Production Stage
 FROM alpine:3.20
 RUN apk --no-cache add ca-certificates

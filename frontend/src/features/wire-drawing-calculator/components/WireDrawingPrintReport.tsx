@@ -162,7 +162,7 @@ export const WireDrawingPrintReport: React.FC<WireDrawingPrintReportProps> = ({
   // =========================================================================
   // SUB-COMPONENT: FULL PASS DATA TABLE
   // =========================================================================
-  const renderTable = (compact = false) => (
+  const renderTable = (_compact = false) => (
     <div className="border border-slate-300 rounded-sm bg-white mb-3 shadow-xs font-mono">
       <div className="flex justify-between items-center px-2.5 py-1 border-b border-slate-300 bg-slate-100">
         <div className="flex items-center gap-2">

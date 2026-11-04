@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -1050,7 +1051,11 @@ func TestQueryMeilisearchAndPostgres_LocationFilterPropagatedToMeilisearch(t *te
 	mockSearch := &MockSearch{
 		SearchFn: func(query string, searchRequest *meilisearch.SearchRequest) (*meilisearch.SearchResponse, error) {
 			if searchRequest != nil {
-				meiliFilter = searchRequest.Filter
+				if s, ok := searchRequest.Filter.(string); ok {
+					meiliFilter = s
+				} else if searchRequest.Filter != nil {
+					meiliFilter = fmt.Sprint(searchRequest.Filter)
+				}
 			}
 			return &meilisearch.SearchResponse{
 				Hits: []interface{}{

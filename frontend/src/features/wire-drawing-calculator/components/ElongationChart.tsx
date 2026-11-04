@@ -10,6 +10,12 @@ interface ElongationChartProps {
   passes: PassData[];
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload: PassData }>;
+  label?: string | number;
+}
+
 function barColor(val: number) {
   if (val < 20) return '#3B82F6';
   if (val <= 24) return '#22C55E';
@@ -17,7 +23,7 @@ function barColor(val: number) {
   return '#EF4444';
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload as PassData;
     return (

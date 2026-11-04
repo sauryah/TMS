@@ -10,6 +10,8 @@ class CurrentUserMiddleware:
     def __call__(self, request):
         _thread_locals.user = getattr(request, 'user', None)
         _thread_locals.ip = get_client_ip(request)
+        _thread_locals.pending_sync_die_ids = None
+        _thread_locals.pending_broadcast_keys = None
 
         try:
             response = self.get_response(request)

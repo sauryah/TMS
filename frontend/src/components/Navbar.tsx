@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { Layers, LogOut, LogIn, X, Menu, Bell, Settings, Calculator, ChevronDown, Zap, Terminal, Palette, Sun } from 'lucide-react'
+import { LogOut, LogIn, X, Menu, Bell, Settings, Calculator, ChevronDown, Zap, Terminal, Palette, Sun } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth, useTheme, useToast, useNotifications } from '../contexts'
 import type { NotificationItem } from '../contexts/NotificationContext'

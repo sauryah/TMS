@@ -2,8 +2,13 @@ name: Build & Publish Docker Images
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version:
@@ -16,7 +21,140 @@ env:
   GHCR_NAMESPACE: ghcr.io/sauryah/tms
 
 jobs:
+  # ============================================================================
+  # CI Test Gate: Backend (Django)
+  # ============================================================================
+  test-backend:
+    name: Backend Tests (Django)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: tms
+          POSTGRES_USER: tms_user
+          POSTGRES_PASSWORD: tms_test_password_12345
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run Django Tests
+        env:
+          DEBUG: 'True'
+          DJANGO_SECRET_KEY: 'ci-secret-key-for-running-tests-only-django'
+          POSTGRES_DB: 'tms'
+          POSTGRES_USER: 'tms_user'
+          POSTGRES_PASSWORD: 'tms_test_password_12345'
+          POSTGRES_HOST: 'localhost'
+          POSTGRES_PORT: '5432'
+          REDIS_CACHE_URL: 'redis://localhost:6379/0'
+          CELERY_BROKER_URL: 'redis://localhost:6379/1'
+          CELERY_RESULT_BACKEND: 'redis://localhost:6379/1'
+          INTERNAL_API_SECRET: 'ci-internal-secret-test-only-key'
+          MEILI_HOST: 'http://localhost:7700'
+          MEILI_MASTER_KEY: 'ci-test-master-key'
+        run: |
+          cd backend
+          python manage.py test --no-input
+
+  # ============================================================================
+  # CI Test Gate: Frontend (Vitest + tsc + ESLint)
+  # ============================================================================
+  test-frontend:
+    name: Frontend Tests (Vitest + tsc + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run TypeScript Typecheck (tsc)
+        run: |
+          cd frontend
+          npx tsc --noEmit
+
+      - name: Run ESLint
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run Vitest Suite
+        run: |
+          cd frontend
+          npm test
+
+  # ============================================================================
+  # CI Test Gate: Go API (go test & Docker build target)
+  # ============================================================================
+  test-go:
+    name: Go API Tests (go test & Docker target)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go-api/go.sum
+
+      - name: Run Go unit tests
+        run: |
+          cd go-api
+          go test -v ./...
+
+      - name: Test Docker build target
+        run: |
+          docker build --target test -f go-api/Dockerfile go-api
+
+  # ============================================================================
+  # Publish: Build & Push Images (Runs ONLY if all test gates pass)
+  # ============================================================================
   build-and-push:
+    name: Build & Publish Images
+    needs: [test-backend, test-frontend, test-go]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read

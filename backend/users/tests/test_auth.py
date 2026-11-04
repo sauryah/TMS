@@ -4,6 +4,7 @@ from rest_framework import status
 from django.utils import timezone
 from datetime import timedelta
 from django.core.management import call_command
+from django.conf import settings
 from users.models import User, UserSession
 import hashlib
 

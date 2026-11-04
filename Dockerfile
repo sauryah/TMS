@@ -18,6 +18,10 @@ RUN go mod download
 COPY go-api/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server cmd/server/main.go
 
+# Stage 2.5: Run Go Tests
+FROM go-builder AS go-test
+RUN CGO_ENABLED=0 go test -v ./...
+
 # =============================================================================
 # Stage 3: Monolithic Production Image
 # =============================================================================
