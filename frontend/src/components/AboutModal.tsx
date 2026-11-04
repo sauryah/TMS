@@ -1,4 +1,4 @@
-import { X, Code2, Cpu, Info } from 'lucide-react'
+import { X, Code2 } from 'lucide-react'
 import { APP_VERSION } from '../version'
 
 interface AboutModalProps {
@@ -15,7 +15,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
       onClick={onClose}
     >
       <div
-        className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl max-w-2xl w-full p-6 overflow-hidden shadow-2xl"
+        className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl max-w-xl w-full p-6 overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -42,8 +42,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           </div>
         </div>
 
-        {/* Contributors Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Contributors */}
+        <div className="mb-6">
           {/* Sahil */}
           <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]">
             <div className="flex items-start gap-3">
@@ -67,35 +67,6 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                   </span>
                   <span className="px-2 py-0.5 text-[9px] font-bold text-[var(--color-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded">
                     FULL-STACK
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Antigravity */}
-          <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] text-emerald-400 shrink-0">
-                <Cpu className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-[var(--color-text)] uppercase tracking-wider font-heading">
-                  Antigravity
-                </h3>
-                <p className="text-[10px] text-[var(--color-muted)] font-mono mt-0.5">
-                  AI Engineering Assistant
-                </p>
-                <p className="text-xs text-[var(--color-muted)] mt-1.5 leading-relaxed font-mono">
-                  Autonomous coding, design systems, test suites, and refactoring pair programmer.
-                </p>
-
-                <div className="mt-3 flex items-center gap-1.5 font-mono">
-                  <span className="px-2 py-0.5 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded">
-                    AI AGENT
-                  </span>
-                  <span className="px-2 py-0.5 text-[9px] font-bold text-[var(--color-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded">
-                    DEEPMIND
                   </span>
                 </div>
               </div>

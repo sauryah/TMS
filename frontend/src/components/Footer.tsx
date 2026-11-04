@@ -30,7 +30,7 @@ export function Footer() {
                   onClick={() => setIsAboutOpen(true)}
                   className="text-[var(--color-text)] hover:text-blue-400 transition-colors uppercase font-mono font-bold cursor-pointer"
                 >
-                  SAHIL & ANTIGRAVITY
+                  SAHIL
                 </button>
               </span>
               <span className="text-[var(--color-border)]">|</span>
