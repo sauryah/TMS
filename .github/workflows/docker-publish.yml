@@ -69,8 +69,11 @@ jobs:
 
       - name: Run Django Tests
         env:
+          DJANGO_DEBUG: 'True'
           DEBUG: 'True'
           DJANGO_SECRET_KEY: 'ci-secret-key-for-running-tests-only-django'
+          ROOT_USERNAME: 'root'
+          ROOT_PASSWORD: 'ci_test_root_password_12345'
           POSTGRES_DB: 'tms'
           POSTGRES_USER: 'tms_user'
           POSTGRES_PASSWORD: 'tms_test_password_12345'

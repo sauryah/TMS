@@ -325,7 +325,7 @@ S3_BACKUPS_ENDPOINT_URL = config('S3_BACKUPS_ENDPOINT_URL', default=None)
 S3_BACKUPS_REGION = config('S3_BACKUPS_REGION', default='us-east-1')
 
 from django.core.exceptions import ImproperlyConfigured
-if not DEBUG:
+if not DEBUG and not IS_TESTING:
     if not SECRET_KEY or SECRET_KEY == 'django-insecure-development-secret-key-12345':
         raise ImproperlyConfigured("Insecure DJANGO_SECRET_KEY detected in production!")
     if not MEILI_MASTER_KEY or len(MEILI_MASTER_KEY) < 16 or MEILI_MASTER_KEY in ('meili_secret_key', 'change_me'):
