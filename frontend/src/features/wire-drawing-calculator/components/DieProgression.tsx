@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
-import { formatNumber } from '../utils/parsing';
+import { Plus, X, MoveHorizontal, ArrowDownWideNarrow } from 'lucide-react';
 
 interface DieProgressionProps {
   dies: number[];
@@ -9,122 +8,239 @@ interface DieProgressionProps {
 }
 
 export default function DieProgression({ dies, onDiesChange }: DieProgressionProps) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [hoveredDieIndex, setHoveredDieIndex] = useState<number | null>(null);
   const [hoveredArrowIndex, setHoveredArrowIndex] = useState<number | null>(null);
 
   if (dies.length === 0) return null;
 
-  const getArea = (diameter: number) => (Math.PI * diameter * diameter) / 4;
+  const isSortedDescending =
+    dies.length <= 1 || dies.every((val, i, arr) => i === 0 || arr[i - 1] >= val);
 
-  const removeDie = (index: number) => {
-    if (dies.length <= 2 || !onDiesChange) return;
-    const nd = dies.filter((_, i) => i !== index);
-    onDiesChange(nd);
-  };
-
-  const insertBetween = (index: number) => {
+  const handleSortDescending = () => {
     if (!onDiesChange) return;
-    const d1 = dies[index];
-    const d2 = dies[index + 1];
-    const mid = Math.round(((d1 + d2) / 2) * 1000) / 1000;
-    const nd = [...dies.slice(0, index + 1), mid, ...dies.slice(index + 1)];
-    onDiesChange(nd);
+    const sorted = [...dies].sort((a, b) => b - a);
+    onDiesChange(sorted);
   };
+
+  const getArea = (diameter: number) => Math.PI * Math.pow(diameter / 2, 2);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className="wdc-panel"
+      className="wdc-panel bg-[#050913]/90 border border-slate-900 rounded-xl p-6 relative overflow-hidden shadow-2xl"
     >
-      <div className="flex justify-between items-center mb-4 pb-2 border-b border-[var(--color-border)]">
+      <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-900/60 flex-wrap gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--color-text)] tracking-tight block">
-            Drafting Reduction Pipeline
-          </h3>
-          <span className="text-[var(--color-text-secondary)] text-xs block mt-0.5 font-mono">
-            Sequential cross-section wire reduction • Hover node to delete • Hover taper to insert pass
+          <h3 className="text-sm font-semibold text-[#F8FAFC] tracking-tight block">Schematic Drafting Pipeline</h3>
+          <span className="text-slate-400 text-xs block mt-1 font-mono">
+            Drag to sequence passes • Hover node to delete • Hover taper connector to insert inline die
           </span>
         </div>
-        <span className="text-xs font-mono font-bold text-blue-500 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 border border-blue-500/30 rounded">
-          {dies.length} STATIONS • {Math.max(0, dies.length - 1)} PASSES
-        </span>
+        <div className="flex items-center gap-2">
+          {onDiesChange && dies.length > 1 && (
+            <button
+              type="button"
+              onClick={handleSortDescending}
+              data-testid="sort-descending-btn"
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-md border transition cursor-pointer shadow-xs ${
+                !isSortedDescending
+                  ? 'border-amber-500/50 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 animate-pulse'
+                  : 'border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+              }`}
+              title={
+                !isSortedDescending
+                  ? 'Passes are out of sequential reduction order. Click to sort from largest inlet to smallest finish.'
+                  : 'Sort passes in descending order (largest to smallest gauge)'
+              }
+              aria-label="Sort passes descending from largest to smallest gauge"
+            >
+              <ArrowDownWideNarrow
+                className={`w-3.5 h-3.5 ${!isSortedDescending ? 'text-amber-400' : 'text-slate-400'}`}
+              />
+              <span>Sort (Big ➔ Small)</span>
+            </button>
+          )}
+          <span className="text-xs font-mono font-bold text-blue-400 bg-blue-950/20 px-2 py-0.5 border border-blue-900/30 rounded-md whitespace-nowrap">
+            {dies.length} PASS SCHEDULE
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center justify-start flex-wrap gap-y-4 gap-x-1.5 py-3 overflow-x-auto w-full px-1">
+      <div className="flex items-center justify-start flex-wrap gap-y-6 gap-x-2 py-4 overflow-x-auto w-full px-1">
         <AnimatePresence>
           {dies.map((d, i) => {
-            const isFirst = i === 0;
-            const isLast = i === dies.length - 1;
+            const isDragging = draggedIndex === i;
+            const wireRadiusLeft = 14;
 
+            // Calculate taper details if there is a next die
             let areaRedPercent = 0;
             let elongationPercent = 0;
+            let wireRadiusRight = wireRadiusLeft;
             if (i < dies.length - 1) {
               const areaBef = getArea(d);
               const areaAft = getArea(dies[i + 1]);
               areaRedPercent = ((areaBef - areaAft) / areaBef) * 100;
               elongationPercent = ((Math.pow(d, 2) / Math.pow(dies[i + 1], 2)) - 1) * 100;
+              // Scale right side wire proportional to reduction with safe clamping
+              wireRadiusRight = Math.max(4, Math.min(24, wireRadiusLeft * (dies[i + 1] / d)));
             }
+
+            const isNegativeReduction = areaRedPercent < 0;
+            const reductionFormatted = isNegativeReduction
+              ? `+${Math.abs(areaRedPercent).toFixed(1)}%`
+              : `-${areaRedPercent.toFixed(1)}%`;
 
             return (
               <React.Fragment key={`${d}-${i}`}>
-                {/* Station Node */}
-                <div
+                {/* Precision CAD Pass Card */}
+                <motion.div
+                  layout
+                  draggable
+                  data-testid={`die-card-${i}`}
+                  onDragStart={() => setDraggedIndex(i)}
+                  onDragEnter={() => {
+                    if (draggedIndex === null || draggedIndex === i || !onDiesChange) return;
+                    const updated = [...dies];
+                    const [movedItem] = updated.splice(draggedIndex, 1);
+                    updated.splice(i, 0, movedItem);
+                    setDraggedIndex(i);
+                    onDiesChange(updated);
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnd={() => setDraggedIndex(null)}
                   onMouseEnter={() => setHoveredDieIndex(i)}
                   onMouseLeave={() => setHoveredDieIndex(null)}
-                  className={`relative flex flex-col items-center justify-center p-2 rounded border transition-all ${
-                    isFirst
-                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-300'
-                      : isLast
-                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-300'
-                      : 'bg-[var(--wdc-steel)] border-[var(--color-border-visible)] text-[var(--color-text)]'
-                  } min-w-[72px] shadow-xs`}
+                  className={`relative select-none transition-all duration-200 w-28 h-16 rounded-lg border bg-slate-950/90 flex flex-col justify-between p-2.5 ${
+                    isDragging
+                      ? 'opacity-25 scale-95 border-dashed border-blue-500/50 shadow-none'
+                      : 'border-slate-900 hover:border-slate-800 hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
+                  }`}
+                  style={{ cursor: draggedIndex !== null ? 'grabbing' : 'grab' }}
                 >
-                  {hoveredDieIndex === i && dies.length > 2 && (
+                  {/* Card Header: Pass Indicator & Drag handle */}
+                  <div className="flex justify-between items-center w-full">
+                    <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+                      Pass {i + 1}
+                    </span>
+                    <MoveHorizontal className="h-3 w-3 text-slate-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                  </div>
+
+                  {/* Card Center: Die diameter size */}
+                  <div className="text-left">
+                    <span className="text-[13px] font-mono font-bold text-[#F8FAFC] block">
+                      Ø {d.toFixed(3)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono block">diameter (mm)</span>
+                  </div>
+
+                  {/* Hover Delete Action Button */}
+                  {hoveredDieIndex === i && dies.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => removeDie(i)}
-                      className="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full p-0.5 shadow hover:bg-rose-500 transition cursor-pointer"
-                      title="Delete station"
-                      aria-label="Delete station"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onDiesChange) onDiesChange(dies.filter((_, idx) => idx !== i));
+                      }}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-950/80 hover:bg-rose-900 text-rose-400 hover:text-rose-200 border border-rose-900/40 flex items-center justify-center shadow-lg transition cursor-pointer"
+                      title="Remove Pass"
+                      aria-label="Remove Pass"
                     >
-                      <X className="w-3 h-3" aria-hidden="true" />
+                      <X className="w-2.5 h-2.5 stroke-[3]" />
                     </button>
                   )}
-                  <span className="text-[9.5px] uppercase font-bold text-[var(--color-text-secondary)]">
-                    {isFirst ? 'INLET' : isLast ? 'FINISH' : `P${i}`}
-                  </span>
-                  <span className="text-xs font-mono font-bold mt-0.5 tabular-nums">
-                    {formatNumber(d, 3)}
-                  </span>
-                  <span className="text-[9px] text-[var(--color-text-secondary)] font-mono">mm</span>
-                </div>
+                </motion.div>
 
-                {/* Taper Connector between dies */}
+                {/* Cyber Connector showing Tapered Wire & Reduction % */}
                 {i < dies.length - 1 && (
                   <div
+                    data-testid={`die-connector-${i}`}
                     onMouseEnter={() => setHoveredArrowIndex(i)}
                     onMouseLeave={() => setHoveredArrowIndex(null)}
-                    onClick={() => insertBetween(i)}
-                    className="relative flex flex-col items-center justify-center px-1 cursor-pointer group"
-                    title="Click to insert inline intermediate die"
+                    className="flex items-center justify-center w-16 h-20 relative select-none transition-all duration-200"
                   >
-                    <div className="flex items-center text-[var(--color-text-secondary)] group-hover:text-blue-500 transition">
-                      <span className="text-[10px] font-mono font-bold">
-                        &rarr;
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold leading-tight tabular-nums">
-                      -{areaRedPercent.toFixed(1)}%
-                    </span>
-                    <span className="text-[8.5px] font-mono text-blue-600 dark:text-blue-400 leading-tight tabular-nums">
-                      +{elongationPercent.toFixed(1)}%
-                    </span>
-                    {hoveredArrowIndex === i && (
-                      <span className="absolute -bottom-3 text-[8.5px] text-blue-500 font-mono whitespace-nowrap bg-[var(--color-surface)] px-1 border border-[var(--color-border-visible)] rounded shadow-xs z-10">
-                        + Insert
-                      </span>
+                    {hoveredArrowIndex === i ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!onDiesChange) return;
+                          const midVal = Math.round(((d + dies[i + 1]) / 2) * 1000) / 1000;
+                          const updated = [...dies];
+                          updated.splice(i + 1, 0, midVal);
+                          onDiesChange(updated);
+                        }}
+                        className="w-5 h-5 rounded-full bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-900/40 flex items-center justify-center shadow-lg transition transform hover:scale-110 cursor-pointer absolute z-10"
+                        title={`Insert pass size between ${d} and ${dies[i + 1]}`}
+                        aria-label={`Insert pass size between ${d} and ${dies[i + 1]}`}
+                      >
+                        <Plus className="w-3 h-3 stroke-[3]" />
+                      </button>
+                    ) : (
+                      <svg width="60" height="56" className="opacity-75">
+                        <defs>
+                          <linearGradient id={`copper-grad-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#b45309" stopOpacity="0.45" />
+                            <stop offset="100%" stopColor="#d97706" stopOpacity="0.25" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Shaded tapered wire representing physics deformation */}
+                        <path
+                          d={`M 0 ${28 - wireRadiusLeft} L 60 ${28 - wireRadiusRight} L 60 ${28 + wireRadiusRight} L 0 ${28 + wireRadiusLeft} Z`}
+                          fill={`url(#copper-grad-${i})`}
+                        />
+
+                        {/* Center line with reduction text */}
+                        <line
+                          x1="0"
+                          y1="28"
+                          x2="60"
+                          y2="28"
+                          stroke={isNegativeReduction ? 'rgba(244, 63, 94, 0.4)' : 'rgba(16, 185, 129, 0.15)'}
+                          strokeWidth="1"
+                          strokeDasharray="2 2"
+                        />
+
+                        {/* Display Area Reduction % and Elongation % */}
+                        <rect
+                          x="6"
+                          y="6"
+                          width="48"
+                          height="42"
+                          rx="3"
+                          fill="#04060b"
+                          stroke={isNegativeReduction ? 'rgba(244, 63, 94, 0.6)' : 'rgba(30, 41, 59, 0.6)'}
+                          strokeWidth="0.75"
+                        />
+                        <text
+                          x="30"
+                          y="20"
+                          textAnchor="middle"
+                          className={`font-mono text-[10px] font-bold ${
+                            isNegativeReduction ? 'fill-rose-400' : 'fill-emerald-500/80'
+                          }`}
+                        >
+                          {reductionFormatted}
+                        </text>
+                        <line
+                          x1="12"
+                          y1="25"
+                          x2="48"
+                          y2="25"
+                          stroke="rgba(30, 41, 59, 0.4)"
+                          strokeWidth="0.5"
+                        />
+                        <text
+                          x="30"
+                          y="38"
+                          textAnchor="middle"
+                          className="fill-amber-500/80 font-mono text-[10px] font-bold"
+                        >
+                          +{elongationPercent.toFixed(1)}%
+                        </text>
+                      </svg>
                     )}
                   </div>
                 )}
