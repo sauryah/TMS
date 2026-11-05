@@ -47,11 +47,15 @@ Escalate when:
 
 ## Review Loops
 Every implementation must pass:
-1. Compilation/Build verification
-2. Test execution
+1. Compilation/Build verification (including `pip check` for dependency consistency)
+2. Test execution (verified against the infrastructure trinity: Postgres, Redis, Meilisearch)
 3. Architecture review (if structural changes)
 4. Security review (if auth/data changes)
 5. Documentation update
+
+## Dependency & CI Parity Rules
+1. **Transitive Dependency Compatibility:** When modifying packages (such as Celery broker transports), declare driver extras (e.g., `celery[redis]`) to guarantee that `pip` validates version compatibility during installation. Run `pip check` to ensure zero broken dependencies.
+2. **CI Infrastructure Parity:** The TMS backend test suite requires the full infrastructure trinity: PostgreSQL, Redis, and Meilisearch. Any CI test job must run all three service containers with health checks matching `docker-compose.yml` versions.
 
 ## Security Rules
 1. All container processes execute as non-root user (`USER tmsuser`).

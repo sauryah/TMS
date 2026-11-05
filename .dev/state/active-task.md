@@ -7,22 +7,23 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** CI Meilisearch Service Container Configuration
+**Task:** Prevention Architecture & CI Parity Rules Documentation
 **Status:** Complete
 **Started:** 2026-11-05
 **Target Completion:** 2026-11-05
 **Confidence:** 100%
 
 ## Task Description
-Resolve GitHub Actions CI failure where Django tests failed with Meilisearch connection refused (`HTTPConnection(host='localhost', port=7700): Connection refused`) by adding the missing Meilisearch service container to `test-backend` in `.github/workflows/docker-publish.yml`.
+Document permanent architectural and workflow rules in `AGENTS.md`, `engineering-workflow.md`, and `review-process.md` to prevent future dependency mismatches and CI environment parity drift.
 
 ## Completed
-- Diagnosed CI failure in `Backend Tests (Django)`: 5 errors in `dies/tests/test_search.py` and 1 failure in `users/tests/test_health.py` (503 status) caused by absent Meilisearch service container in runner.
-- Added `meilisearch: getmeili/meilisearch:v1.7` service container to `test-backend` job in `.github/workflows/docker-publish.yml` with port 7700 mapping and healthcheck.
-- Verified Meilisearch container configuration and curl healthcheck behavior.
+- Added `Dependency & CI Parity Rules` to `AGENTS.md` requiring explicit driver extras, `pip check` validation, and CI infrastructure parity.
+- Updated `engineering-workflow.md` Phases 3 (Review) and 5 (Verify) to enforce transitive dependency checks and infrastructure trinity (PostgreSQL, Redis, Meilisearch) verification.
+- Updated `review-process.md` Gates 1 and 2 with `pip check` and CI service parity checklist items.
+- Configured `celery[redis]==5.6.3` in `backend/requirements.txt` to statically lock driver compatibility at installation time.
 
 ## Next Steps
-- Push changes to trigger GitHub Actions CI.
+- Push changes to remote repository.
 
 ## Blockers
 - None.

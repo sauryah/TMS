@@ -1,5 +1,11 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-05 Prevention Architecture & CI Parity Rules Documentation
+*   **Engineering Operating System Standards**:
+    *   Added `Dependency & CI Parity Rules` to `AGENTS.md` and updated `Review Loops` to enforce `pip check` and infrastructure trinity testing (Postgres, Redis, Meilisearch).
+    *   Updated `engineering-workflow.md` and `review-process.md` with explicit gates for driver extras verification and CI service container parity.
+    *   Updated `backend/requirements.txt` to specify `celery[redis]==5.6.3` to guarantee package installer resolution verifies transport drivers.
+
 ### 2026-11-05 CI Meilisearch Service Container Configuration
 *   **CI Test Gate Meilisearch Service Container**:
     *   Configured `meilisearch: getmeili/meilisearch:v1.7` service container with port 7700 mapping and healthcheck in `.github/workflows/docker-publish.yml` under `test-backend`.

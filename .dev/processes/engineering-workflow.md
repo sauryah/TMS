@@ -26,7 +26,8 @@ Define the standard workflow for all engineering tasks on TMS.
 - Verify approach follows established patterns
 - Check for existing solutions in codebase
 - Confirm no breaking changes to public APIs
-- Validate against security rules in `AGENTS.md`
+- Validate against security and dependency rules in `AGENTS.md`
+- When modifying dependencies, confirm package extras and version compatibility (e.g. `celery[redis]` vs `redis`)
 
 ### 4. Implement
 - Follow coding standards in `architecture/coding-standards.md`
@@ -35,8 +36,9 @@ Define the standard workflow for all engineering tasks on TMS.
 - Keep changes focused and minimal
 
 ### 5. Verify
-- Run backend compilation checks (`python manage.py check`, `go build ./...`)
+- Run backend compilation and dependency checks (`python manage.py check`, `pip check`, `go build ./...`)
 - Run frontend type-check and tests (`npx tsc --noEmit`, `npm test`, `npm run build`)
+- Ensure CI and test executions maintain the infrastructure trinity (PostgreSQL, Redis, Meilisearch)
 - Verify triple-theme rendering across **Dark Terminal**, **Classic Slate**, and **Precision Light** modes
 - Verify text input casing (no forced uppercase on user text inputs)
 - Verify that theme-switching operations require ROOT privileges

@@ -12,6 +12,7 @@ Define review gates and checklists for all implementations.
 **When:** Before any code changes are committed.
 **Checklist:**
 - [ ] Python: `python manage.py check` passes
+- [ ] Python: `pip check` reports no broken dependencies or version conflicts
 - [ ] Go: `go build ./...` succeeds
 - [ ] Frontend: `npm run build` completes without errors
 - [ ] No new compiler warnings introduced
@@ -19,6 +20,8 @@ Define review gates and checklists for all implementations.
 ### Gate 2: Test Execution
 **When:** After implementation, before commit.
 **Checklist:**
+- [ ] Infrastructure trinity (PostgreSQL, Redis, Meilisearch) is running and healthy
+- [ ] CI pipeline service definitions match local/docker-compose infrastructure parity
 - [ ] All existing tests pass
 - [ ] New tests added for new functionality
 - [ ] Test coverage maintains or improves
@@ -49,7 +52,7 @@ Define review gates and checklists for all implementations.
 - [ ] Module docs updated if module changed
 - [ ] Architecture docs updated if structure changed
 - [ ] ADR created if significant decision made
-- [ ] changelog-ai.md updated with summary
+- [ ] changelog-dev.md updated with summary
 
 ## Review Checklists by Change Type
 
