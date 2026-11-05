@@ -26,7 +26,7 @@ Define completion criteria for all engineering tasks.
 - [ ] Module docs updated if module changed
 - [ ] Architecture docs updated if structure changed
 - [ ] ADR created if significant decision made
-- [ ] changelog-ai.md updated with summary
+- [ ] changelog-dev.md updated with summary
 - [ ] Inline comments for complex logic
 
 ### Security
@@ -85,7 +85,7 @@ Define completion criteria for all engineering tasks.
 1. Run `python manage.py check` (Django)
 2. Run `go build ./...` (Go)
 3. Run `npm run build` (Frontend)
-4. Run `pytest` (Python tests)
+4. Run `python manage.py test` (Django tests)
 5. Run `go test ./...` (Go tests)
 6. Run `npm test` (Frontend tests)
 
@@ -108,9 +108,9 @@ Define completion criteria for all engineering tasks.
 - [ ] State files updated
 
 ### After Marking Done
-- [ ] Commit with conventional message
-- [ ] Push to remote
-- [ ] Create PR if required
+- [ ] Commit with conventional message locally
+- [ ] NEVER push autonomously: only push to remote when explicitly authorized by the user
+- [ ] Create PR if requested
 - [ ] Notify stakeholders if significant
 - [ ] Update roadmap if major feature
 

@@ -8,6 +8,10 @@ Define commit and version control standards for all contributors and AI agents w
 2. **Never Commit One File at a Time**: Do not split changes across multiple commits per file when they are part of the same logical unit of work (e.g. updating 6 UI components for a design token change, or updating a model alongside its migration and view).
 3. **No Broken Intermediate States**: Every commit must leave the repository in a valid, compiling, and test-passing state.
 
+## Remote Push Policy
+1. **Never Push Autonomously**: Agents, scripts, and automated assistants must NEVER run `git push` without explicit user authorization.
+2. **Local Commits Only**: All work is prepared, validated, and committed to local branches. Pushing to remote repositories requires explicit user confirmation.
+
 ## State & Documentation Synchronization
 - When completing a task or milestone, stage and commit the updated state files together:
   - `.dev/state/active-task.md`

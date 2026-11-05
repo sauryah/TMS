@@ -1,5 +1,10 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-05 Strict Remote Push Policy Standards
+*   **Operating System & Workflow Push Policy**:
+    *   Updated `AGENTS.md` Decision Rules and Git & Commit Rules to explicitly forbid autonomous execution of `git push`, requiring explicit user authorization for all remote operations.
+    *   Updated `engineering-workflow.md` Step 7 (Complete) and Escalation Triggers, `definition-of-done.md`, and `git-workflow.md` to establish local-only commit workflows unless specifically instructed by the user.
+
 ### 2026-11-05 Prevention Architecture & CI Parity Rules Documentation
 *   **Engineering Operating System Standards**:
     *   Added `Dependency & CI Parity Rules` to `AGENTS.md` and updated `Review Loops` to enforce `pip check` and infrastructure trinity testing (Postgres, Redis, Meilisearch).

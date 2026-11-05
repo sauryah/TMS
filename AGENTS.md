@@ -39,6 +39,7 @@ Escalate when:
 - Public API contracts change
 - Destructive migrations required
 - Infrastructure cost changes significantly
+- Any remote git push (never push without explicit user authorization)
 
 ## Confidence Thresholds
 - ≥95%: Decide and implement
@@ -68,6 +69,7 @@ Every implementation must pass:
 2. No Single-File Micro-Commits: Do not split changes across multiple commits per file when they are part of the same feature, refactor, or documentation sync.
 3. State Synchronization: When completing a task, commit state tracking files (`active-task.md`, `progress.md`, `changelog-dev.md`) together in a single commit.
 4. Conventional Commits: Use standard prefixes (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`).
+5. Never Push Autonomously: Never run `git push` without explicit user authorization. Prepare, test, and commit changes locally only.
 
 ## Quick Reference
 | Directory | Purpose |

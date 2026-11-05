@@ -56,7 +56,7 @@ Define the standard workflow for all engineering tasks on TMS.
 - Stage and commit all related changes atomically (`git add ...` for the logical unit of work)
 - Use conventional commit messages describing the full change
 - Never commit one file at a time for cohesive tasks or state tracking updates
-- Push and create PR if required
+- Never run `git push` autonomously; only push when explicitly instructed by the user
 
 ## Implementation Patterns
 
@@ -99,3 +99,4 @@ Stop and ask for clarification when:
 - Public API contracts change
 - Destructive migrations required
 - Infrastructure cost changes significantly
+- Any action that pushes code to a remote git repository
