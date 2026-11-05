@@ -7,18 +7,21 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Documentation Badge Standardization
+**Task:** Redis Package Version Alignment for Celery Transport
 **Status:** Complete
-**Started:** 2026-11-02
-**Target Completion:** 2026-11-02
+**Started:** 2026-11-05
+**Target Completion:** 2026-11-05
 **Confidence:** 100%
 
 ## Task Description
-Replace failing dynamic shields.io badges in README.md with static, self-contained status badges for versioning, proprietary licensing, deployment model, and architecture.
+Resolve Celery worker startup crash caused by Kombu 5.7.0 `VersionMismatch` ("Redis transport requires redis-py versions 6.1.0 or later. You have 5.0.1") by upgrading `redis` in `backend/requirements.txt` to `6.4.0`.
 
 ## Completed
-- Replaced dynamic GitHub and Docker Hub query badges with static indicators for version (v1.0.0), proprietary license (neutral slate), Docker Compose deployment, LAN/Self-Hosted platform, and Dual-Engine architecture.
-- Removed extraneous codeblock fence in client installer docs.
+- Upgraded `redis` from `5.0.1` to `6.4.0` in `backend/requirements.txt` to satisfy Kombu 5.7+ transport requirements.
+- Patched `IS_TESTING` in `users/tests/test_settings.py` so startup validation tests run reliably under test runners.
+- Rebuilt `tms-backend:latest` Docker image and restarted containers (`django`, `worker`, `heavy-worker`, `beat`).
+- Verified all 226 backend unit tests pass with zero errors.
+- Verified all Celery workers (`worker`, `heavy-worker`) and `beat` daemon connect to Redis and respond to `celery inspect ping`.
 
 ## Next Steps
 - Continue maintenance and feature development as requested.

@@ -1,5 +1,12 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-05 Redis Package Version Alignment for Celery Transport
+*   **Celery Redis Transport Dependency Resolution**:
+    *   Upgraded `redis` from `5.0.1` to `6.4.0` in `backend/requirements.txt` to eliminate Kombu 5.7+ `VersionMismatch` error (`Redis transport requires redis-py versions 6.1.0 or later. You have 5.0.1`).
+    *   Updated `users/tests/test_settings.py` to patch `tms.testing.IS_TESTING` in `SettingsStartupValidationTest` so production credential guards can be tested without interference from test harness flags.
+    *   Rebuilt `tms-backend:latest` Docker image and verified healthy operation across all Celery containers (`tms-worker-1`, `tms-heavy-worker-1`, `tms-beat-1`).
+    *   Verified all 226 backend unit tests pass (`Ran 226 tests in 59.143s: OK`).
+
 ### 2026-11-02 Documentation Badge Standardization
 *   **README Header Badge Standardization**:
     *   Replaced external dynamic GitHub API and Docker Hub shields.io badges that returned "repo not found" and "no releases" due to private/unreleased endpoints.
