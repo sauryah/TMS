@@ -1,5 +1,10 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-05 CI Meilisearch Service Container Configuration
+*   **CI Test Gate Meilisearch Service Container**:
+    *   Configured `meilisearch: getmeili/meilisearch:v1.7` service container with port 7700 mapping and healthcheck in `.github/workflows/docker-publish.yml` under `test-backend`.
+    *   Resolves CI failure in `Backend Tests (Django)` where search indexing and healthcheck tests failed with `Connection refused` on `http://localhost:7700`.
+
 ### 2026-11-05 Redis Package Version Alignment for Celery Transport
 *   **Celery Redis Transport Dependency Resolution**:
     *   Upgraded `redis` from `5.0.1` to `6.4.0` in `backend/requirements.txt` to eliminate Kombu 5.7+ `VersionMismatch` error (`Redis transport requires redis-py versions 6.1.0 or later. You have 5.0.1`).
