@@ -163,12 +163,15 @@ def issue_user_login_tokens(user, request):
             old_sess.delete()
 
     # Create new user session
-    UserSession.objects.create(
+    session = UserSession.objects.create(
         user=user,
         token_hash=token_hash,
         ip_address=get_client_ip(request),
         device=request.META.get('HTTP_USER_AGENT', '')[:255]
     )
+
+    refresh['session_id'] = str(session.id)
+    refresh_token_str = str(refresh)
 
     # Log successful login
     UserActivityLog.objects.create(
@@ -543,12 +546,14 @@ class ChangePasswordView(APIView):
 
         # Register the new token session so CustomJWTAuthentication accepts it
         access_hash = hashlib.sha256(access_token.encode('utf-8')).hexdigest()
-        UserSession.objects.create(
+        session = UserSession.objects.create(
             user=user,
             token_hash=access_hash,
             ip_address=get_client_ip(request),
             device=request.META.get('HTTP_USER_AGENT', '')[:255]
         )
+        refresh['session_id'] = str(session.id)
+        refresh_token_str = str(refresh)
 
         response = Response({
             "detail": "Password changed successfully.",
@@ -952,41 +957,54 @@ class TokenRefreshView(SimpleJWTTokenRefreshView):
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
             access_token = response.data.get('access')
+            session = None
             if access_token:
                 try:
                     ref_obj = RefreshToken(refresh_token)
                     user_id = ref_obj['user_id']
+                    session_id = ref_obj.get('session_id')
                     new_hash = hashlib.sha256(access_token.encode('utf-8')).hexdigest()
                     
                     old_access = request.COOKIES.get('tms_access_token')
-                    session = None
                     if old_access:
                         old_hash = hashlib.sha256(old_access.encode('utf-8')).hexdigest()
                         session = UserSession.objects.filter(user_id=user_id, token_hash=old_hash).first()
-                    if not session:
-                        session = UserSession.objects.filter(user_id=user_id).order_by('-last_seen').first()
+                    if not session and session_id:
+                        try:
+                            session = UserSession.objects.filter(id=int(session_id), user_id=user_id).first()
+                        except (ValueError, TypeError):
+                            session = None
                         
+                    from django.core.cache import cache
                     if session:
-                        from django.core.cache import cache
                         old_cache_key = f"user_session:{user_id}:{session.token_hash}"
                         cache.delete(old_cache_key)
                         
                         session.token_hash = new_hash
                         session.save()
+                    else:
+                        # Legitimate refresh but no session record found (e.g. Bearer client without cookie,
+                        # or session was evicted/cleared). Create a new session record so subsequent
+                        # authenticated calls do not fail with 401.
+                        session = UserSession.objects.create(
+                            user_id=user_id,
+                            token_hash=new_hash,
+                            ip_address=get_client_ip(request),
+                            device=request.META.get('HTTP_USER_AGENT', '')[:255]
+                        )
                         
-                        new_cache_key = f"user_session:{user_id}:{new_hash}"
-                        cache_data = {
-                            'ip_address': session.ip_address,
-                            'device': session.device,
-                            'created_at': session.created_at.isoformat(),
-                            'last_seen': session.last_seen.isoformat(),
-                        }
-                        cache.set(new_cache_key, cache_data, timeout=settings.SESSION_ABSOLUTE_TIMEOUT_HOURS * 3600)
+                    new_cache_key = f"user_session:{user_id}:{new_hash}"
+                    cache_data = {
+                        'ip_address': session.ip_address,
+                        'device': session.device,
+                        'created_at': session.created_at.isoformat(),
+                        'last_seen': session.last_seen.isoformat(),
+                    }
+                    cache.set(new_cache_key, cache_data, timeout=settings.SESSION_ABSOLUTE_TIMEOUT_HOURS * 3600)
                 except Exception as e:
                     logger.error(f"Token refresh session update failed: {e}")
 
                 # Do not pop 'access' from response.data, frontend useApi requires it
-                response.data.pop('refresh', None)
                 response.set_cookie(
                     key='tms_access_token',
                     value=access_token,
@@ -995,9 +1013,15 @@ class TokenRefreshView(SimpleJWTTokenRefreshView):
                     secure=not settings.DEBUG,
                     max_age=15 * 60
                 )
-            new_refresh = response.data.get('refresh')
+            new_refresh = response.data.pop('refresh', None)
             if new_refresh:
-                response.data.pop('refresh', None)
+                if session:
+                    try:
+                        new_ref_obj = RefreshToken(new_refresh)
+                        new_ref_obj['session_id'] = str(session.id)
+                        new_refresh = str(new_ref_obj)
+                    except Exception:
+                        pass
                 response.set_cookie(
                     key='tms_refresh_token',
                     value=new_refresh,

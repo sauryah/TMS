@@ -543,6 +543,89 @@ class AuthTests(APITestCase):
             response_c_works = self.client.get(self.dies_list_url)
             self.assertEqual(response_c_works.status_code, status.HTTP_200_OK)
 
+    def test_token_refresh_embeds_session_id_and_updates_exact_session(self):
+        # 1. Login to get initial tokens and session
+        login_res = self.client.post(self.login_url, {
+            'username': 'regular_test',
+            'password': 'regular_password_123'
+        })
+        self.assertEqual(login_res.status_code, status.HTTP_200_OK)
+        session = UserSession.objects.filter(user=self.regular_user).first()
+        self.assertIsNotNone(session)
+
+        refresh_cookie = login_res.cookies.get('tms_refresh_token')
+        self.assertIsNotNone(refresh_cookie)
+        refresh_str = refresh_cookie.value
+
+        from rest_framework_simplejwt.tokens import RefreshToken
+        ref_obj = RefreshToken(refresh_str)
+        self.assertEqual(ref_obj.get('session_id'), str(session.id))
+
+        # 2. Refresh token using Bearer payload
+        refresh_url = reverse('token-refresh')
+        refresh_res = self.client.post(refresh_url, {'refresh': refresh_str}, format='json')
+        self.assertEqual(refresh_res.status_code, status.HTTP_200_OK)
+        new_access = refresh_res.data.get('access')
+        self.assertIsNotNone(new_access)
+
+        # 3. Verify session was updated to new access hash
+        session.refresh_from_db()
+        new_hash = hashlib.sha256(new_access.encode('utf-8')).hexdigest()
+        self.assertEqual(session.token_hash, new_hash)
+
+    def test_token_refresh_does_not_hijack_unrelated_session(self):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        # Create two distinct sessions for regular_user
+        session_a = UserSession.objects.create(
+            user=self.regular_user,
+            token_hash='token_hash_device_a',
+            ip_address='192.168.1.10',
+            device='Device-A'
+        )
+        session_b = UserSession.objects.create(
+            user=self.regular_user,
+            token_hash='token_hash_device_b',
+            ip_address='192.168.1.20',
+            device='Device-B'
+        )
+
+        # Mint refresh token specifically for session_a
+        refresh_a = RefreshToken.for_user(self.regular_user)
+        refresh_a['session_id'] = str(session_a.id)
+
+        refresh_url = reverse('token-refresh')
+        refresh_res = self.client.post(refresh_url, {'refresh': str(refresh_a)}, format='json')
+        self.assertEqual(refresh_res.status_code, status.HTTP_200_OK)
+        new_access = refresh_res.data.get('access')
+        new_hash = hashlib.sha256(new_access.encode('utf-8')).hexdigest()
+
+        # Session A must be updated
+        session_a.refresh_from_db()
+        self.assertEqual(session_a.token_hash, new_hash)
+
+        # Session B must NOT be touched or hijacked
+        session_b.refresh_from_db()
+        self.assertEqual(session_b.token_hash, 'token_hash_device_b')
+
+    def test_token_refresh_creates_session_if_none_exists(self):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        # Ensure no sessions exist for regular_user
+        UserSession.objects.filter(user=self.regular_user).delete()
+        self.assertEqual(UserSession.objects.filter(user=self.regular_user).count(), 0)
+
+        # Mint a valid refresh token without session
+        refresh = RefreshToken.for_user(self.regular_user)
+        refresh_url = reverse('token-refresh')
+        refresh_res = self.client.post(refresh_url, {'refresh': str(refresh)}, format='json')
+        self.assertEqual(refresh_res.status_code, status.HTTP_200_OK)
+        new_access = refresh_res.data.get('access')
+        new_hash = hashlib.sha256(new_access.encode('utf-8')).hexdigest()
+
+        # A new session record must be created so client is not rejected with 401
+        new_session = UserSession.objects.filter(user=self.regular_user).first()
+        self.assertIsNotNone(new_session)
+        self.assertEqual(new_session.token_hash, new_hash)
+
 
 from users.models import UserActivityLog
 
