@@ -67,3 +67,10 @@ class SettingsStartupValidationTest(SimpleTestCase):
         with self.assertRaises(ImproperlyConfigured) as ctx:
             importlib.reload(tms.settings)
         self.assertIn("POSTGRES_PASSWORD", str(ctx.exception))
+
+    def test_celery_broker_uses_dedicated_redis_broker(self):
+        importlib.reload(tms.settings)
+        self.assertIn("redis-broker", tms.settings.CELERY_BROKER_URL)
+        self.assertIn("redis-broker", tms.settings.CELERY_RESULT_BACKEND)
+        self.assertIn("redis:", tms.settings.CACHES['default']['LOCATION'])
+        self.assertNotIn("redis-broker", tms.settings.CACHES['default']['LOCATION'])

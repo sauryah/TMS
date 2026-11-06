@@ -694,7 +694,7 @@ class HealthCheckView(APIView):
 
         # Check Redis
         try:
-            broker_url = getattr(settings, 'CELERY_BROKER_URL', 'redis://redis:6379/1')
+            broker_url = getattr(settings, 'CELERY_BROKER_URL', 'redis://redis-broker:6379/0')
             r = redis.Redis.from_url(broker_url)
             r.ping()
         except Exception as e:
@@ -766,7 +766,7 @@ class DetailedHealthCheckView(APIView):
         # 2. Redis Check
         redis_start = time.perf_counter()
         try:
-            broker_url = getattr(settings, 'CELERY_BROKER_URL', 'redis://redis:6379/1')
+            broker_url = getattr(settings, 'CELERY_BROKER_URL', 'redis://redis-broker:6379/0')
             r = redis.Redis.from_url(broker_url)
             r.ping()
             redis_latency = round((time.perf_counter() - redis_start) * 1000, 2)

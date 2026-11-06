@@ -230,8 +230,8 @@ CACHES = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = config('CELERY_BROKER_URL', default=f'redis://:{REDIS_PASSWORD}@redis:6379/1' if REDIS_PASSWORD else 'redis://redis:6379/1')
-CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default=f'redis://:{REDIS_PASSWORD}@redis:6379/1' if REDIS_PASSWORD else 'redis://redis:6379/1')
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default=f'redis://:{REDIS_PASSWORD}@redis-broker:6379/0' if REDIS_PASSWORD else 'redis://redis-broker:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default=f'redis://:{REDIS_PASSWORD}@redis-broker:6379/0' if REDIS_PASSWORD else 'redis://redis-broker:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
