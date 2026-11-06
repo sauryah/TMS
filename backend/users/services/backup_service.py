@@ -194,6 +194,19 @@ class BackupService:
         except Exception:
             pass
 
+        # Terminate other active database connections before restore to prevent conflicts and lock blocks
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT pg_terminate_backend(pid)
+                    FROM pg_stat_activity
+                    WHERE datname = %s AND pid <> pg_backend_pid();
+                """, [db_name])
+            connection.close()
+        except Exception as e:
+            logger.warning("Terminating connections before restore failed: %s", e)
+
         try:
             subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
@@ -215,6 +228,20 @@ class BackupService:
         except Exception as e:
             logger.warning("Session eviction after restore failed: %s", e)
 
+        # Invalidate all cached sessions and tokens in Redis to prevent stale cache reuse
+        try:
+            import redis
+            redis_url = settings.CACHES['default']['LOCATION']
+            r = redis.Redis.from_url(redis_url)
+            for pattern in ["user_session:*", "verify_token:*"]:
+                keys_to_delete = []
+                for key in r.scan_iter(pattern):
+                    keys_to_delete.append(key)
+                if keys_to_delete:
+                    r.delete(*keys_to_delete)
+        except Exception as e:
+            logger.warning("Redis session cache invalidation after restore failed: %s", e)
+
         # Restore the restorer's session so they stay logged in
         if current_session_data:
             try:
@@ -226,12 +253,25 @@ class BackupService:
                     role=current_session_data['role']
                 ).first()
                 if restored_user:
-                    UserSession.objects.create(
+                    restored_session = UserSession.objects.create(
                         user_id=restored_user.id,
                         token_hash=current_session_data['token_hash'],
                         ip_address=current_session_data['ip_address'],
                         device=current_session_data['device']
                     )
+                    # Re-populate cache for the restorer's active session
+                    try:
+                        from django.core.cache import cache
+                        new_cache_key = f"user_session:{restored_user.id}:{current_session_data['token_hash']}"
+                        cache_data = {
+                            'ip_address': restored_session.ip_address,
+                            'device': restored_session.device,
+                            'created_at': restored_session.created_at.isoformat(),
+                            'last_seen': restored_session.last_seen.isoformat(),
+                        }
+                        cache.set(new_cache_key, cache_data, timeout=settings.SESSION_ABSOLUTE_TIMEOUT_HOURS * 3600)
+                    except Exception:
+                        pass
             except Exception as e:
                 logger.error("Restoring restorer session after restore failed: %s", e)
 

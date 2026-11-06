@@ -96,3 +96,63 @@ class BackupTests(APITestCase):
         self.assertEqual(result['status'], 'success')
         self.assertEqual(result['filename'], 'tms_backup_test.dump')
 
+    @patch('subprocess.run')
+    @patch('django.core.management.call_command')
+    @patch('users.tasks.rebuild_search_index_task.delay')
+    @patch('redis.Redis.from_url')
+    @patch('django.db.connection.cursor')
+    def test_restore_backup_terminates_connections_and_flushes_redis_sessions(
+        self, mock_cursor, mock_redis_from_url, mock_rebuild_task, mock_migrate, mock_run
+    ):
+        from users.services.backup_service import BackupService
+
+        # Setup mock cursor to record SQL statements
+        cursor_instance = MagicMock()
+        mock_cursor.return_value.__enter__.return_value = cursor_instance
+
+        # Setup mock redis to record scanned and deleted keys
+        redis_mock = MagicMock()
+        mock_redis_from_url.return_value = redis_mock
+        redis_mock.scan_iter.side_effect = lambda pattern: [
+            f"user_session:1:hash123",
+            f"user_session:2:hash456"
+        ] if "user_session" in pattern else [
+            f"verify_token:tok123"
+        ]
+
+        mock_run.return_value = MagicMock(returncode=0)
+
+        session_payload = {
+            'user_id': self.root_user.id,
+            'token_hash': hashlib.sha256(self.root_token.encode('utf-8')).hexdigest()
+        }
+
+        BackupService.restore_backup(
+            filepath='/tmp/test.dump',
+            filename='test.dump',
+            request_user=self.root_user,
+            session_data=session_payload
+        )
+
+        # 1. Verify connection termination SQL was called
+        cursor_instance.execute.assert_called()
+        call_sql = cursor_instance.execute.call_args[0][0]
+        self.assertIn("pg_terminate_backend", call_sql)
+
+        # 2. Verify pg_restore subprocess was called
+        mock_run.assert_called_once()
+        cmd_called = mock_run.call_args[0][0]
+        self.assertEqual(cmd_called[0], 'pg_restore')
+        self.assertIn('--clean', cmd_called)
+
+        # 3. Verify Redis keys for sessions and tokens were scanned and deleted
+        self.assertTrue(redis_mock.delete.called)
+        deleted_keys = []
+        for call in redis_mock.delete.call_args_list:
+            deleted_keys.extend(call[0])
+        self.assertIn("user_session:1:hash123", deleted_keys)
+        self.assertIn("verify_token:tok123", deleted_keys)
+
+        # 4. Verify search index rebuild task was enqueued
+        mock_rebuild_task.assert_called_once_with('test.dump')
+
