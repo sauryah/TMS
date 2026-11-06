@@ -143,7 +143,7 @@ class DieAPITests(APITestCase):
     def test_patch_status_with_root_auth_creates_history(self):
         url = reverse('die-detail', kwargs={'die_id': 'R-101'})
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.root_token}')
-        data = {'status': 'DAMAGED'}
+        data = {'status': 'DAMAGED', 'version': self.round_die.version}
         response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(DieHistory.objects.filter(die=self.round_die, field_name='status', new_value='DAMAGED').exists())
@@ -176,7 +176,7 @@ class DieAPITests(APITestCase):
 
         # 2. Operator can relocate (PATCH rack/shelf only)
         rack_z = Rack.objects.create(name="Rack Z", row_count=4, column_count=3)
-        data = {'rack': rack_z.id, 'shelf_number': 5}
+        data = {'rack': rack_z.id, 'shelf_number': 5, 'version': self.round_die.version}
         response = self.client.patch(url_detail, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.round_die.refresh_from_db()
@@ -184,7 +184,7 @@ class DieAPITests(APITestCase):
         self.assertEqual(self.round_die.shelf_number, 5)
 
         # 3. Operator cannot PATCH other fields (e.g. status)
-        data = {'status': 'DAMAGED'}
+        data = {'status': 'DAMAGED', 'version': self.round_die.version}
         response = self.client.patch(url_detail, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -223,7 +223,7 @@ class DieAPITests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {regular_token}')
         url_detail = reverse('die-detail', kwargs={'die_id': 'R-101'})
         rack_z = Rack.objects.create(name="Rack Z 2", row_count=4, column_count=3)
-        data = {'rack': rack_z.id, 'shelf_number': 5}
+        data = {'rack': rack_z.id, 'shelf_number': 5, 'version': self.round_die.version}
         response = self.client.patch(url_detail, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -275,6 +275,21 @@ class DieAPITests(APITestCase):
         # Should only generate 1 outbox task, NOT duplicated by two consecutive saves
         outbox_tasks = OutboxTask.objects.filter(payload__die_id=self.round_die.id)
         self.assertEqual(outbox_tasks.count(), 1)
+
+    def test_update_die_missing_version_fails_with_400(self):
+        url_detail = reverse('die-detail', kwargs={'die_id': 'R-101'})
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.root_token}')
+        response = self.client.patch(url_detail, {'status': 'AVAILABLE'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data.get('code'), 'version_required')
+
+    def test_update_die_stale_version_fails_with_409(self):
+        url_detail = reverse('die-detail', kwargs={'die_id': 'R-101'})
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.root_token}')
+        # Set stale version 0 when db is 1
+        response = self.client.patch(url_detail, {'status': 'AVAILABLE', 'version': 999})
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data.get('code'), 'concurrency_conflict')
 
 
 from dies.models import DieTolerance, WearAlert

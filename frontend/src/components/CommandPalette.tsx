@@ -177,9 +177,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           icon: <Settings className="h-3.5 w-3.5 text-amber-400" />,
           perform: async () => {
             try {
+              const matchedDie = searchResults.find(d => d.die_id === targetDieId)
               await request(`/api/dies/${targetDieId}/`, {
                 method: 'PATCH',
-                body: JSON.stringify({ status: targetStatus })
+                body: JSON.stringify({ status: targetStatus, version: matchedDie?.version ?? 1 })
               })
               showToast(`Successfully updated ${targetDieId} status to ${targetStatus}.`, 'success')
               onClose()
@@ -217,7 +218,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                 try {
                   await request(`/api/dies/${die.die_id}/`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ status: st })
+                    body: JSON.stringify({ status: st, version: die.version ?? 1 })
                   })
                   showToast(`Successfully updated ${die.die_id} to ${st}.`, 'success')
                   onClose()

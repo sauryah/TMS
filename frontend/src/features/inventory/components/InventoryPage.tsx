@@ -161,12 +161,14 @@ export function InventoryPage() {
     if (!bulkStatus || selectedDieIds.size === 0) return
     setIsUpdating(true)
     try {
-      const updatePromises = Array.from(selectedDieIds).map(dieId =>
-        request(`/api/dies/${dieId}/`, {
+      const updatePromises = Array.from(selectedDieIds).map(dieId => {
+        const found = diesList.find(d => String(d.die_id) === String(dieId))
+        const ver = found?.version ?? 1
+        return request(`/api/dies/${dieId}/`, {
           method: 'PATCH',
-          body: JSON.stringify({ status: bulkStatus })
+          body: JSON.stringify({ status: bulkStatus, version: ver })
         })
-      )
+      })
       await Promise.all(updatePromises)
       const count = selectedDieIds.size
       setSelectedDieIds(new Set())
@@ -193,12 +195,14 @@ export function InventoryPage() {
       const rackNum = Number(bulkRackId)
       const shelfNum = bulkShelf.trim() ? Number(bulkShelf) : null
       const selectedRackName = racksList?.find(r => String(r.id) === String(bulkRackId))?.name || `Rack #${bulkRackId}`
-      const updatePromises = Array.from(selectedDieIds).map(dieId =>
-        request(`/api/dies/${dieId}/`, {
+      const updatePromises = Array.from(selectedDieIds).map(dieId => {
+        const found = diesList.find(d => String(d.die_id) === String(dieId))
+        const ver = found?.version ?? 1
+        return request(`/api/dies/${dieId}/`, {
           method: 'PATCH',
-          body: JSON.stringify({ rack: rackNum, shelf: shelfNum })
+          body: JSON.stringify({ rack: rackNum, shelf: shelfNum, version: ver })
         })
-      )
+      })
       await Promise.all(updatePromises)
       const count = selectedDieIds.size
       setSelectedDieIds(new Set())

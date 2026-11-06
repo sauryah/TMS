@@ -104,6 +104,7 @@ class DieWorkflowIntegrationTest(TestCase):
             'status': 'RUNNING',
             'rack': self.rack_b.id,
             'shelf_number': 3,
+            'version': die.version,
         }
         response = self.client.patch(f'/api/v1/dies/{die.die_id}/', update_payload, format='json')
         self.assertEqual(response.status_code, 200)

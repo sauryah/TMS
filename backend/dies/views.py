@@ -69,28 +69,40 @@ class DieViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
-        instance = self.get_object()
         
         # 1. OPTIMISTIC CONCURRENCY CONTROL (OCC)
-        client_version = request.data.get('version')
-        if client_version is not None:
-            try:
-                client_version = int(client_version)
-            except ValueError:
-                return Response({"detail": "Invalid version format."}, status=status.HTTP_400_BAD_REQUEST)
-                
-            if instance.version != client_version:
-                return Response({
-                    "detail": "Concurrency Conflict: This record has been modified by another user. Please refresh and try again.",
-                    "code": "concurrency_conflict"
-                }, status=status.HTTP_409_CONFLICT)
-                
-        # 2. PESSIMISTIC LOCKING
-        locked_instance = Die.objects.select_for_update().get(die_id=instance.die_id)
-        
+        client_version_raw = request.data.get('version')
+        if client_version_raw is None:
+            return Response(
+                {"detail": "Field 'version' is required for concurrency control.", "code": "version_required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            client_version = int(client_version_raw)
+        except (ValueError, TypeError):
+            return Response({"detail": "Invalid version format.", "code": "invalid_version"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. PESSIMISTIC LOCKING & OBJECT RETRIEVAL
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        try:
+            locked_instance = Die.objects.select_for_update().get(**filter_kwargs)
+        except Die.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        self.check_object_permissions(request, locked_instance)
+
+        # 3. VERIFY OCC VERSION UNDER LOCK
+        if int(locked_instance.version) != client_version:
+            return Response({
+                "detail": "Concurrency Conflict: This record has been modified by another user. Please refresh and try again.",
+                "code": "concurrency_conflict",
+                "current_version": locked_instance.version
+            }, status=status.HTTP_409_CONFLICT)
+
         serializer = self.get_serializer(locked_instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        
+
         locked_instance.version += 1
         serializer.save(version=locked_instance.version)
         return Response(serializer.data)

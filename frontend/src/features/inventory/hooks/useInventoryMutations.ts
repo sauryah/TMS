@@ -76,11 +76,19 @@ export function useInventoryMutations(setIsCreateOpen?: (open: boolean) => void,
   })
 
   // Mutation for updating die location (visual grid)
-  const moveDieLocationMutation = useMutation<unknown, Error, { dieId: string; rack?: number | null; shelf?: number | null }, MoveDieContext>({
-    mutationFn: ({ dieId, rack, shelf }) => request(`/api/dies/${dieId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ rack, shelf })
-    }),
+  const moveDieLocationMutation = useMutation<unknown, Error, { dieId: string; rack?: number | null; shelf?: number | null; version?: number }, MoveDieContext>({
+    mutationFn: ({ dieId, rack, shelf, version }) => {
+      let ver = version
+      if (ver === undefined) {
+        const cached = queryClient.getQueryData<Die[]>(['dies'])
+        const found = Array.isArray(cached) ? cached.find(d => String(d.die_id) === String(dieId)) : undefined
+        ver = found?.version ?? 1
+      }
+      return request(`/api/dies/${dieId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ rack, shelf, version: ver })
+      })
+    },
     onMutate: async ({ dieId, rack, shelf }) => {
       await queryClient.cancelQueries({ queryKey: ['dies'] })
       await queryClient.cancelQueries({ queryKey: ['searchDies'] })
@@ -117,11 +125,19 @@ export function useInventoryMutations(setIsCreateOpen?: (open: boolean) => void,
   })
 
   // Mutation for reallocating a die to a set
-  const reallocateDieMutation = useMutation<unknown, Error, { dieId: string | number; setId: number | null }, ReallocateDieContext>({
-    mutationFn: ({ dieId, setId }) => request(`/api/dies/${dieId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ current_set: setId })
-    }),
+  const reallocateDieMutation = useMutation<unknown, Error, { dieId: string | number; setId: number | null; version?: number }, ReallocateDieContext>({
+    mutationFn: ({ dieId, setId, version }) => {
+      let ver = version
+      if (ver === undefined) {
+        const cached = queryClient.getQueryData<Die[]>(['dies'])
+        const found = Array.isArray(cached) ? cached.find(d => String(d.die_id) === String(dieId)) : undefined
+        ver = found?.version ?? 1
+      }
+      return request(`/api/dies/${dieId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ current_set: setId, version: ver })
+      })
+    },
     onMutate: async ({ dieId, setId }) => {
       await queryClient.cancelQueries({ queryKey: ['dies'] })
       await queryClient.cancelQueries({ queryKey: ['searchDies'] })
