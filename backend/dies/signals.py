@@ -20,7 +20,7 @@ def _get_change_context():
 def log_die_changes(sender, instance, **kwargs):
     if not instance.pk:
         return
-    if getattr(_thread_locals, 'skip_single_sync', False):
+    if getattr(_thread_locals, 'skip_history_logging', False):
         return
     old_values = Die.objects.filter(pk=instance.pk).values(*DIE_WATCH_FIELDS).first()
     if not old_values:
@@ -66,7 +66,7 @@ def log_die_changes(sender, instance, **kwargs):
 def log_round_size_change(sender, instance, **kwargs):
     if not instance.pk:
         return
-    if getattr(_thread_locals, 'skip_single_sync', False):
+    if getattr(_thread_locals, 'skip_history_logging', False):
         return
     old_vals = RoundDie.objects.filter(pk=instance.pk).values('current_size', 'punched_size').first()
     if not old_vals:
@@ -92,7 +92,7 @@ def log_round_size_change(sender, instance, **kwargs):
 def log_flat_changes(sender, instance, **kwargs):
     if not instance.pk:
         return
-    if getattr(_thread_locals, 'skip_single_sync', False):
+    if getattr(_thread_locals, 'skip_history_logging', False):
         return
     old_values = FlatDie.objects.filter(pk=instance.pk).values('current_width', 'current_thickness', 'punched_width', 'punched_thickness', 'radius').first()
     if not old_values:
@@ -116,6 +116,8 @@ def log_flat_changes(sender, instance, **kwargs):
 
 
 def _sync_die_from_related(instance):
+    if getattr(_thread_locals, 'skip_single_search_sync', False):
+        return
     die = instance if isinstance(instance, Die) else instance.die
     try:
         from dies.services.wear_alert_service import WearAlertService

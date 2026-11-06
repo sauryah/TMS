@@ -196,7 +196,8 @@ class ImportService:
     def import_dies(file_path: str, file_ext: str, user, dry_run: bool = False, progress_callback = None) -> dict:
         # Associate user with current thread for DieHistory tracking
         _thread_locals.user = user
-        _thread_locals.skip_single_sync = True
+        _thread_locals.skip_single_search_sync = True
+        _thread_locals.skip_history_logging = False
 
         try:
             created = 0
@@ -286,4 +287,5 @@ class ImportService:
             return result
         finally:
             _thread_locals.user = None
-            _thread_locals.skip_single_sync = None
+            _thread_locals.skip_single_search_sync = False
+            _thread_locals.skip_history_logging = False

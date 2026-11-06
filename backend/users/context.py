@@ -3,6 +3,8 @@ import contextvars
 _current_user_var: contextvars.ContextVar = contextvars.ContextVar('current_user', default=None)
 _current_ip_var: contextvars.ContextVar = contextvars.ContextVar('current_ip', default=None)
 _skip_single_sync_var: contextvars.ContextVar = contextvars.ContextVar('skip_single_sync', default=False)
+_skip_single_search_sync_var: contextvars.ContextVar = contextvars.ContextVar('skip_single_search_sync', default=False)
+_skip_history_logging_var: contextvars.ContextVar = contextvars.ContextVar('skip_history_logging', default=False)
 _pending_sync_die_ids_var: contextvars.ContextVar = contextvars.ContextVar('pending_sync_die_ids', default=None)
 _pending_broadcast_keys_var: contextvars.ContextVar = contextvars.ContextVar('pending_broadcast_keys', default=None)
 
@@ -28,11 +30,28 @@ class _ThreadLocalsProxy:
 
     @property
     def skip_single_sync(self):
-        return _skip_single_sync_var.get()
+        return _skip_single_search_sync_var.get() or _skip_single_sync_var.get()
 
     @skip_single_sync.setter
     def skip_single_sync(self, value):
         _skip_single_sync_var.set(value)
+        _skip_single_search_sync_var.set(value)
+
+    @property
+    def skip_single_search_sync(self):
+        return _skip_single_search_sync_var.get()
+
+    @skip_single_search_sync.setter
+    def skip_single_search_sync(self, value):
+        _skip_single_search_sync_var.set(value)
+
+    @property
+    def skip_history_logging(self):
+        return _skip_history_logging_var.get()
+
+    @skip_history_logging.setter
+    def skip_history_logging(self, value):
+        _skip_history_logging_var.set(value)
 
     @property
     def pending_sync_die_ids(self):

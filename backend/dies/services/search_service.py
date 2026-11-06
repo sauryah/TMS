@@ -12,7 +12,7 @@ from dies.contracts import (
 class SearchService:
     @staticmethod
     def queue_die_sync(die_id):
-        if getattr(_thread_locals, 'skip_single_sync', False):
+        if getattr(_thread_locals, 'skip_single_sync', False) or getattr(_thread_locals, 'skip_single_search_sync', False):
             return
         pending = _thread_locals.pending_sync_die_ids
         if pending is None:

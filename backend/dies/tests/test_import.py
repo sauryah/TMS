@@ -355,3 +355,61 @@ R-LOG-1,ROUND,25x10,AVAILABLE,Rack A,1,remark1,2.5,2.5
             self.assertTrue(len(logs_res.data['results']) >= 1)
         finally:
             os.remove(filepath)
+
+    def test_bulk_import_records_die_history_on_updates_and_suppresses_single_search_sync(self):
+        from history.models import DieHistory
+        from dies.models import OutboxTask
+        from users.context import _thread_locals
+
+        # Initial import to seed die
+        initial_content = """die_id,die_type,casing,status,rack,shelf_number,remarks,punched_size,current_size
+R-AUDIT-1,ROUND,25x10,AVAILABLE,Rack A,1,Initial remark,2.5,2.5
+"""
+        filepath_init = self.write_temp_csv(initial_content)
+        try:
+            res_init = import_dies(filepath_init, '.csv', self.user)
+            self.assertEqual(res_init['created'], 1)
+        finally:
+            os.remove(filepath_init)
+
+        die = Die.objects.get(die_id='R-AUDIT-1')
+        # Clear outbox tasks and any existing history entries
+        OutboxTask.objects.all().delete()
+        DieHistory.objects.filter(die=die).delete()
+
+        # Update die via bulk import
+        update_content = """die_id,die_type,casing,status,rack,shelf_number,remarks,punched_size,current_size
+R-AUDIT-1,ROUND,25x10,MAINTENANCE,Rack A,1,Updated in import,2.5,2.65
+"""
+        filepath_update = self.write_temp_csv(update_content)
+        try:
+            res_update = import_dies(filepath_update, '.csv', self.user)
+            self.assertEqual(res_update['updated'], 1)
+            self.assertEqual(res_update['created'], 0)
+        finally:
+            os.remove(filepath_update)
+
+        # 1. Audit history must be recorded for updated fields
+        histories = list(DieHistory.objects.filter(die=die).order_by('field_name'))
+        self.assertTrue(len(histories) >= 2)
+
+        history_fields = {h.field_name: (h.old_value, h.new_value, h.changed_by) for h in histories}
+        self.assertIn('status', history_fields)
+        self.assertEqual(history_fields['status'][0], 'AVAILABLE')
+        self.assertEqual(history_fields['status'][1], 'MAINTENANCE')
+        self.assertEqual(history_fields['status'][2], self.user)
+
+        self.assertIn('remarks', history_fields)
+        self.assertEqual(history_fields['remarks'][0], 'Initial remark')
+        self.assertEqual(history_fields['remarks'][1], 'Updated in import')
+        self.assertEqual(history_fields['remarks'][2], self.user)
+
+        self.assertIn('current_size', history_fields)
+        self.assertEqual(history_fields['current_size'][0], '2.5')
+        self.assertEqual(history_fields['current_size'][1], '2.65')
+        self.assertEqual(history_fields['current_size'][2], self.user)
+
+        # 2. Thread locals must be restored in finally block
+        self.assertFalse(_thread_locals.skip_single_search_sync)
+        self.assertFalse(_thread_locals.skip_history_logging)
+        self.assertIsNone(_thread_locals.user)
