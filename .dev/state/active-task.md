@@ -24,6 +24,7 @@ Remove warehouse rack and shelf storage concepts entirely from the platform per 
 - Cleaned backend models, serializers, views, admin, signals, search tasks, and tests.
 - Removed legacy `Rack` imports and fixtures from all backend test suites (`test_integration`, `test_models`, `test_query_count`, `test_search`, `test_services`, `test_signals`).
 - Fixed `@patch` target in `users/tests/test_backups.py` to target `users.services.backup_service.rebuild_search_index_task.delay`.
+- Added `'version'` to allowed fields for `OPERATOR` PATCH in `backend/users/permissions.py`, fixing `test_operator_rbac_boundaries`.
 - Cleaned frontend types, validation schema, subviews, modals, cards, and unit tests (all 106 tests passing).
 - Verified TypeScript build (`tsc --noEmit`) passes with 0 errors.
 
