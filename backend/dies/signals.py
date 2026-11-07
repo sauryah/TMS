@@ -7,7 +7,7 @@ from users.context import get_current_user, get_current_ip, _thread_locals
 from dies.services.search_service import SearchService
 from dies.contracts import DIE_SAVE_ACTION
 
-DIE_WATCH_FIELDS = ['status', 'current_set_id', 'rack_id', 'shelf_number', 'remarks', 'die_id', 'casing']
+DIE_WATCH_FIELDS = ['status', 'current_set_id', 'remarks', 'die_id', 'casing']
 
 def _get_change_context():
     user = get_current_user()
