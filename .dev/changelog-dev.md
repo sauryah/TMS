@@ -17,6 +17,7 @@
     *   Refactored `DieDetailPage` dashboard cards to promote Production Line Assignment to Card 03, removing the legacy Warehouse Mapping section.
     *   Updated `RoundDieCard`, `FlatDieCard`, `DieCard`, and `DashboardPage` to display machine and set assignments without rack/shelf dependencies.
     *   Updated unit tests (`DieCard.test.tsx`, `RoundDieCard.test.tsx`, `FlatDieCard.test.tsx`, `InventoryPage.test.tsx`) with 106/106 tests passing.
+    *   Updated footer attribution across `Footer.tsx` and `AboutModal.tsx`, and added interactive `ContactModal` with 1-click email copy.
 
 ### 2026-11-05 Strict Remote Push Policy Standards
 *   **Operating System & Workflow Push Policy**:

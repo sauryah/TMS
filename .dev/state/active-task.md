@@ -26,6 +26,7 @@ Remove warehouse rack and shelf storage concepts entirely from the platform per 
 - Fixed `@patch` target in `users/tests/test_backups.py` to target `users.services.backup_service.rebuild_search_index_task.delay`.
 - Added `'version'` to allowed fields for `OPERATOR` PATCH in `backend/users/permissions.py`, fixing `test_operator_rbac_boundaries`.
 - Cleaned frontend types, validation schema, subviews, modals, cards, and unit tests (all 106 tests passing).
+- Updated footer attribution across `Footer.tsx` and `AboutModal.tsx`, and added interactive `ContactModal` with 1-click email copy.
 - Verified TypeScript build (`tsc --noEmit`) passes with 0 errors.
 
 ## Next Steps

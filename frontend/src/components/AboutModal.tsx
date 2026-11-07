@@ -1,4 +1,5 @@
-import { X, Code2 } from 'lucide-react'
+import { useState } from 'react'
+import { X, Code2, Mail, Copy, Check } from 'lucide-react'
 import { APP_VERSION } from '../version'
 
 interface AboutModalProps {
@@ -7,6 +8,17 @@ interface AboutModalProps {
 }
 
 export function AboutModal({ isOpen, onClose }: AboutModalProps) {
+  const [copied, setCopied] = useState(false)
+  const email = 'sauryah@protonmail.com'
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    navigator.clipboard.writeText(email)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (!isOpen) return null
 
   return (
@@ -52,7 +64,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-[var(--color-text)] uppercase tracking-wider font-heading">
-                  Sahil
+                  Sahil Pradhan
                 </h3>
                 <p className="text-[10px] text-[var(--color-muted)] font-mono mt-0.5">
                   Lead Developer & Architect
@@ -61,13 +73,29 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                   Core architecture, Django backend APIs, PostgreSQL integration, and React client.
                 </p>
 
-                <div className="mt-3 flex items-center gap-1.5 font-mono">
+                <div className="mt-3 flex flex-wrap items-center gap-2 font-mono">
                   <span className="px-2 py-0.5 text-[9px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded">
                     FOUNDER
                   </span>
                   <span className="px-2 py-0.5 text-[9px] font-bold text-[var(--color-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded">
                     FULL-STACK
                   </span>
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold text-[var(--color-text)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded">
+                    <Mail className="h-2.5 w-2.5 text-blue-400" />
+                    <span className="select-all font-mono">sauryah@protonmail.com</span>
+                    <button
+                      onClick={handleCopy}
+                      className="ml-1 p-0.5 text-[var(--color-muted)] hover:text-blue-400 transition-colors cursor-pointer"
+                      title="Copy email to clipboard"
+                      aria-label="Copy email address"
+                    >
+                      {copied ? (
+                        <Check className="h-2.5 w-2.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-2.5 w-2.5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

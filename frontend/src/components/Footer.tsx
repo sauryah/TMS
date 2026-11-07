@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { AboutModal } from './AboutModal'
-import { Info } from 'lucide-react'
+import { ContactModal } from './ContactModal'
+import { Info, Mail } from 'lucide-react'
 import { APP_VERSION } from '../version'
 
 export function Footer() {
   const [isAboutOpen, setIsAboutOpen] = useState(false)
+  const [isContactOpen, setIsContactOpen] = useState(false)
 
   return (
     <>
@@ -25,14 +27,23 @@ export function Footer() {
             </div>
             <div className="flex items-center space-x-3 text-[11px]">
               <span>
-                ENGINEERING:{' '}
+                DEVELOPED BY:{' '}
                 <button
                   onClick={() => setIsAboutOpen(true)}
                   className="text-[var(--color-text)] hover:text-blue-400 transition-colors uppercase font-mono font-bold cursor-pointer"
                 >
-                  SAHIL
+                  SAHIL PRADHAN
                 </button>
               </span>
+              <span className="text-[var(--color-border)]">|</span>
+              <button
+                onClick={() => setIsContactOpen(true)}
+                className="flex items-center space-x-1 text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer uppercase font-bold"
+                aria-label="View developer contact information"
+              >
+                <Mail className="h-3 w-3" />
+                <span>CONTACT</span>
+              </button>
               <span className="text-[var(--color-border)]">|</span>
               <button
                 onClick={() => setIsAboutOpen(true)}
@@ -47,6 +58,7 @@ export function Footer() {
         </div>
       </footer>
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <ContactModal isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} />
     </>
   )
 }
