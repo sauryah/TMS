@@ -19,7 +19,7 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { role } = useAuth()
-  const canChangeTheme = role === 'ROOT'
+  const canChangeTheme = Boolean(role)
 
   const [theme, setInternalTheme] = useState<AppTheme>(() => {
     const saved = localStorage.getItem('tms_app_theme')

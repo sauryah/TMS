@@ -33,7 +33,7 @@ export const DieCard = React.memo(function DieCard({ die, onClick, viewMode = 'g
         tabIndex={0}
         onClick={onClick}
         onKeyDown={handleKeyDown}
-        className={`w-full bg-[#0f0f0f] hover:bg-[#141414] border border-[#1a1a1a] rounded-sm px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-colors duration-100 cursor-pointer focus-ring select-none border-l-2 ${
+        className={`w-full bg-[#0f0f0f] hover:bg-[#141414] border border-[#1a1a1a] rounded-sm px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all duration-150 cursor-pointer focus-ring select-none border-l-2 glass-card ${
           isRound ? 'border-l-blue-500' : 'border-l-purple-500'
         }`}
       >
@@ -88,7 +88,7 @@ export const DieCard = React.memo(function DieCard({ die, onClick, viewMode = 'g
       tabIndex={0}
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className={`bg-[#0f0f0f] hover:bg-[#141414] border border-[#1a1a1a] rounded-sm p-3.5 flex flex-col justify-between h-40 transition-colors duration-100 cursor-pointer focus-ring select-none border-l-2 ${
+      className={`bg-[#0f0f0f] hover:bg-[#141414] border border-[#1a1a1a] rounded-sm p-3.5 flex flex-col justify-between h-40 transition-all duration-150 cursor-pointer focus-ring select-none border-l-2 glass-card ${
         isRound ? 'border-l-blue-500' : 'border-l-purple-500'
       }`}
     >

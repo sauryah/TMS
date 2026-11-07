@@ -764,22 +764,9 @@ export function SettingsPage() {
               <div className="pb-3 border-b border-[#1a1a1a] flex justify-between items-center flex-wrap gap-2">
                 <div>
                   <h2 className="text-xs font-medium text-[#e4e4e4] uppercase tracking-[0.05em]">01 SYSTEM THEME CONFIGURATION</h2>
-                  <span className="text-[#6b7280] text-xs block mt-0.5">Choose the system-wide visual theme and typographic density for the manufacturing interface.</span>
+                  <span className="text-[#6b7280] text-xs block mt-0.5">Choose your preferred visual theme and typographic density for the manufacturing interface.</span>
                 </div>
-                {!canChangeTheme && (
-                  <div className="flex items-center gap-1.5 bg-[#141414] border border-amber-500/30 text-amber-400 text-[10px] px-2.5 py-1 rounded-sm">
-                    <Lock className="h-3 w-3" />
-                    <span>ROOT PRIVILEGE REQUIRED</span>
-                  </div>
-                )}
               </div>
-
-              {!canChangeTheme && (
-                <div className="bg-[#141414] border border-[#2a2a2a] p-3 rounded-sm text-xs text-[#6b7280] flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-amber-400 shrink-0" />
-                  <span>Theme configuration is system-wide and restricted to Root administrators. Contact your supervisor to adjust the active theme.</span>
-                </div>
-              )}
 
               <div className="grid grid-cols-1 xl:grid-cols-3 md:grid-cols-2 gap-4 pt-1">
                 {/* Theme Card 1: Terminal */}

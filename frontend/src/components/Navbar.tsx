@@ -321,36 +321,34 @@ export function Navbar() {
                   <span className="block text-xs font-medium text-[var(--color-text)]">{username}</span>
                   <span className="block text-[10px] text-[var(--color-muted)] uppercase tracking-wider">{role}</span>
                 </div>
-                {role === 'ROOT' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleTheme()
-                      const nextTheme = theme === 'terminal' ? 'Classic Slate (Industrial)' : theme === 'classic' ? 'Precision Light (Clean Slate)' : 'Dark Terminal (Bloomberg)'
-                      showToast(`System theme switched to: ${nextTheme}`, 'info')
-                    }}
-                    title={`System Theme: ${theme === 'terminal' ? 'Dark Terminal' : theme === 'classic' ? 'Classic Slate' : 'Precision Light'} (Root Privilege: Click to Switch)`}
-                    className="flex items-center gap-1.5 bg-[var(--color-surface-2)] border border-[var(--color-border-visible)] hover:border-blue-500/50 text-[var(--color-text)] px-2 py-1 rounded-sm text-xs font-mono transition-colors cursor-pointer"
-                    aria-label="Switch System Theme"
-                  >
-                    {theme === 'terminal' ? (
-                      <>
-                        <Terminal className="h-3.5 w-3.5 text-emerald-400" />
-                        <span className="hidden lg:inline text-[10px] text-emerald-400 uppercase font-bold tracking-wider">TERMINAL</span>
-                      </>
-                    ) : theme === 'classic' ? (
-                      <>
-                        <Palette className="h-3.5 w-3.5 text-blue-400" />
-                        <span className="hidden lg:inline text-[10px] text-blue-400 uppercase font-bold tracking-wider">CLASSIC</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sun className="h-3.5 w-3.5 text-amber-500" />
-                        <span className="hidden lg:inline text-[10px] text-amber-500 uppercase font-bold tracking-wider">LIGHT</span>
-                      </>
-                    )}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleTheme()
+                    const nextTheme = theme === 'terminal' ? 'Classic Slate (Industrial)' : theme === 'classic' ? 'Precision Light (Clean Slate)' : 'Dark Terminal (Bloomberg)'
+                    showToast(`System theme switched to: ${nextTheme}`, 'info')
+                  }}
+                  title={`System Theme: ${theme === 'terminal' ? 'Dark Terminal' : theme === 'classic' ? 'Classic Slate' : 'Precision Light'} (Click to Switch)`}
+                  className="flex items-center gap-1.5 bg-[var(--color-surface-2)] border border-[var(--color-border-visible)] hover:border-blue-500/50 text-[var(--color-text)] px-2 py-1 rounded-sm text-xs font-mono transition-colors cursor-pointer"
+                  aria-label="Switch System Theme"
+                >
+                  {theme === 'terminal' ? (
+                    <>
+                      <Terminal className="h-3.5 w-3.5 text-emerald-400" />
+                      <span className="hidden lg:inline text-[10px] text-emerald-400 uppercase font-bold tracking-wider">TERMINAL</span>
+                    </>
+                  ) : theme === 'classic' ? (
+                    <>
+                      <Palette className="h-3.5 w-3.5 text-blue-400" />
+                      <span className="hidden lg:inline text-[10px] text-blue-400 uppercase font-bold tracking-wider">CLASSIC</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="hidden lg:inline text-[10px] text-amber-500 uppercase font-bold tracking-wider">LIGHT</span>
+                    </>
+                  )}
+                </button>
                 <Link
                   to="/settings"
                   className="flex items-center bg-[var(--color-surface-2)] border border-[var(--color-border-visible)] hover:border-[#3b82f6] text-[var(--color-text)] p-1.5 rounded-sm text-xs transition-colors"

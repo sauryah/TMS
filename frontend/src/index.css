@@ -398,10 +398,10 @@ html[data-theme="light"],
   --color-surface-elevated: #FFFFFF;
   --color-border:      #E2E8F0;
   --color-border-visible: #CBD5E1;
-  --color-text:        #0F172A;
+  --color-text:        #1E293B;
   --color-text-secondary: #475569;
   --color-muted:       #64748B;
-  --color-muted-dark:  #CBD5E1;
+  --color-muted-dark:  #64748B;
   --color-accent:      #2563EB;
   --color-accent-up:   #059669;
   --color-accent-down: #DC2626;
@@ -414,28 +414,28 @@ html[data-theme="light"],
   --color-polishing:   #6D28D9;   /* Royal Purple */
   --color-damaged:     #C2410C;   /* Deep Orange */
   --color-scrapped:    #B91C1C;   /* Ruby Crimson */
-  --color-missing:     #334155;   /* Slate Gray */
-  --color-maintenance: #B45309;   /* Warm Amber */
+  --color-missing:     #DC2626;   /* Rose Warning */
+  --color-maintenance: #1D4ED8;   /* Cobalt Blue */
 
   /* Vibrant Status Badge Backgrounds & Borders */
-  --color-available-bg:   rgba(16, 185, 129, 0.14);
-  --color-available-bdr:  rgba(16, 185, 129, 0.40);
-  --color-running-bg:     rgba(37, 99, 235, 0.14);
-  --color-running-bdr:    rgba(37, 99, 235, 0.40);
-  --color-cleaning-bg:    rgba(245, 158, 11, 0.14);
-  --color-cleaning-bdr:   rgba(245, 158, 11, 0.40);
-  --color-polishing-bg:   rgba(139, 92, 246, 0.14);
-  --color-polishing-bdr:  rgba(139, 92, 246, 0.40);
-  --color-damaged-bg:     rgba(249, 115, 22, 0.14);
-  --color-damaged-bdr:    rgba(249, 115, 22, 0.40);
-  --color-scrapped-bg:    rgba(239, 68, 68, 0.14);
-  --color-scrapped-bdr:   rgba(239, 68, 68, 0.40);
-  --color-missing-bg:     rgba(100, 116, 139, 0.14);
-  --color-missing-bdr:    rgba(100, 116, 139, 0.40);
-  --color-maintenance-bg: rgba(245, 158, 11, 0.14);
-  --color-maintenance-bdr:rgba(245, 158, 11, 0.40);
-  --color-default-bg:     rgba(100, 116, 139, 0.14);
-  --color-default-bdr:    rgba(100, 116, 139, 0.40);
+  --color-available-bg:   rgba(16, 185, 129, 0.16);
+  --color-available-bdr:  rgba(16, 185, 129, 0.45);
+  --color-running-bg:     rgba(37, 99, 235, 0.16);
+  --color-running-bdr:    rgba(37, 99, 235, 0.45);
+  --color-cleaning-bg:    rgba(245, 158, 11, 0.16);
+  --color-cleaning-bdr:   rgba(245, 158, 11, 0.45);
+  --color-polishing-bg:   rgba(139, 92, 246, 0.16);
+  --color-polishing-bdr:  rgba(139, 92, 246, 0.45);
+  --color-damaged-bg:     rgba(249, 115, 22, 0.16);
+  --color-damaged-bdr:    rgba(249, 115, 22, 0.45);
+  --color-scrapped-bg:    rgba(239, 68, 68, 0.16);
+  --color-scrapped-bdr:   rgba(239, 68, 68, 0.45);
+  --color-missing-bg:     rgba(248, 113, 113, 0.16);
+  --color-missing-bdr:    rgba(248, 113, 113, 0.45);
+  --color-maintenance-bg: rgba(37, 99, 235, 0.16);
+  --color-maintenance-bdr:rgba(37, 99, 235, 0.45);
+  --color-default-bg:     rgba(100, 116, 139, 0.16);
+  --color-default-bdr:    rgba(100, 116, 139, 0.45);
 
   /* Wire Drawing Calculator tokens mapped to Vibrant Light */
   --wdc-primary: #2563EB;
@@ -495,10 +495,10 @@ html[data-theme="light"] .bg-\[\#141414\] { background-color: #F1F5F9 !important
 html[data-theme="light"] .bg-\[\#1f1f1f\] { background-color: #E2E8F0 !important; }
 html[data-theme="light"] .border-\[\#1a1a1a\] { border-color: #E2E8F0 !important; }
 html[data-theme="light"] .border-\[\#2a2a2a\] { border-color: #CBD5E1 !important; }
-html[data-theme="light"] .text-\[\#e4e4e4\] { color: #0F172A !important; }
+html[data-theme="light"] .text-\[\#e4e4e4\] { color: #1E293B !important; }
 html[data-theme="light"] .text-\[\#6b7280\] { color: #475569 !important; }
-html[data-theme="light"] .text-\[\#404040\] { color: #94A3B8 !important; }
-html[data-theme="light"] .placeholder-\[\#404040\]::placeholder { color: #94A3B8 !important; }
+html[data-theme="light"] .text-\[\#404040\] { color: #64748B !important; }
+html[data-theme="light"] .placeholder-\[\#404040\]::placeholder { color: #64748B !important; }
 html[data-theme="light"] .hover\:bg-\[\#141414\]:hover { background-color: #F8FAFC !important; }
 html[data-theme="light"] .hover\:bg-\[\#1f1f1f\]:hover { background-color: #E2E8F0 !important; }
 html[data-theme="light"] .hover\:border-\[\#2a2a2a\]:hover { border-color: #93C5FD !important; box-shadow: 0 4px 8px -2px rgba(37, 99, 235, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04) !important; }
@@ -551,10 +551,151 @@ html[data-theme="light"] .border-l-\[\#f97316\] { border-left-color: #EA580C !im
 html[data-theme="light"] .border-l-\[\#ef4444\] { border-left-color: #DC2626 !important; border-left-width: 3px !important; }
 html[data-theme="light"] .border-l-\[\#6b7280\] { border-left-color: #64748B !important; border-left-width: 3px !important; }
 html[data-theme="light"] .border-l-blue-500 { border-left-color: #2563EB !important; border-left-width: 3px !important; }
+html[data-theme="light"] .border-l-purple-500 { border-left-color: #7C3AED !important; border-left-width: 3px !important; }
+
+/* Status Metric (KPI) Cards in Light Mode */
+html[data-theme="light"] .stat-card {
+  background: #FFFFFF !important;
+  border-radius: 8px !important;
+  border-left-width: 3px !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03) !important;
+  transition: all 0.2s ease;
+}
+html[data-theme="light"] .stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-theme="light"] .stat-card-TOTAL {
+  border-color: #CBD5E1 !important;
+}
+html[data-theme="light"] .stat-card-TOTAL .stat-label {
+  color: #475569 !important;
+}
+html[data-theme="light"] .stat-card-TOTAL .stat-count {
+  color: #0F172A !important;
+}
+
+html[data-theme="light"] .stat-card-AVAILABLE {
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  border-left-color: #059669 !important;
+}
+html[data-theme="light"] .stat-card-AVAILABLE:hover {
+  border-color: rgba(16, 185, 129, 0.75) !important;
+  box-shadow: 0 4px 16px -2px rgba(16, 185, 129, 0.20) !important;
+}
+html[data-theme="light"] .stat-card-AVAILABLE .stat-label {
+  color: #059669 !important;
+}
+html[data-theme="light"] .stat-card-AVAILABLE .stat-count {
+  color: #047857 !important;
+}
+
+html[data-theme="light"] .stat-card-RUNNING {
+  border-color: rgba(37, 99, 235, 0.45) !important;
+  border-left-color: #2563EB !important;
+}
+html[data-theme="light"] .stat-card-RUNNING:hover {
+  border-color: rgba(37, 99, 235, 0.75) !important;
+  box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.20) !important;
+}
+html[data-theme="light"] .stat-card-RUNNING .stat-label {
+  color: #2563EB !important;
+}
+html[data-theme="light"] .stat-card-RUNNING .stat-count {
+  color: #1D4ED8 !important;
+}
+
+html[data-theme="light"] .stat-card-CLEANING {
+  border-color: rgba(245, 158, 11, 0.50) !important;
+  border-left-color: #D97706 !important;
+}
+html[data-theme="light"] .stat-card-CLEANING:hover {
+  border-color: rgba(245, 158, 11, 0.80) !important;
+  box-shadow: 0 4px 16px -2px rgba(245, 158, 11, 0.20) !important;
+}
+html[data-theme="light"] .stat-card-CLEANING .stat-label {
+  color: #B45309 !important;
+}
+html[data-theme="light"] .stat-card-CLEANING .stat-count {
+  color: #92400E !important;
+}
+
+html[data-theme="light"] .stat-card-POLISHING {
+  border-color: rgba(139, 92, 246, 0.45) !important;
+  border-left-color: #7C3AED !important;
+}
+html[data-theme="light"] .stat-card-POLISHING:hover {
+  border-color: rgba(139, 92, 246, 0.75) !important;
+  box-shadow: 0 4px 16px -2px rgba(139, 92, 246, 0.20) !important;
+}
+html[data-theme="light"] .stat-card-POLISHING .stat-label {
+  color: #6D28D9 !important;
+}
+html[data-theme="light"] .stat-card-POLISHING .stat-count {
+  color: #5B21B6 !important;
+}
+
+html[data-theme="light"] .stat-card-DAMAGED {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  border-left-color: #DC2626 !important;
+}
+html[data-theme="light"] .stat-card-DAMAGED:hover {
+  border-color: rgba(239, 68, 68, 0.75) !important;
+  box-shadow: 0 4px 16px -2px rgba(239, 68, 68, 0.20) !important;
+}
+html[data-theme="light"] .stat-card-DAMAGED .stat-label {
+  color: #DC2626 !important;
+}
+html[data-theme="light"] .stat-card-DAMAGED .stat-count {
+  color: #B91C1C !important;
+}
+
+html[data-theme="light"] .stat-card-MISSING {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  border-left-color: #DC2626 !important;
+}
+html[data-theme="light"] .stat-card-MISSING:hover {
+  border-color: rgba(239, 68, 68, 0.75) !important;
+  box-shadow: 0 4px 16px -2px rgba(239, 68, 68, 0.20) !important;
+}
+html[data-theme="light"] .stat-card-MISSING .stat-label {
+  color: #DC2626 !important;
+}
+html[data-theme="light"] .stat-card-MISSING .stat-count {
+  color: #B91C1C !important;
+}
+
+html[data-theme="light"] .stat-card-MAINTENANCE {
+  border-color: rgba(37, 99, 235, 0.45) !important;
+  border-left-color: #2563EB !important;
+}
+html[data-theme="light"] .stat-card-MAINTENANCE:hover {
+  border-color: rgba(37, 99, 235, 0.75) !important;
+  box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.20) !important;
+}
+html[data-theme="light"] .stat-card-MAINTENANCE .stat-label {
+  color: #2563EB !important;
+}
+html[data-theme="light"] .stat-card-MAINTENANCE .stat-count {
+  color: #1D4ED8 !important;
+}
+
+html[data-theme="light"] .stat-card-SCRAPPED {
+  border-color: #CBD5E1 !important;
+  border-left-color: #64748B !important;
+}
+html[data-theme="light"] .stat-card-SCRAPPED .stat-label {
+  color: #475569 !important;
+}
+html[data-theme="light"] .stat-card-SCRAPPED .stat-count {
+  color: #334155 !important;
+}
 
 /* Glass Panel & Card */
 html[data-theme="light"] .glass-panel,
-html[data-theme="light"] .glass-card { background: #FFFFFF; border-color: #E2E8F0; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+html[data-theme="light"] .glass-card { background: #FFFFFF; border-color: #E2E8F0; box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05); }
+html[data-theme="light"] .glass-card:hover { box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04) !important; }
 html[data-theme="light"] .glass-input { background: #FFFFFF !important; border-color: #CBD5E1 !important; color: #0F172A !important; }
 
 /* Primary Action Buttons */
@@ -583,7 +724,7 @@ html[data-theme="light"] .text-slate-200,
 html[data-theme="light"] .text-slate-300 { color: #0F172A !important; }
 html[data-theme="light"] .text-slate-400,
 html[data-theme="light"] .text-slate-500 { color: #475569 !important; }
-html[data-theme="light"] .text-slate-600 { color: #94A3B8 !important; }
+html[data-theme="light"] .text-slate-600 { color: #475569 !important; }
 
 html[data-theme="light"] .bg-\[\#050913\],
 html[data-theme="light"] .bg-\[\#050913\]\/90,
@@ -1022,13 +1163,21 @@ textarea:focus {
 
 /* WCAG Contrast helper utilities */
 .text-wcag-medium {
-  color: #6b7280;
+  color: var(--color-text-secondary, #6b7280);
 }
 .text-wcag-muted {
-  color: #404040;
+  color: var(--color-muted-dark, #64748b);
 }
 .border-wcag-premium {
-  border-color: #1a1a1a;
+  border-color: var(--color-border, #1a1a1a);
+}
+
+/* Baseline contrast safety for legacy hardcoded #404040 classes */
+.text-\[\#404040\] {
+  color: var(--color-muted-dark, #64748b);
+}
+.placeholder-\[\#404040\]::placeholder {
+  color: var(--color-muted-dark, #64748b);
 }
 
 /* Wire Drawing Calculator Styles */
