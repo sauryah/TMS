@@ -793,8 +793,6 @@ func (h *Handler) QueryMeilisearchAndPostgres(ctx context.Context, params *Searc
 	if meiliSuccess && totalHits > totalCount {
 		totalCount = totalHits
 	}
-		totalCount = totalHits
-	}
 
 	if len(filtered) > params.Limit {
 		filtered = filtered[:params.Limit]
