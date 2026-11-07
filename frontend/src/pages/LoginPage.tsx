@@ -147,8 +147,8 @@ export function LoginPage() {
             <img src="/icons/128x128.png" alt="TMS Logo" className="h-7 w-7 rounded-sm object-contain" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-white tracking-widest uppercase">TMS</h1>
-            <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-mono">Tool Management System</p>
+            <h1 className="text-sm font-bold text-[var(--color-text)] tracking-widest uppercase">TMS</h1>
+            <p className="text-[10px] text-[var(--color-muted)] uppercase tracking-wider font-mono">Tool Management System</p>
           </div>
         </div>
 
@@ -273,7 +273,7 @@ export function LoginPage() {
                 setMfaCode('')
                 setErrorMsg(null)
               }}
-              className="w-full text-[11px] text-[#6b7280] hover:text-[#9ca3af] flex items-center justify-center gap-1.5 py-1 font-mono transition cursor-pointer"
+              className="w-full text-[11px] text-[#6b7280] hover:text-[var(--color-text)] flex items-center justify-center gap-1.5 py-1 font-mono transition cursor-pointer"
             >
               <ArrowLeft className="h-3 w-3" />
               <span>Back to Username / Password</span>

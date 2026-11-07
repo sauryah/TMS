@@ -293,7 +293,7 @@ export default function DieSeriesGenerator({ onApply }: DieSeriesGeneratorProps)
                 </span>
               )}
             </p>
-            <p className="text-[11px] text-[#334155] font-mono">
+            <p className="text-[11px] text-[var(--color-muted)] font-mono">
               {generated.map((d) => formatNumber(d)).join(' → ')}
             </p>
           </div>
@@ -350,7 +350,7 @@ export default function DieSeriesGenerator({ onApply }: DieSeriesGeneratorProps)
               <Sliders className="w-3.5 h-3.5" />
               Load into Workbench
             </button>
-            <span className="text-[11px] text-[#334155]">
+            <span className="text-[11px] text-[var(--color-muted)]">
               {generated[0]}mm → {generated[generated.length - 1]}mm
             </span>
           </div>

@@ -116,7 +116,9 @@ export function MachineSetsPage() {
         >
           <Folder className="h-3.5 w-3.5" />
           <span>Categories</span>
-          <span className="px-1.5 py-0.2 text-[10px] font-mono rounded bg-white/20 text-white tabular-nums">
+          <span className={`px-1.5 py-0.2 text-[10px] font-mono rounded tabular-nums ${
+            activeTab === 'categories' ? 'bg-white/20 text-white' : 'bg-[var(--color-surface-2)] text-[var(--color-text)]'
+          }`}>
             {categories?.length || 0}
           </span>
         </button>
@@ -130,7 +132,9 @@ export function MachineSetsPage() {
         >
           <Cpu className="h-3.5 w-3.5" />
           <span>Machines</span>
-          <span className="px-1.5 py-0.2 text-[10px] font-mono rounded bg-white/20 text-white tabular-nums">
+          <span className={`px-1.5 py-0.2 text-[10px] font-mono rounded tabular-nums ${
+            activeTab === 'machines' ? 'bg-white/20 text-white' : 'bg-[var(--color-surface-2)] text-[var(--color-text)]'
+          }`}>
             {machines?.length || 0}
           </span>
         </button>
@@ -144,7 +148,9 @@ export function MachineSetsPage() {
         >
           <Layers className="h-3.5 w-3.5" />
           <span>Tool Sets</span>
-          <span className="px-1.5 py-0.2 text-[10px] font-mono rounded bg-white/20 text-white tabular-nums">
+          <span className={`px-1.5 py-0.2 text-[10px] font-mono rounded tabular-nums ${
+            activeTab === 'sets' ? 'bg-white/20 text-white' : 'bg-[var(--color-surface-2)] text-[var(--color-text)]'
+          }`}>
             {sets?.length || 0}
           </span>
         </button>
