@@ -26,14 +26,11 @@ export function Footer() {
               </span>
             </div>
             <div className="flex items-center space-x-3 text-[11px]">
-              <span>
+              <span className="text-[var(--color-muted)]">
                 DEVELOPED BY:{' '}
-                <button
-                  onClick={() => setIsAboutOpen(true)}
-                  className="text-[var(--color-text)] hover:text-blue-400 transition-colors uppercase font-mono font-bold cursor-pointer"
-                >
+                <span className="text-[var(--color-text)] uppercase font-mono font-bold">
                   SAHIL PRADHAN
-                </button>
+                </span>
               </span>
               <span className="text-[var(--color-border)]">|</span>
               <button

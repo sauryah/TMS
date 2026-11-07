@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { X, Code2, Mail, Copy, Check } from 'lucide-react'
+import { X, Cpu, Server, ShieldCheck } from 'lucide-react'
 import { APP_VERSION } from '../version'
 
 interface AboutModalProps {
@@ -8,17 +7,6 @@ interface AboutModalProps {
 }
 
 export function AboutModal({ isOpen, onClose }: AboutModalProps) {
-  const [copied, setCopied] = useState(false)
-  const email = 'sauryah@protonmail.com'
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    navigator.clipboard.writeText(email)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   if (!isOpen) return null
 
   return (
@@ -54,65 +42,29 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           </div>
         </div>
 
-        {/* Contributors */}
-        <div className="mb-6">
-          {/* Sahil */}
-          <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] text-blue-400 shrink-0">
-                <Code2 className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-[var(--color-text)] uppercase tracking-wider font-heading">
-                  Sahil Pradhan
-                </h3>
-                <p className="text-[10px] text-[var(--color-muted)] font-mono mt-0.5">
-                  Lead Developer & Architect
-                </p>
-                <p className="text-xs text-[var(--color-muted)] mt-1.5 leading-relaxed font-mono">
-                  Core architecture, Django backend APIs, PostgreSQL integration, and React client.
-                </p>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2 font-mono">
-                  <span className="px-2 py-0.5 text-[9px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded">
-                    FOUNDER
-                  </span>
-                  <span className="px-2 py-0.5 text-[9px] font-bold text-[var(--color-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded">
-                    FULL-STACK
-                  </span>
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold text-[var(--color-text)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded">
-                    <Mail className="h-2.5 w-2.5 text-blue-400" />
-                    <span className="select-all font-mono">sauryah@protonmail.com</span>
-                    <button
-                      onClick={handleCopy}
-                      className="ml-1 p-0.5 text-[var(--color-muted)] hover:text-blue-400 transition-colors cursor-pointer"
-                      title="Copy email to clipboard"
-                      aria-label="Copy email address"
-                    >
-                      {copied ? (
-                        <Check className="h-2.5 w-2.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="h-2.5 w-2.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Platform Overview */}
+        <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] mb-5">
+          <div className="flex items-center space-x-2 text-[var(--color-text)] font-bold text-xs uppercase mb-1">
+            <Server className="h-4 w-4 text-blue-400" />
+            <span>Dual-Engine Architecture</span>
           </div>
+          <p className="text-xs text-[var(--color-muted)] leading-relaxed font-mono">
+            High-performance industrial tooling platform splitting write operations (Django transactions, auditing, backups) and real-time read paths (Go search query proxy, SSE live broadcast engine).
+          </p>
         </div>
 
-        {/* Footer info: Tech stack */}
-        <div className="border-t border-[var(--color-border)] pt-4 font-mono">
-          <h4 className="text-[10px] font-bold tracking-wider uppercase text-[var(--color-muted)] mb-2.5">
-            Architecture Stack
+        {/* Architecture Stack */}
+        <div className="mb-5">
+          <h4 className="text-[10px] font-bold tracking-wider uppercase text-[var(--color-muted)] mb-2.5 flex items-center space-x-1.5">
+            <Cpu className="h-3 w-3 text-blue-400" />
+            <span>Core Architecture Stack</span>
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-[var(--color-muted)] font-mono">
             <div className="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl">
               <span className="block text-[var(--color-text)] text-[10px] font-bold mb-0.5 uppercase">
                 Frontend
               </span>
-              React 18 • TypeScript • Vite • Tailwind
+              React 18 • TypeScript • Vite • Tailwind CSS
             </div>
             <div className="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl">
               <span className="block text-[var(--color-text)] text-[10px] font-bold mb-0.5 uppercase">
@@ -125,6 +77,24 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 Search & Events
               </span>
               Go 1.22 • Meilisearch • Redis 7 • SSE
+            </div>
+          </div>
+        </div>
+
+        {/* Security & Runtime Specifications */}
+        <div className="border-t border-[var(--color-border)] pt-4 font-mono">
+          <h4 className="text-[10px] font-bold tracking-wider uppercase text-[var(--color-muted)] mb-2 flex items-center space-x-1.5">
+            <ShieldCheck className="h-3 w-3 text-emerald-400" />
+            <span>Security & Runtime Specifications</span>
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] text-[var(--color-muted)] font-mono">
+            <div className="flex items-center space-x-2 p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+              <span className="text-[var(--color-text)] font-semibold uppercase">Process:</span>
+              <span>Non-Root (UID 1001 / tmsuser)</span>
+            </div>
+            <div className="flex items-center space-x-2 p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+              <span className="text-[var(--color-text)] font-semibold uppercase">Outbox:</span>
+              <span>HMAC-SHA256 Signed Tasks</span>
             </div>
           </div>
         </div>
