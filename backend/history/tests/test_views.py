@@ -389,3 +389,80 @@ class UnifiedHistoryApiTests(APITestCase):
         self.assertIn('results', res.data)
         self.assertIn('count', res.data)
 
+
+class CryptographicAuditHistoryTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='audit_tester',
+            password='audit_password',
+            role='ADMIN'
+        )
+        self.die = Die.objects.create(die_id="AUDIT-CHAIN-01", die_type="ROUND", casing="25x10")
+
+    def test_legacy_v1_history_entry_verification_succeeds(self):
+        import hashlib
+        # Simulate an existing v1 legacy entry
+        p_hash = "0" * 64
+        payload = f"{p_hash}:{self.die.id}:{self.user.id}:status:AVAILABLE:MAINTENANCE"
+        v1_hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+
+        legacy_entry = DieHistory.objects.create(
+            die=self.die,
+            changed_by=self.user,
+            field_name='status',
+            old_value='AVAILABLE',
+            new_value='MAINTENANCE',
+            prev_hash=p_hash,
+            hash=v1_hash,
+            hash_version=1
+        )
+
+        self.assertEqual(legacy_entry.hash_version, 1)
+        self.assertTrue(legacy_entry.verify_hash())
+
+    def test_v2_history_includes_metadata_and_detects_tampering(self):
+        entry = DieHistory.objects.create(
+            die=self.die,
+            changed_by=self.user,
+            field_name='status',
+            old_value='AVAILABLE',
+            new_value='RETIRED',
+            ip_address='192.168.1.100',
+            note='Routine retirement note'
+        )
+
+        self.assertEqual(entry.hash_version, 2)
+        self.assertTrue(entry.verify_hash())
+
+        # Tampering with IP address must break verification
+        entry.ip_address = '10.0.0.99'
+        self.assertFalse(entry.verify_hash())
+        entry.ip_address = '192.168.1.100'
+        self.assertTrue(entry.verify_hash())
+
+        # Tampering with note must break verification
+        entry.note = 'Forged retirement note'
+        self.assertFalse(entry.verify_hash())
+        entry.note = 'Routine retirement note'
+        self.assertTrue(entry.verify_hash())
+
+    def test_history_hash_chain_linking(self):
+        entry1 = DieHistory.objects.create(
+            die=self.die,
+            changed_by=self.user,
+            field_name='status',
+            old_value='AVAILABLE',
+            new_value='MAINTENANCE'
+        )
+        entry2 = DieHistory.objects.create(
+            die=self.die,
+            changed_by=self.user,
+            field_name='status',
+            old_value='MAINTENANCE',
+            new_value='AVAILABLE'
+        )
+
+        self.assertEqual(entry2.prev_hash, entry1.hash)
+        self.assertTrue(entry1.verify_hash())
+        self.assertTrue(entry2.verify_hash())
+

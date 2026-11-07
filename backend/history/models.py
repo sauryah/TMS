@@ -12,6 +12,7 @@ class DieHistory(models.Model):
     note       = models.TextField(blank=True)
     prev_hash  = models.CharField(max_length=64, blank=True, null=True)
     hash       = models.CharField(max_length=64, blank=True, null=True)
+    hash_version = models.PositiveSmallIntegerField(default=2)
 
     class Meta:
         ordering = ['-timestamp']
@@ -21,14 +22,45 @@ class DieHistory(models.Model):
             models.Index(fields=['die', 'field_name', 'timestamp']),
         ]
 
+    def compute_hash(self, prev_hash=None, version=None):
+        import hashlib
+        p_hash = prev_hash if prev_hash is not None else (self.prev_hash or "0" * 64)
+        ver = version if version is not None else getattr(self, 'hash_version', 2)
+        if ver == 1:
+            payload = f"{p_hash}:{self.die_id}:{self.changed_by_id or ''}:{self.field_name}:{self.old_value}:{self.new_value}"
+        else:
+            ts_str = self.timestamp.isoformat() if self.timestamp else ''
+            payload = f"v2:{p_hash}:{self.die_id}:{self.changed_by_id or ''}:{self.field_name}:{self.old_value}:{self.new_value}:{ts_str}:{self.ip_address or ''}:{self.note or ''}"
+        return hashlib.sha256(payload.encode('utf-8')).hexdigest()
+
+    def verify_hash(self):
+        if not self.hash:
+            return False
+        ver = getattr(self, 'hash_version', 2)
+        if self.hash == self.compute_hash(version=ver):
+            return True
+        if ver != 1 and self.hash == self.compute_hash(version=1):
+            return True
+        return False
+
     def save(self, *args, **kwargs):
         if not self.hash:
-            import hashlib
-            last_record = DieHistory.objects.filter(die=self.die).order_by('-id').first()
+            from django.utils import timezone
+            from django.db import connection, transaction
+
+            if not self.timestamp:
+                self.timestamp = timezone.now()
+
+            if connection.in_atomic_block:
+                last_record = DieHistory.objects.select_for_update().filter(die=self.die).order_by('-id').first()
+            else:
+                with transaction.atomic():
+                    last_record = DieHistory.objects.select_for_update().filter(die=self.die).order_by('-id').first()
+
             p_hash = last_record.hash if (last_record and last_record.hash) else "0" * 64
             self.prev_hash = p_hash
-            payload = f"{p_hash}:{self.die_id}:{self.changed_by_id or ''}:{self.field_name}:{self.old_value}:{self.new_value}"
-            self.hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+            self.hash_version = 2
+            self.hash = self.compute_hash(prev_hash=p_hash, version=2)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -60,6 +92,7 @@ class MachineHistory(models.Model):
     ip_address  = models.GenericIPAddressField(null=True, blank=True)
     prev_hash   = models.CharField(max_length=64, blank=True, null=True)
     hash        = models.CharField(max_length=64, blank=True, null=True)
+    hash_version = models.PositiveSmallIntegerField(default=2)
 
     class Meta:
         ordering = ['-timestamp']
@@ -68,14 +101,49 @@ class MachineHistory(models.Model):
             models.Index(fields=['timestamp']),
         ]
 
+    def compute_hash(self, prev_hash=None, version=None):
+        import hashlib
+        p_hash = prev_hash if prev_hash is not None else (self.prev_hash or "0" * 64)
+        ver = version if version is not None else getattr(self, 'hash_version', 2)
+        if ver == 1:
+            payload = f"{p_hash}:{self.entity_type}:{self.entity_id}:{self.action}:{self.field_name or ''}:{self.old_value or ''}:{self.new_value or ''}:{self.changed_by_id or ''}"
+        else:
+            ts_str = self.timestamp.isoformat() if self.timestamp else ''
+            payload = f"v2:{p_hash}:{self.entity_type}:{self.entity_id}:{self.action}:{self.field_name or ''}:{self.old_value or ''}:{self.new_value or ''}:{self.changed_by_id or ''}:{ts_str}:{self.ip_address or ''}"
+        return hashlib.sha256(payload.encode('utf-8')).hexdigest()
+
+    def verify_hash(self):
+        if not self.hash:
+            return False
+        ver = getattr(self, 'hash_version', 2)
+        if self.hash == self.compute_hash(version=ver):
+            return True
+        if ver != 1 and self.hash == self.compute_hash(version=1):
+            return True
+        return False
+
     def save(self, *args, **kwargs):
         if not self.hash:
-            import hashlib
-            last_record = MachineHistory.objects.filter(entity_type=self.entity_type, entity_id=self.entity_id).order_by('-id').first()
+            from django.utils import timezone
+            from django.db import connection, transaction
+
+            if not self.timestamp:
+                self.timestamp = timezone.now()
+
+            if connection.in_atomic_block:
+                last_record = MachineHistory.objects.select_for_update().filter(
+                    entity_type=self.entity_type, entity_id=self.entity_id
+                ).order_by('-id').first()
+            else:
+                with transaction.atomic():
+                    last_record = MachineHistory.objects.select_for_update().filter(
+                        entity_type=self.entity_type, entity_id=self.entity_id
+                    ).order_by('-id').first()
+
             p_hash = last_record.hash if (last_record and last_record.hash) else "0" * 64
             self.prev_hash = p_hash
-            payload = f"{p_hash}:{self.entity_type}:{self.entity_id}:{self.action}:{self.field_name or ''}:{self.old_value or ''}:{self.new_value or ''}:{self.changed_by_id or ''}"
-            self.hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+            self.hash_version = 2
+            self.hash = self.compute_hash(prev_hash=p_hash, version=2)
         super().save(*args, **kwargs)
 
     def __str__(self):
