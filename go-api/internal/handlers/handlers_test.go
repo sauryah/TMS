@@ -550,6 +550,20 @@ func TestRelevanceSorting(t *testing.T) {
 	if len(results) == 0 || results[0].DieID != "DIE-CASING-MATCH" {
 		t.Errorf("expected DIE-CASING-MATCH to be ranked first for casing query, got: %+v", results)
 	}
+
+	// Test Case 6: Digit-containing query preserves valid typo-tolerant / fuzzy hits
+	// When searching for "TC-20", candidates with score 50 (e.g. from Meilisearch typo tolerance)
+	// must NOT be dropped, and totalCount must preserve Meilisearch's totalHits.
+	results, totalCount, err := h.QueryMeilisearchAndPostgres(context.Background(), &SearchParams{Q: "TC-20", Limit: 10})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != len(candidates) {
+		t.Errorf("expected all %d candidates to be preserved for digit query TC-20, got %d", len(candidates), len(results))
+	}
+	if totalCount < len(results) {
+		t.Errorf("expected totalCount >= %d, got %d", len(results), totalCount)
+	}
 }
 
 func TestHandleSearch_PaginationParams(t *testing.T) {
