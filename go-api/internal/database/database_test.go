@@ -52,6 +52,27 @@ func TestBuildQueryPostgresDirectly(t *testing.T) {
 	if len(args) != 1 || args[0] != "%Rack A%" {
 		t.Errorf("expected arg %%Rack A%%, got: %v", args)
 	}
+
+	// Test optimized numeric search query without unindexed CAST expressions
+	queryNum, argsNum := BuildQueryPostgresDirectly("1.5", "", "", "", "", "", "", "", "", "", "", "", "", "", 10, 0)
+	if strings.Contains(queryNum, "CAST(r.current_size AS TEXT)") {
+		t.Errorf("expected no CAST on current_size for numeric query, got: %s", queryNum)
+	}
+	if !strings.Contains(queryNum, "r.current_size >=") {
+		t.Errorf("expected indexed range on current_size for numeric query, got: %s", queryNum)
+	}
+	if len(argsNum) != 3 {
+		t.Errorf("expected 3 args for numeric query (likeVal, min, max), got %d: %v", len(argsNum), argsNum)
+	}
+
+	// Test non-numeric search query omits dimension CAST entirely
+	queryText, argsText := BuildQueryPostgresDirectly("steel", "", "", "", "", "", "", "", "", "", "", "", "", "", 10, 0)
+	if strings.Contains(queryText, "CAST(r.current_size AS TEXT)") {
+		t.Errorf("expected no CAST on current_size for non-numeric query, got: %s", queryText)
+	}
+	if len(argsText) != 1 || argsText[0] != "%steel%" {
+		t.Errorf("expected 1 arg %%steel%%, got: %v", argsText)
+	}
 }
 
 func TestBuildQueryPostgresDirectlyCount(t *testing.T) {

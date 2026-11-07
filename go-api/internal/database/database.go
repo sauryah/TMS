@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -146,23 +147,58 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 			qNumStr = strings.TrimSpace(qNumStr[:len(qNumStr)-2])
 		}
 
-		if _, err := strconv.ParseFloat(qNumStr, 64); err == nil {
-			sizeLikeVal := qNumStr + "%"
-			sqlParts = append(sqlParts, fmt.Sprintf(`
-				AND (
-					d.die_id ILIKE $%d 
-					OR d.casing ILIKE $%d 
-					OR rk.name ILIKE $%d 
-					OR d.status ILIKE $%d 
-					OR s.name ILIKE $%d 
-					OR m.name ILIKE $%d
-					OR CAST(r.current_size AS TEXT) ILIKE $%d
-					OR CAST(f.current_width AS TEXT) ILIKE $%d
-					OR CAST(f.current_thickness AS TEXT) ILIKE $%d
-				)
-			`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+1, argCounter+1))
-			args = append(args, likeVal, sizeLikeVal)
-			argCounter += 2
+		if qFloat, err := strconv.ParseFloat(qNumStr, 64); err == nil {
+			var numMin, numMax float64
+			exact := false
+			if strings.Contains(qNumStr, ".") {
+				parts := strings.Split(qNumStr, ".")
+				decPlaces := len(parts[1])
+				if decPlaces >= 3 {
+					exact = true
+					numMin = qFloat
+				} else {
+					step := math.Pow(10, -float64(decPlaces))
+					numMin = qFloat
+					numMax = qFloat + step
+				}
+			} else {
+				numMin = qFloat
+				numMax = qFloat + 1.0
+			}
+
+			if exact {
+				sqlParts = append(sqlParts, fmt.Sprintf(`
+					AND (
+						d.die_id ILIKE $%d 
+						OR d.casing ILIKE $%d 
+						OR rk.name ILIKE $%d 
+						OR d.status ILIKE $%d 
+						OR s.name ILIKE $%d 
+						OR m.name ILIKE $%d
+						OR r.current_size = $%d
+						OR f.current_width = $%d
+						OR f.current_thickness = $%d
+					)
+				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+1, argCounter+1))
+				args = append(args, likeVal, fmt.Sprintf("%.3f", numMin))
+				argCounter += 2
+			} else {
+				sqlParts = append(sqlParts, fmt.Sprintf(`
+					AND (
+						d.die_id ILIKE $%d 
+						OR d.casing ILIKE $%d 
+						OR rk.name ILIKE $%d 
+						OR d.status ILIKE $%d 
+						OR s.name ILIKE $%d 
+						OR m.name ILIKE $%d
+						OR (r.current_size >= $%d AND r.current_size < $%d)
+						OR (f.current_width >= $%d AND f.current_width < $%d)
+						OR (f.current_thickness >= $%d AND f.current_thickness < $%d)
+					)
+				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+2, argCounter+1, argCounter+2, argCounter+1, argCounter+2))
+				args = append(args, likeVal, fmt.Sprintf("%.3f", numMin), fmt.Sprintf("%.3f", numMax))
+				argCounter += 3
+			}
 		} else {
 			sqlParts = append(sqlParts, fmt.Sprintf(`
 				AND (
@@ -172,11 +208,8 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 					OR d.status ILIKE $%d 
 					OR s.name ILIKE $%d 
 					OR m.name ILIKE $%d
-					OR CAST(r.current_size AS TEXT) ILIKE $%d
-					OR CAST(f.current_width AS TEXT) ILIKE $%d
-					OR CAST(f.current_thickness AS TEXT) ILIKE $%d
 				)
-			`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter))
+			`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter))
 			args = append(args, likeVal)
 			argCounter++
 		}
