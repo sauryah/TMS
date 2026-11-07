@@ -7,23 +7,27 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Strict Remote Push Policy Documentation
+**Task:** Full Removal of Warehouse Racks and Shelves Across Backend and Frontend
 **Status:** Complete
-**Started:** 2026-11-05
-**Target Completion:** 2026-11-05
+**Started:** 2026-11-07
+**Target Completion:** 2026-11-07
 **Confidence:** 100%
 
 ## Task Description
-Document explicit restrictions across `AGENTS.md`, `engineering-workflow.md`, `definition-of-done.md`, and `git-workflow.md` forbidding autonomous execution of `git push`, requiring explicit user authorization for all remote Git operations.
+Remove warehouse rack and shelf storage concepts entirely from the platform per user directive ("we dont need RACKS CAN WE REMOVE THEM"):
+- Backend: Removed `Rack` model, `Die.rack` and `Die.shelf_number` fields, indexes, serializers, viewsets, admin, signals, sync_search mappings, import/export location logic, and operator permission sets. Generated migrations `dies.0019_remove_die_rack_shelf` and `machines.0003_delete_rack`.
+- Frontend: Removed rack view mode, bulk rack relocation toolbar, create/edit modal rack/shelf dropdowns, detail page warehouse mapping card, and updated die cards and unit test fixtures.
+- Safety: Preserved history audit records, hand-crafted migrations without touching running production database, preserved deprecated files as inert placeholders.
 
 ## Completed
-- Added strict non-autonomous push rule to `AGENTS.md` under `Decision Rules` (escalation trigger) and `Git & Commit Rules`.
-- Updated `engineering-workflow.md` Step 7 (Complete) and `Escalation Triggers` to forbid autonomous `git push`.
-- Updated `definition-of-done.md` completion checklist to require explicit authorization before pushing.
-- Added `Remote Push Policy` section to `git-workflow.md`.
+- Handcrafted migrations `dies.0019_remove_die_rack_shelf` and `machines.0003_delete_rack`.
+- Cleaned backend models, serializers, views, admin, signals, search tasks, and tests.
+- Cleaned frontend types, validation schema, subviews, modals, cards, and unit tests (all 106 tests passing).
+- Verified TypeScript build (`tsc --noEmit`) passes with 0 errors.
 
 ## Next Steps
-- Await user instructions. Do not push.
+- Provide user with instructions to run `docker compose exec web python manage.py migrate` at their convenience.
+- Await user instructions. Never `git push` autonomously.
 
 ## Blockers
 - None.

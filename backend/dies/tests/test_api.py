@@ -5,7 +5,6 @@ from rest_framework_simplejwt.tokens import AccessToken
 from users.models import User, UserSession
 import hashlib
 from dies.models import Die, RoundDie, FlatDie
-from machines.models import Rack
 from history.models import DieHistory
 from decimal import Decimal
 
@@ -26,17 +25,11 @@ class DieAPITests(APITestCase):
         )
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.root_token}')
 
-        self.rack_a = Rack.objects.create(name="Rack A", row_count=4, column_count=3)
-        self.rack_b = Rack.objects.create(name="Rack B", row_count=4, column_count=3)
-        self.rack_c = Rack.objects.create(name="Rack C", row_count=4, column_count=3)
-
         self.round_die = Die.objects.create(
             die_id="R-101",
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         self.rd_details = RoundDie.objects.create(
             die=self.round_die,
@@ -49,8 +42,6 @@ class DieAPITests(APITestCase):
             die_type="FLAT",
             casing="30x15",
             status="RUNNING",
-            rack=self.rack_b,
-            shelf_number=2,
         )
         self.fd_details = FlatDie.objects.create(
             die=self.flat_die,
@@ -77,8 +68,6 @@ class DieAPITests(APITestCase):
         self.assertIn('die_type', first_item)
         self.assertIn('casing', first_item)
         self.assertIn('status', first_item)
-        self.assertIn('rack', first_item)
-        self.assertIn('shelf_number', first_item)
         self.assertIn('set_name', first_item)
         self.assertIn('machine_name', first_item)
 
@@ -131,8 +120,6 @@ class DieAPITests(APITestCase):
             'die_type': 'ROUND',
             'casing': '30x30',
             'status': 'AVAILABLE',
-            'rack': self.rack_c.id,
-            'shelf_number': 1,
             'punched_size': 3.5,
             'current_size': 3.5
         }
@@ -174,14 +161,16 @@ class DieAPITests(APITestCase):
         response = self.client.get(url_detail)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # 2. Operator can relocate (PATCH rack/shelf only)
-        rack_z = Rack.objects.create(name="Rack Z", row_count=4, column_count=3)
-        data = {'rack': rack_z.id, 'shelf_number': 5, 'version': self.round_die.version}
+        # 2. Operator can relocate (PATCH current_set only)
+        from machines.models import Machine, MachineCategory, Set
+        cat = MachineCategory.objects.create(name="Cat Reloc")
+        mach = Machine.objects.create(category=cat, name="Mach Reloc")
+        new_set = Set.objects.create(machine=mach, name="Set Reloc")
+        data = {'current_set': new_set.id, 'version': self.round_die.version}
         response = self.client.patch(url_detail, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.round_die.refresh_from_db()
-        self.assertEqual(self.round_die.rack, rack_z)
-        self.assertEqual(self.round_die.shelf_number, 5)
+        self.assertEqual(self.round_die.current_set, new_set)
 
         # 3. Operator cannot PATCH other fields (e.g. status)
         data = {'status': 'DAMAGED', 'version': self.round_die.version}
@@ -195,8 +184,6 @@ class DieAPITests(APITestCase):
             'die_type': 'ROUND',
             'casing': '30x30',
             'status': 'AVAILABLE',
-            'rack': self.rack_c.id,
-            'shelf_number': 1,
             'punched_size': 3.5,
             'current_size': 3.5
         }
@@ -222,8 +209,7 @@ class DieAPITests(APITestCase):
 
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {regular_token}')
         url_detail = reverse('die-detail', kwargs={'die_id': 'R-101'})
-        rack_z = Rack.objects.create(name="Rack Z 2", row_count=4, column_count=3)
-        data = {'rack': rack_z.id, 'shelf_number': 5, 'version': self.round_die.version}
+        data = {'current_set': 999, 'version': self.round_die.version}
         response = self.client.patch(url_detail, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -233,8 +219,6 @@ class DieAPITests(APITestCase):
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         RoundDie.objects.create(
             die=slashed_die,
@@ -308,15 +292,11 @@ class TolerancesAndAlertsAPITests(APITestCase):
             token_hash=hashlib.sha256(self.root_token.encode('utf-8')).hexdigest()
         )
 
-        self.rack_a = Rack.objects.create(name="Rack A TA", row_count=4, column_count=3)
-
         self.round_die = Die.objects.create(
             die_id="R-TEST-ALERT",
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         self.rd_details = RoundDie.objects.create(
             die=self.round_die,

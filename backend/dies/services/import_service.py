@@ -114,36 +114,6 @@ class ImportService:
 
         status_val = ValidationService.validate_status(row_data.get('status'))
 
-        # Resolve rack and shelf_number from row data
-        rack = None
-        shelf_number = None
-        rack_val = row_data.get('rack')
-        shelf_val = row_data.get('shelf_number')
-        
-        if rack_val:
-            from machines.models import Rack
-            rack_name = str(rack_val).strip()
-            rack_name_lower = rack_name.lower()
-            if racks_by_name is not None:
-                rack = racks_by_name.get(rack_name_lower)
-                if not rack:
-                    raise ValueError(f"Rack '{rack_name}' does not exist")
-            else:
-                try:
-                    rack = Rack.objects.get(name__iexact=rack_name)
-                except Rack.DoesNotExist:
-                    raise ValueError(f"Rack '{rack_name}' does not exist")
-        
-        if shelf_val is not None:
-            try:
-                shelf_number = int(shelf_val)
-            except (TypeError, ValueError):
-                raise ValueError("shelf_number must be a valid integer")
-        
-        # Validate location if both rack and shelf provided
-        if rack is not None or shelf_number is not None:
-            ValidationService.validate_location(rack, shelf_number)
-
         remarks = str(row_data.get('remarks') or '').strip()
 
         current_set = ImportService._resolve_set(row_data, sets_by_id, sets_by_name)
@@ -155,8 +125,6 @@ class ImportService:
                     'die_type': die_type,
                     'casing': casing,
                     'status': status_val,
-                    'rack': rack,
-                    'shelf_number': shelf_number,
                     'remarks': remarks,
                     'current_set': current_set,
                 }
@@ -229,14 +197,11 @@ class ImportService:
                     sets_by_name[name_lower] = []
                 sets_by_name[name_lower].append(s)
 
-            from machines.models import Rack
-            racks_by_name = {r.name.lower(): r for r in Rack.objects.all()}
-
             total_rows = len(rows)
             for idx, (line_num, row_data) in enumerate(rows):
                 try:
                     with transaction.atomic():
-                        die_id, is_created = ImportService._process_row(row_data, sets_by_id, sets_by_name, racks_by_name)
+                        die_id, is_created = ImportService._process_row(row_data, sets_by_id, sets_by_name)
                         if is_created:
                             created += 1
                         else:
@@ -255,7 +220,7 @@ class ImportService:
                     )
                     err_msg = str(e)
                     field_name = "General"
-                    for f_check in ['die_id', 'die_type', 'casing', 'status', 'rack', 'shelf_number', 'remarks', 'punched_size', 'original_size', 'current_size', 'punched_width', 'original_width', 'current_width', 'punched_thickness', 'original_thickness', 'current_thickness', 'radius']:
+                    for f_check in ['die_id', 'die_type', 'casing', 'status', 'remarks', 'punched_size', 'original_size', 'current_size', 'punched_width', 'original_width', 'current_width', 'punched_thickness', 'original_thickness', 'current_thickness', 'radius']:
                         if f_check in err_msg.lower():
                             field_name = f_check
                             break

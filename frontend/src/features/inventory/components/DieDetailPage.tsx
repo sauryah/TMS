@@ -45,9 +45,6 @@ export interface DieDetailRecord {
   die_type: 'ROUND' | 'FLAT' | string
   casing: string
   status: string
-  rack?: number | null
-  rack_name?: string
-  shelf?: number | null
   remarks?: string | null
   current_set?: string | number | null
   version?: number
@@ -64,11 +61,6 @@ export interface DieDetailRecord {
   punched_thickness?: string
   radius?: string
   [key: string]: unknown
-}
-
-export interface RackOption {
-  id: number
-  name: string
 }
 
 export interface SetOption {
@@ -223,8 +215,6 @@ export function DieDetailPage() {
   
   const [isEditing, setIsEditing] = useState(false)
   const [statusVal, setStatusVal] = useState('')
-  const [rack, setRack] = useState('')
-  const [shelf, setShelf] = useState('')
   const [remarks, setRemarks] = useState('')
   const [currentSetId, setCurrentSetId] = useState('')
   
@@ -265,8 +255,6 @@ export function DieDetailPage() {
     return (
       casingVal !== (die.casing || '') ||
       statusVal !== (die.status || 'AVAILABLE') ||
-      rack !== (die.rack ? String(die.rack) : '') ||
-      shelf !== (die.shelf ? String(die.shelf) : '') ||
       remarks !== (die.remarks || '') ||
       currentSetId !== (die.current_set ? String(die.current_set) : '') ||
       currentSize !== (die.current_size || '') ||
@@ -277,7 +265,7 @@ export function DieDetailPage() {
       punchedThickness !== (die.punched_thickness || '') ||
       radiusVal !== (die.radius || '')
     )
-  }, [die, casingVal, statusVal, rack, shelf, remarks, currentSetId, currentSize, currentWidth, currentThickness, punchedSize, punchedWidth, punchedThickness, radiusVal])
+  }, [die, casingVal, statusVal, remarks, currentSetId, currentSize, currentWidth, currentThickness, punchedSize, punchedWidth, punchedThickness, radiusVal])
 
   const handleCloseEditDrawer = () => {
     if (isDirty) {
@@ -291,8 +279,6 @@ export function DieDetailPage() {
     if (die) {
       setCasingVal(die.casing || '')
       setStatusVal(die.status || 'AVAILABLE')
-      setRack(die.rack ? String(die.rack) : '')
-      setShelf(die.shelf ? String(die.shelf) : '')
       setRemarks(die.remarks || '')
       setCurrentSetId(die.current_set ? String(die.current_set) : '')
       setCurrentSize(die.current_size || '')
@@ -343,12 +329,6 @@ export function DieDetailPage() {
     }
   })
 
-  const { data: racksList } = useQuery<RackOption[]>({
-    queryKey: ['racksList'],
-    queryFn: () => request('/api/racks/')
-  })
-  const racks = racksList || []
-
   // Populate form states only when navigating to a different die (not on refetch)
   const prevDieIdRef = useRef<string | null>(null)
   useEffect(() => {
@@ -358,8 +338,6 @@ export function DieDetailPage() {
       setDieIdVal(die.die_id || '')
       setCasingVal(die.casing || '')
       setStatusVal(die.status || 'AVAILABLE')
-      setRack(die.rack ? String(die.rack) : '')
-      setShelf(die.shelf ? String(die.shelf) : '')
       setRemarks(die.remarks || '')
       setCurrentSetId(die.current_set ? String(die.current_set) : '')
       setCurrentSize(die.current_size || '')
@@ -466,8 +444,6 @@ export function DieDetailPage() {
       die_id: trimmedId,
       casing: casingVal,
       status: statusVal,
-      rack: rack ? Number(rack) : null,
-      shelf: shelf ? Number(shelf) : null,
       remarks,
       current_set: currentSetId || null,
       version: die?.version
@@ -649,16 +625,17 @@ export function DieDetailPage() {
               </div>
             </div>
 
-            {/* Physical Location mapping */}
+            {/* Production Line Assignment */}
             <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm p-4 space-y-2 font-mono">
-              <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">03 WAREHOUSE MAPPING</h3>
-              <div className="flex items-center gap-2.5 bg-[#0a0a0a] border border-[#1a1a1a] rounded-sm p-2.5">
-                <MapPin className="h-4 w-4 text-blue-500 shrink-0" />
-                <div>
-                  <p className="text-[9px] text-[#6b7280] uppercase">STORAGE SLOT</p>
-                  <p className="text-xs font-mono text-[#e4e4e4] mt-0.5">
-                    {die.rack_name && die.shelf ? `${die.rack_name} — Shelf ${die.shelf}` : 'UNMAPPED / FLOOR'}
-                  </p>
+              <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">03 PRODUCTION LINE ASSIGNMENT</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-sm p-2.5">
+                  <span className="text-[9px] text-[#6b7280] uppercase">ACTIVE SET</span>
+                  <p className="text-xs font-bold text-[#e4e4e4] mt-0.5 uppercase">{die.set_name || 'STAND-ALONE'}</p>
+                </div>
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-sm p-2.5">
+                  <span className="text-[9px] text-[#6b7280] uppercase">MACHINE</span>
+                  <p className="text-xs font-bold text-[#e4e4e4] mt-0.5 uppercase">{die.machine_name || 'UNASSIGNED'}</p>
                 </div>
               </div>
             </div>
@@ -754,21 +731,6 @@ export function DieDetailPage() {
               )}
             </div>
 
-            {/* Set Assignment Info */}
-            <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm p-4 space-y-2 font-mono">
-              <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">06 PRODUCTION LINE ASSIGNMENT</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-sm p-2.5">
-                  <span className="text-[9px] text-[#6b7280] uppercase">ACTIVE SET</span>
-                  <p className="text-xs font-bold text-[#e4e4e4] mt-0.5 uppercase">{die.set_name || 'STAND-ALONE'}</p>
-                </div>
-                <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-sm p-2.5">
-                  <span className="text-[9px] text-[#6b7280] uppercase">MACHINE</span>
-                  <p className="text-xs font-bold text-[#e4e4e4] mt-0.5 uppercase">{die.machine_name || 'UNASSIGNED'}</p>
-                </div>
-              </div>
-            </div>
-
           </div>
 
         </div>
@@ -776,14 +738,14 @@ export function DieDetailPage() {
         {/* Remarks Section */}
         {die.remarks && (
           <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm p-3.5 space-y-1 font-mono">
-            <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">07 REMARKS</h3>
+            <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">06 REMARKS</h3>
             <p className="text-[#e4e4e4] text-xs whitespace-pre-line leading-normal">{die.remarks}</p>
           </div>
         )}
 
         {/* Maintenance Log Form & Records */}
         <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm p-4 space-y-3 font-mono">
-          <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">08 MAINTENANCE & CATEGORY LOG</h3>
+          <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">07 MAINTENANCE & CATEGORY LOG</h3>
           <MaintenanceLogSection dieId={die.die_id} canAdd={canEdit} />
         </div>
 
@@ -791,7 +753,7 @@ export function DieDetailPage() {
         {(role === 'ROOT' || role === 'ADMIN') && (
           <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm p-4 space-y-3 font-mono">
             <div className="flex justify-between items-center">
-              <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">09 CHANGE AUDIT HISTORY</h3>
+              <h3 className="text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">08 CHANGE AUDIT HISTORY</h3>
               <span className="text-[9px] font-mono text-[#6b7280] tabular-nums">SHOWING {paginatedHistory.length} OF {historyTotal} UPDATES</span>
             </div>
             
@@ -868,29 +830,6 @@ export function DieDetailPage() {
               <option value="MISSING">MISSING</option>
               <option value="MAINTENANCE">MAINTENANCE</option>
             </select>
-          </div>
-          <div>
-            <label className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider mb-1">LOCATION SLOT</label>
-            <div className="grid grid-cols-2 gap-2">
-              <select 
-                value={rack}
-                onChange={(e) => setRack(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-sm py-1.5 px-2.5 text-[#e4e4e4] focus:border-blue-500 focus:outline-none text-xs font-mono uppercase cursor-pointer"
-              >
-                <option value="">SELECT RACK...</option>
-                {racks.map((r: RackOption) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-              <input 
-                type="number" 
-                min="1"
-                placeholder="SHELF"
-                value={shelf}
-                onChange={(e) => setShelf(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-sm py-1.5 px-2.5 text-[#e4e4e4] focus:border-blue-500 focus:outline-none text-xs font-mono"
-              />
-            </div>
           </div>
           <div>
             <label className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider mb-1">SET ASSIGNMENT</label>

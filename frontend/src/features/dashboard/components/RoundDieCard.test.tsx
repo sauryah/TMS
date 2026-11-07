@@ -9,8 +9,6 @@ describe('RoundDieCard', () => {
     status: 'AVAILABLE',
     current_size: '2.500',
     casing: '25x10',
-    rack_name: 'Rack A',
-    shelf: 3,
     set_name: 'Set Alpha',
     machine_name: 'Machine One'
   }
@@ -23,13 +21,13 @@ describe('RoundDieCard', () => {
     expect(screen.getByText('R-101')).toBeInTheDocument()
     expect(screen.getByText('AVAILABLE')).toBeInTheDocument()
 
-    // Check size, casing, location
+    // Check size, casing
     expect(screen.getByText('2.500 mm')).toBeInTheDocument()
     expect(screen.getByText('25x10')).toBeInTheDocument()
-    expect(screen.getByText('Rack A - Shelf 3')).toBeInTheDocument()
 
     // Check set and machine
-    expect(screen.getByText('Set Alpha (Machine One)')).toBeInTheDocument()
+    expect(screen.getByText('Set Alpha')).toBeInTheDocument()
+    expect(screen.getByText('Machine One')).toBeInTheDocument()
 
     // Test click interaction
     fireEvent.click(screen.getByText('R-101'))

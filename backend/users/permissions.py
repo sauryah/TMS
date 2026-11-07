@@ -70,7 +70,7 @@ class IsAdminOrRootOrOperatorRelocate(permissions.BasePermission):
             
         if request.user.role == 'OPERATOR' and request.method == 'PATCH':
             # Check what fields are being updated in request.data
-            allowed_fields = {'location', 'rack', 'shelf', 'shelf_number'}
+            allowed_fields = {'location', 'current_set'}
             for key in request.data.keys():
                 if key not in allowed_fields:
                     return False

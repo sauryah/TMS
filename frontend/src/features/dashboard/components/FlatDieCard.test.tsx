@@ -11,8 +11,6 @@ describe('FlatDieCard', () => {
     current_thickness: '15.000',
     radius: '1.250',
     casing: '30x15',
-    rack_name: 'Rack B',
-    shelf: 1,
     set_name: 'Set Beta',
     machine_name: 'Machine Two'
   }
@@ -25,13 +23,13 @@ describe('FlatDieCard', () => {
     expect(screen.getByText('F-201')).toBeInTheDocument()
     expect(screen.getByText('RUNNING')).toBeInTheDocument()
 
-    // Check width×thickness, casing, location
+    // Check width×thickness, casing
     expect(screen.getByText('5.500 × 15.000 mm (R: 1.250 mm)')).toBeInTheDocument()
     expect(screen.getByText('30x15')).toBeInTheDocument()
-    expect(screen.getByText('Rack B - Shelf 1')).toBeInTheDocument()
 
     // Check set and machine
-    expect(screen.getByText('Set Beta (Machine Two)')).toBeInTheDocument()
+    expect(screen.getByText('Set Beta')).toBeInTheDocument()
+    expect(screen.getByText('Machine Two')).toBeInTheDocument()
 
     // Test click interaction
     fireEvent.click(screen.getByText('F-201'))

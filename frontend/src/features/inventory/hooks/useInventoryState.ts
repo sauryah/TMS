@@ -17,7 +17,7 @@ export function useInventoryState() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [searchParams] = useSearchParams()
-  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'rack'>('grid')
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
 
@@ -217,7 +217,6 @@ export function useInventoryState() {
   // Hook up custom mutations hook:
   const {
     createDieMutation,
-    moveDieLocationMutation,
     reallocateDieMutation,
     reallocateSetMutation,
     reorderSetsMutation
@@ -409,7 +408,7 @@ export function useInventoryState() {
         die.die_type || '',
         die.casing || '',
         die.status || '',
-        die.rack_name && die.shelf ? `${die.rack_name} - Shelf ${die.shelf}` : '',
+        die.machine_name ? `Machine: ${die.machine_name}` : '',
         die.set_name || '',
         isRound ? (die.current_size || '') : '',
         isRound ? (die.punched_size || '') : '',
@@ -512,7 +511,6 @@ export function useInventoryState() {
     setViewMode,
     navigate,
     createDieMutation,
-    moveDieLocationMutation,
     reallocateDieMutation,
     reallocateSetMutation,
     reorderSetsMutation,

@@ -15,9 +15,7 @@ export const DieCard = React.memo(function DieCard({ die, onClick, viewMode = 'g
     ? `${parseFloat(String(die.current_size || 0)).toFixed(3)} mm`
     : `${parseFloat(String(die.current_width || 0)).toFixed(3)} × ${parseFloat(String(die.current_thickness || 0)).toFixed(3)} mm`
 
-  const locationText = die.rack_name && die.shelf
-    ? `${die.rack_name} - S${die.shelf}`
-    : die.location || 'Unassigned'
+  const locationText = (die as { location?: string }).location || 'Unassigned'
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {

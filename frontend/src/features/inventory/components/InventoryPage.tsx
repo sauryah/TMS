@@ -90,7 +90,6 @@ export function InventoryPage() {
     setViewMode,
     navigate,
     createDieMutation,
-    moveDieLocationMutation,
     reallocateDieMutation,
     reallocateSetMutation,
     reorderSetsMutation,
@@ -103,19 +102,8 @@ export function InventoryPage() {
   const queryClient = useQueryClient()
   const { showToast } = useToast()
 
-  interface RackOption {
-    id: number
-    name: string
-  }
-  const { data: racksList } = useQuery<RackOption[]>({
-    queryKey: ['racksList'],
-    queryFn: () => request('/api/racks/'),
-  })
-
   const [selectedDieIds, setSelectedDieIds] = useState<Set<string>>(new Set())
   const [bulkStatus, setBulkStatus] = useState('')
-  const [bulkRackId, setBulkRackId] = useState('')
-  const [bulkShelf, setBulkShelf] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
 
   const handleSelectId = (id: string, checked: boolean) => {
@@ -153,8 +141,6 @@ export function InventoryPage() {
   useEffect(() => {
     setSelectedDieIds(new Set())
     setBulkStatus('')
-    setBulkRackId('')
-    setBulkShelf('')
   }, [activeView, q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, locationQuery])
 
   const handleBulkStatusUpdate = async () => {
@@ -162,7 +148,7 @@ export function InventoryPage() {
     setIsUpdating(true)
     try {
       const updatePromises = Array.from(selectedDieIds).map(dieId => {
-        const found = diesList.find(d => String(d.die_id) === String(dieId))
+        const found = currentViewDies.find((d: Die) => String(d.die_id) === String(dieId))
         const ver = found?.version ?? 1
         return request(`/api/dies/${dieId}/`, {
           method: 'PATCH',
@@ -183,42 +169,6 @@ export function InventoryPage() {
       console.error(err)
       const msg = err instanceof Error ? err.message : 'Unknown error'
       showToast(`Error updating status: ${msg}`, "error")
-    } finally {
-      setIsUpdating(false)
-    }
-  }
-
-  const handleBulkLocationUpdate = async () => {
-    if (!bulkRackId || selectedDieIds.size === 0) return
-    setIsUpdating(true)
-    try {
-      const rackNum = Number(bulkRackId)
-      const shelfNum = bulkShelf.trim() ? Number(bulkShelf) : null
-      const selectedRackName = racksList?.find(r => String(r.id) === String(bulkRackId))?.name || `Rack #${bulkRackId}`
-      const updatePromises = Array.from(selectedDieIds).map(dieId => {
-        const found = diesList.find(d => String(d.die_id) === String(dieId))
-        const ver = found?.version ?? 1
-        return request(`/api/dies/${dieId}/`, {
-          method: 'PATCH',
-          body: JSON.stringify({ rack: rackNum, shelf: shelfNum, version: ver })
-        })
-      })
-      await Promise.all(updatePromises)
-      const count = selectedDieIds.size
-      setSelectedDieIds(new Set())
-      setBulkRackId('')
-      setBulkShelf('')
-      queryClient.invalidateQueries({ queryKey: ['dies'] })
-      queryClient.invalidateQueries({ queryKey: ['searchDies'] })
-      queryClient.invalidateQueries({ queryKey: ['machinesList'] })
-      queryClient.invalidateQueries({ queryKey: ['setsDropdownList'] })
-      queryClient.invalidateQueries({ queryKey: ['allDiesStats'] })
-      const locLabel = shelfNum ? `${selectedRackName} - Shelf ${shelfNum}` : selectedRackName
-      showToast(`Successfully relocated ${count} dies to ${locLabel}.`, "success")
-    } catch (err: unknown) {
-      console.error(err)
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      showToast(`Error updating locations: ${msg}`, "error")
     } finally {
       setIsUpdating(false)
     }
@@ -545,19 +495,6 @@ export function InventoryPage() {
                     <Table2 className="h-3 w-3 shrink-0" />
                     <span>List</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('rack')}
-                    className={`px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-wider transition-colors flex items-center space-x-1 font-mono ${
-                      viewMode === 'rack' 
-                        ? 'bg-[#141414] text-blue-400 border border-blue-500/40' 
-                        : 'text-[#6b7280] hover:text-[#e4e4e4]'
-                    }`}
-                    title="Warehouse Rack Placement Grid"
-                  >
-                    <Map className="h-3 w-3 shrink-0" />
-                    <span>Racks</span>
-                  </button>
                 </div>
               </div>
 
@@ -596,7 +533,6 @@ export function InventoryPage() {
                       handleSort={handleSort}
                       handleDragStartDie={handleDragStartDie}
                       handleDragEndDie={handleDragEndDie}
-                      moveDieLocationMutation={moveDieLocationMutation}
                       page={page}
                       setPage={setPage}
                       pageSize={pageSize}
@@ -615,7 +551,6 @@ export function InventoryPage() {
                       canCreate={canCreate}
                       navigate={navigate}
                       setSelectedNode={setSelectedNode}
-                      moveDieLocationMutation={moveDieLocationMutation}
                       selectedDieIds={selectedDieIds}
                       onSelectId={handleSelectId}
                       onSelectAll={handleSelectAll}
@@ -632,7 +567,6 @@ export function InventoryPage() {
                       navigate={navigate}
                       handleDragStartDie={handleDragStartDie}
                       handleDragEndDie={handleDragEndDie}
-                      moveDieLocationMutation={moveDieLocationMutation}
                       selectedDieIds={selectedDieIds}
                       onSelectId={handleSelectId}
                       onSelectAll={handleSelectAll}
@@ -648,7 +582,6 @@ export function InventoryPage() {
                       navigate={navigate}
                       handleDragStartDie={handleDragStartDie}
                       handleDragEndDie={handleDragEndDie}
-                      moveDieLocationMutation={moveDieLocationMutation}
                       totalCount={totalCount}
                       page={page}
                       setPage={setPage}
@@ -710,45 +643,8 @@ export function InventoryPage() {
 
             <div className="h-4 w-[1px] bg-[var(--color-border-visible)]" />
 
-            {/* Structured Location update group */}
-            <div className="flex items-center space-x-1.5">
-              <select
-                value={bulkRackId}
-                disabled={isUpdating}
-                onChange={(e) => setBulkRackId(e.target.value)}
-                className="bg-[var(--color-bg)] border border-[var(--color-border-visible)] focus:border-blue-500 rounded-sm px-2 py-1 text-xs text-[var(--color-text)] focus:outline-none font-mono uppercase w-36"
-              >
-                <option value="">— TARGET RACK —</option>
-                {racksList?.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="number"
-                min="1"
-                value={bulkShelf}
-                disabled={isUpdating}
-                onChange={(e) => setBulkShelf(e.target.value)}
-                placeholder="Shelf #"
-                className="bg-[var(--color-bg)] border border-[var(--color-border-visible)] focus:border-blue-500 rounded-sm px-2 py-1 text-xs text-[var(--color-text)] placeholder-[var(--color-muted-dark)] focus:outline-none w-20 font-mono"
-              />
-
-              <button
-                onClick={handleBulkLocationUpdate}
-                disabled={!bulkRackId || isUpdating}
-                className="bg-[var(--color-surface-2)] hover:bg-[var(--color-border-visible)] text-blue-400 border border-blue-500/50 text-xs uppercase px-3 py-1 rounded-sm transition disabled:opacity-40 cursor-pointer font-mono"
-              >
-                {isUpdating ? 'RELOCATING...' : 'APPLY LOCATION'}
-              </button>
-            </div>
-
-            <div className="h-4 w-[1px] bg-[var(--color-border-visible)]" />
-
             <button
-              onClick={() => { setSelectedDieIds(new Set()); setBulkStatus(''); setBulkRackId(''); setBulkShelf(''); }}
+              onClick={() => { setSelectedDieIds(new Set()); setBulkStatus(''); }}
               disabled={isUpdating}
               className="text-xs font-mono uppercase text-[var(--color-muted)] hover:text-[var(--color-text)] px-2.5 py-1 rounded-sm border border-[var(--color-border-visible)] bg-[var(--color-surface-2)] hover:bg-[var(--color-border-visible)] transition cursor-pointer"
             >

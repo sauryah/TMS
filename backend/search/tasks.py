@@ -21,9 +21,6 @@ def die_to_meili_document(die):
         'die_type': die.die_type,
         'casing':   die.casing,
         'status':   die.status,
-        'rack': die.rack.name if die.rack else '',
-        'rack_id': die.rack_id,
-        'shelf_number': die.shelf_number,
         'set':      die.current_set.name if die.current_set else '',
         'machine':  die.current_set.machine.name if die.current_set else '',
     }
@@ -232,8 +229,8 @@ def rebuild_search_index_task(self, filename=None):
             meili_client.create_index(temp_index_name, {'primaryKey': 'id'})
             temp_idx = meili_client.index(temp_index_name)
             temp_idx.update_settings({
-                'searchableAttributes': ['die_id', 'casing', 'status', 'rack', 'shelf_number', 'set', 'machine', 'size_str', 'width_str', 'thickness_str', 'size', 'width', 'thickness'],
-                'filterableAttributes': ['die_type', 'status', 'casing', 'rack', 'shelf_number', 'size', 'width', 'thickness', 'machine'],
+                'searchableAttributes': ['die_id', 'casing', 'status', 'set', 'machine', 'size_str', 'width_str', 'thickness_str', 'size', 'width', 'thickness'],
+                'filterableAttributes': ['die_type', 'status', 'casing', 'size', 'width', 'thickness', 'machine'],
                 'sortableAttributes':   ['die_id'],
                 'typoTolerance': {
                     'enabled': True,
@@ -245,7 +242,7 @@ def rebuild_search_index_task(self, filename=None):
             raise e
 
         # 2. Fetch all dies
-        dies = list(Die.objects.select_related('rounddie', 'flatdie', 'current_set__machine', 'rack').all())
+        dies = list(Die.objects.select_related('rounddie', 'flatdie', 'current_set__machine').all())
         total_dies = len(dies)
         
         if total_dies == 0:
@@ -434,7 +431,7 @@ def process_outbox_task(self=None):
             die_ids = [t.payload.get('die_id') for t in chunk_tasks if t.payload.get('die_id')]
 
             try:
-                dies = list(Die.objects.select_related('current_set__machine', 'rounddie', 'flatdie', 'rack').filter(id__in=die_ids))
+                dies = list(Die.objects.select_related('current_set__machine', 'rounddie', 'flatdie').filter(id__in=die_ids))
                 docs = []
                 for die in dies:
                     docs.append(die_to_meili_document(die))

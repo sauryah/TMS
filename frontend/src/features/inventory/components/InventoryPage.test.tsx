@@ -126,14 +126,14 @@ describe('InventoryPage', () => {
   })
 
   test('renders view mode toggle buttons', () => {
-    const { getByText } = render(
+    const { getByText, queryByText } = render(
       <Wrapper>
         <InventoryPage />
       </Wrapper>
     )
     expect(getByText('Grid')).toBeInTheDocument()
     expect(getByText('List')).toBeInTheDocument()
-    expect(getByText('Racks')).toBeInTheDocument()
+    expect(queryByText('Racks')).not.toBeInTheDocument()
   })
 
   test('hides Add Die button for VIEWER role', () => {

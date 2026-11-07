@@ -221,7 +221,7 @@ export function FilterPanel({
           <input
             id="filter-location"
             type="text"
-            placeholder="e.g. Rack A"
+            placeholder="e.g. Machine 1"
             value={locationQuery}
             onChange={(e) => onLocationChange(e.target.value)}
             className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-1.5 px-2 text-xs text-[#e4e4e4] placeholder-[#404040] focus:outline-none transition-colors font-mono uppercase"

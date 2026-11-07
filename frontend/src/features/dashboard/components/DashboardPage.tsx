@@ -460,7 +460,7 @@ export function DashboardPage() {
                               <div className="flex flex-col text-left">
                                 <span className="font-bold text-[#e4e4e4] text-xs">{sizeStr}</span>
                                 <span className="text-[10px] text-[#6b7280] mt-0.5">
-                                  {die.die_type} • {die.die_id} • {die.rack_name && die.shelf ? `${die.rack_name} - S${die.shelf}` : 'NO LOCATION'}
+                                  {die.die_type} • {die.die_id} • {die.set_name || 'STAND-ALONE'}
                                 </span>
                               </div>
                               <span className="px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded-sm border border-[#2a2a2a] bg-[#141414] text-[#e4e4e4]">
@@ -847,7 +847,7 @@ function MaintenanceQueue() {
                   <th className="py-2.5 px-3">TYPE</th>
                   <th className="py-2.5 px-3">STATUS</th>
                   <th className="py-2.5 px-3">DURATION</th>
-                  <th className="py-2.5 px-3">LOCATION</th>
+                  <th className="py-2.5 px-3">ASSIGNED SET</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1a1a1a]">
@@ -868,7 +868,7 @@ function MaintenanceQueue() {
                       </span>
                     </td>
                     <td className="py-2.5 px-3 font-mono text-[#6b7280] tabular-nums">{die.durationStr}</td>
-                    <td className="py-2.5 px-3 text-[#6b7280]">{die.rack_name && die.shelf ? `${die.rack_name} - S${die.shelf}` : 'Tool Room'}</td>
+                    <td className="py-2.5 px-3 text-[#6b7280]">{die.set_name || 'Stand-Alone'}</td>
                   </tr>
                 ))}
               </tbody>

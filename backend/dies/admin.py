@@ -13,7 +13,7 @@ class FlatDieInline(admin.StackedInline):
 
 @admin.register(Die)
 class DieAdmin(admin.ModelAdmin):
-    list_display   = ['die_id', 'die_type', 'casing', 'status', 'rack', 'shelf_number', 'current_set', 'updated_at']
+    list_display   = ['die_id', 'die_type', 'casing', 'status', 'current_set', 'updated_at']
     list_filter    = ['die_type', 'status', 'casing']
     search_fields  = ['die_id', 'casing', 'remarks']
     readonly_fields = ['created_at', 'updated_at']

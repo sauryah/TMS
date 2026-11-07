@@ -28,11 +28,6 @@ const mapQueryDataList = <T extends { die_id?: string | number }>(
   return old
 }
 
-interface MoveDieContext {
-  previousDies: [readonly unknown[], unknown][]
-  previousSearch: [readonly unknown[], unknown][]
-}
-
 interface ReallocateDieContext {
   previousDiesQueries: [readonly unknown[], unknown][]
   previousSearchDiesQueries: [readonly unknown[], unknown][]
@@ -72,55 +67,6 @@ export function useInventoryMutations(setIsCreateOpen?: (open: boolean) => void,
     },
     onError: (err: Error) => {
       if (setCreateError) setCreateError(err.message)
-    }
-  })
-
-  // Mutation for updating die location (visual grid)
-  const moveDieLocationMutation = useMutation<unknown, Error, { dieId: string; rack?: number | null; shelf?: number | null; version?: number }, MoveDieContext>({
-    mutationFn: ({ dieId, rack, shelf, version }) => {
-      let ver = version
-      if (ver === undefined) {
-        const cached = queryClient.getQueryData<Die[]>(['dies'])
-        const found = Array.isArray(cached) ? cached.find(d => String(d.die_id) === String(dieId)) : undefined
-        ver = found?.version ?? 1
-      }
-      return request(`/api/dies/${dieId}/`, {
-        method: 'PATCH',
-        body: JSON.stringify({ rack, shelf, version: ver })
-      })
-    },
-    onMutate: async ({ dieId, rack, shelf }) => {
-      await queryClient.cancelQueries({ queryKey: ['dies'] })
-      await queryClient.cancelQueries({ queryKey: ['searchDies'] })
-      const previousDies = queryClient.getQueriesData({ queryKey: ['dies'] })
-      const previousSearch = queryClient.getQueriesData({ queryKey: ['searchDies'] })
-
-      const updateLoc = (old: unknown) => {
-        return mapQueryDataList<Die>(old, (d) => String(d.die_id) === String(dieId) ? { ...d, rack_id: rack !== undefined ? rack : d.rack_id, shelf: shelf !== undefined ? shelf : d.shelf } : d)
-      }
-      queryClient.setQueriesData({ queryKey: ['dies'] }, updateLoc)
-      queryClient.setQueriesData({ queryKey: ['searchDies'] }, updateLoc)
-
-      return { previousDies, previousSearch }
-    },
-    onError: (err, _variables, context) => {
-      if (context) {
-        if (context.previousDies) {
-          context.previousDies.forEach(([key, val]) => queryClient.setQueryData(key, val))
-        }
-        if (context.previousSearch) {
-          context.previousSearch.forEach(([key, val]) => queryClient.setQueryData(key, val))
-        }
-      }
-      showToast(`Failed to move die: ${err.message}`, 'error')
-    },
-    onSuccess: (_data, variables) => {
-      showToast(`Successfully moved die ${variables.dieId}.`, 'success')
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['dies'] })
-      queryClient.invalidateQueries({ queryKey: ['searchDies'] })
-      queryClient.invalidateQueries({ queryKey: ['allDiesStats'] })
     }
   })
 
@@ -523,7 +469,6 @@ export function useInventoryMutations(setIsCreateOpen?: (open: boolean) => void,
 
   return {
     createDieMutation,
-    moveDieLocationMutation,
     reallocateDieMutation,
     reallocateSetMutation,
     reorderSetsMutation

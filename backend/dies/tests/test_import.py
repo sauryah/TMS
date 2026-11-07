@@ -5,7 +5,6 @@ from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from dies.models import Die, RoundDie, FlatDie
-from machines.models import Rack
 from dies.services.import_service import ImportService
 import_dies = ImportService.import_dies
 from search.meili import client as meili_client, INDEX_NAME
@@ -29,9 +28,6 @@ class BulkImportTests(TestCase):
             password='password123',
             role='ADMIN'
         )
-        self.rack_a = Rack.objects.create(name="Rack A", row_count=4, column_count=3)
-        self.rack_b = Rack.objects.create(name="Rack B", row_count=4, column_count=3)
-        self.rack_c = Rack.objects.create(name="Rack C", row_count=4, column_count=3)
         try:
             meili_client.index(INDEX_NAME).delete()
         except Exception:
@@ -43,8 +39,8 @@ class BulkImportTests(TestCase):
         try:
             index = meili_client.index(INDEX_NAME)
             task = index.update_settings({
-                'searchableAttributes': ['die_id', 'casing', 'status', 'rack', 'shelf_number', 'set', 'machine', 'size', 'width', 'thickness'],
-                'filterableAttributes': ['die_type', 'status', 'casing', 'rack', 'shelf_number', 'size', 'width', 'thickness', 'machine'],
+                'searchableAttributes': ['die_id', 'casing', 'status', 'set', 'machine', 'size', 'width', 'thickness'],
+                'filterableAttributes': ['die_type', 'status', 'casing', 'size', 'width', 'thickness', 'machine'],
                 'sortableAttributes':   ['die_id'],
             })
             uid = task.get('taskUid') or task.get('task_uid')

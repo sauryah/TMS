@@ -8,7 +8,6 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
 from users.models import UserSession
-from machines.models import Rack
 from history.models import DieHistory
 from dies.models import Die
 
@@ -94,47 +93,7 @@ class NewEndpointsTests(APITestCase):
         self.assertEqual(response.data['user_id'], self.admin_user.id)
         self.assertEqual(response.data['role'], 'ADMIN')
 
-    # 3. Rack CRUD endpoints (Phase 3)
-    def test_rack_crud(self):
-        list_url = reverse('rack-list')
-        
-        # Unauthenticated list
-        self.client.credentials()
-        response = self.client.get(list_url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        # Authenticated list
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.regular_token}')
-        response = self.client.get(list_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        # Role enforcement for create (REGULAR should fail)
-        response = self.client.post(list_url, {'name': 'Test Rack', 'row_count': 5, 'column_count': 5})
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        
-        # ROOT create should succeed
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.root_token}')
-        response = self.client.post(list_url, {'name': 'Test Rack 2', 'row_count': 6, 'column_count': 6})
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        rack_id = response.data['id']
-        
-        # Detail endpoints
-        detail_url = reverse('rack-detail', args=[rack_id])
-        
-        # REGULAR update should fail
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.regular_token}')
-        response = self.client.patch(detail_url, {'row_count': 8})
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-        # ROOT update should succeed
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.root_token}')
-        response = self.client.patch(detail_url, {'row_count': 8})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['row_count'], 8)
-        
-        # Delete
-        response = self.client.delete(detail_url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     # 4. GET /api/import/template/ (Phase 5)
     def test_import_template_endpoint(self):

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from machines.models import MachineCategory, Machine, Set, Rack
+from machines.models import MachineCategory, Machine, Set
 
 class MachineInline(admin.TabularInline):
     model = Machine
@@ -30,7 +30,4 @@ class SetAdmin(admin.ModelAdmin):
     list_filter = ['machine']
     search_fields = ['name', 'machine__name']
 
-@admin.register(Rack)
-class RackAdmin(admin.ModelAdmin):
-    list_display = ['name', 'row_count', 'column_count']
-    search_fields = ['name']
+

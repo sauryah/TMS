@@ -7,11 +7,6 @@ import { validateDieCreate } from '../../../types/validation'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { StepWizard } from '../../../components/ui/StepWizard'
 
-export interface RackOption {
-  id: number
-  name: string
-}
-
 export interface SetOption {
   id: number
   name: string
@@ -41,19 +36,11 @@ export function CreateDieModal({
   const [dieType, setDieType] = useState<string>('')
   const [casing, setCasing] = useState('')
   const [status, setStatus] = useState('AVAILABLE')
-  const [rack, setRack] = useState('')
-  const [shelf, setShelf] = useState('')
   const [remarks, setRemarks] = useState('')
   const [currentSet, setCurrentSet] = useState('')
   const [currentStep, setCurrentStep] = useState(0)
 
   const { request } = useApi()
-  const { data: racksList } = useQuery<RackOption[]>({
-    queryKey: ['racksList'],
-    queryFn: () => request('/api/racks/'),
-    enabled: isOpen
-  })
-  const racks = racksList || []
   
   // Round subfields
   const [originalSize, setOriginalSize] = useState('')
@@ -82,8 +69,6 @@ export function CreateDieModal({
       setDieType('')
       setCasing('')
       setStatus('AVAILABLE')
-      setRack('')
-      setShelf('')
       setRemarks('')
       setCurrentSet('')
       setOriginalSize('')
@@ -186,17 +171,11 @@ export function CreateDieModal({
     if (isSubmitting) return
     setValidationErrors({})
     
-    const selectedRack = racks.find((r: RackOption) => String(r.id) === String(rack))
-    const finalLocation = selectedRack && shelf ? `${selectedRack.name} - Shelf ${shelf}` : ''
-
     const payload: Record<string, unknown> = {
       die_id: dieId.trim(),
       die_type: dieType,
       casing: casing.trim(),
       status,
-      location: finalLocation,
-      rack: rack ? Number(rack) : null,
-      shelf: shelf ? Number(shelf) : null,
       remarks: remarks.trim(),
       current_set: currentSet ? Number(currentSet) : null
     }
@@ -244,8 +223,6 @@ export function CreateDieModal({
 
   const selectedSetObj = setsList?.find((s: SetOption) => String(s.id) === String(currentSet))
   const machineName = selectedSetObj ? (selectedSetObj.machine_name || 'No Machine') : ''
-  const selectedRackObj = racks.find((r: RackOption) => String(r.id) === String(rack))
-  const displayLocation = selectedRackObj && shelf ? `${selectedRackObj.name} - Shelf ${shelf}` : 'Unassigned'
 
   // Steps definition for StepWizard
   const steps = [
@@ -351,40 +328,6 @@ export function CreateDieModal({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label htmlFor="form-rack" className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider mb-1">
-                STORAGE RACK
-              </label>
-              <select 
-                id="form-rack"
-                value={rack}
-                disabled={isSubmitting}
-                onChange={(e) => handleFieldChange('rack', e.target.value, setRack)}
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-1.5 px-2 text-xs text-[#e4e4e4] focus:outline-none cursor-pointer uppercase font-mono"
-              >
-                <option value="">SELECT RACK...</option>
-                {racks.map((r: RackOption) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="form-shelf" className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider mb-1">
-                SHELF
-              </label>
-              <input 
-                id="form-shelf"
-                type="number"
-                min="1"
-                disabled={isSubmitting}
-                value={shelf}
-                onChange={(e) => handleFieldChange('shelf', e.target.value, setShelf)}
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-1.5 px-2 text-xs text-[#e4e4e4] focus:outline-none font-mono"
-                placeholder="e.g. 3"
-              />
-            </div>
-          </div>
 
           <div>
             <label htmlFor="form-remarks" className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider mb-1">
@@ -635,10 +578,6 @@ export function CreateDieModal({
               <tr className="border-b border-[#1a1a1a]">
                 <td className="p-2.5 text-[#6b7280] uppercase text-[10px]">STATUS</td>
                 <td className="p-2.5 text-[#e4e4e4]">{status}</td>
-              </tr>
-              <tr className="border-b border-[#1a1a1a]">
-                <td className="p-2.5 text-[#6b7280] uppercase text-[10px]">LOCATION</td>
-                <td className="p-2.5 text-[#e4e4e4]">{displayLocation}</td>
               </tr>
               {dieType === 'ROUND' ? (
                 <>

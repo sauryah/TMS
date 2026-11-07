@@ -1,5 +1,21 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-07 Full Removal of Warehouse Racks and Shelves
+*   **Backend Database & API De-Rackification**:
+    *   Removed `Die.rack` foreign key, `Die.shelf_number`, and composite index `die_rack_shelf_idx` in `backend/dies/models.py`.
+    *   Removed `Rack` model from `backend/machines/models.py`.
+    *   Created sequential Django migrations `backend/dies/migrations/0019_remove_die_rack_shelf.py` and `backend/machines/migrations/0003_delete_rack.py`.
+    *   Removed `RackViewSet` router registration from `backend/tms/urls.py` and deprecated serializers/views into inert placeholders.
+    *   Cleaned Django admin registrations, audit signals, Meilisearch index sync tasks, location validation services, and CSV/XLSX import processors.
+    *   Updated backend tests across `dies`, `machines`, and `users` apps.
+*   **Frontend UI & State De-Rackification**:
+    *   Removed `Rack` view mode toggle and `moveDieLocationMutation` from `InventoryPage`, `useInventoryState`, `useInventoryMutations`, and `InventorySubViews`.
+    *   Removed bulk rack relocation toolbar from `InventoryPage`.
+    *   Removed rack and shelf inputs and validation from `CreateDieModal` and `DieDetailPage`.
+    *   Refactored `DieDetailPage` dashboard cards to promote Production Line Assignment to Card 03, removing the legacy Warehouse Mapping section.
+    *   Updated `RoundDieCard`, `FlatDieCard`, `DieCard`, and `DashboardPage` to display machine and set assignments without rack/shelf dependencies.
+    *   Updated unit tests (`DieCard.test.tsx`, `RoundDieCard.test.tsx`, `FlatDieCard.test.tsx`, `InventoryPage.test.tsx`) with 106/106 tests passing.
+
 ### 2026-11-05 Strict Remote Push Policy Standards
 *   **Operating System & Workflow Push Policy**:
     *   Updated `AGENTS.md` Decision Rules and Git & Commit Rules to explicitly forbid autonomous execution of `git push`, requiring explicit user authorization for all remote operations.

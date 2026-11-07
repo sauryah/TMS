@@ -9,8 +9,6 @@ class Die(models.Model):
     die_type     = models.CharField(max_length=10, choices=DIE_TYPE_CHOICES)
     casing       = models.CharField(max_length=50)
     status       = models.CharField(max_length=20, choices=DIE_STATUS_CHOICES, default='AVAILABLE')
-    rack         = models.ForeignKey('machines.Rack', null=True, blank=True, on_delete=models.SET_NULL)
-    shelf_number = models.PositiveSmallIntegerField(null=True, blank=True)
     current_set  = models.ForeignKey('machines.Set', null=True, blank=True, on_delete=models.SET_NULL)
     remarks      = models.TextField(blank=True)
     created_at   = models.DateTimeField(auto_now_add=True)
@@ -24,7 +22,6 @@ class Die(models.Model):
             models.Index(fields=['die_type']),
             models.Index(fields=['die_type', 'status']),
             models.Index(fields=['status', 'die_type'], name='die_status_type_idx'),
-            models.Index(fields=['rack', 'shelf_number'], name='die_rack_shelf_idx'),
             GinIndex(name='die_casing_trgm_idx', fields=['casing'], opclasses=['gin_trgm_ops']),
         ]
 

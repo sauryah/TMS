@@ -5,16 +5,12 @@ export interface Die {
   die_type: DieType;
   casing: string;
   status: DieStatus;
-  rack?: number | null;
-  rack_id?: number | null;
-  rack_name?: string;
-  shelf?: number | null;
-  shelf_number?: number | null;
   remarks: string | null;
   current_set: number | null;
   current_set_name?: string;
   set_name?: string;
   machine_name?: string;
+  version?: number;
   updated_at: string;
   
   // Round specific properties

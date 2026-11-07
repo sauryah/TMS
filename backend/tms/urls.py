@@ -21,7 +21,7 @@ from history.views import (
     DieHistoryListView, MachineHistoryListView, DashboardHistoryListView,
     UnifiedHistoryListView, PrintRecordListView, PrintRecordNextRefView
 )
-from machines.views import MachineCategoryViewSet, MachineViewSet, SetViewSet, RackViewSet
+from machines.views import MachineCategoryViewSet, MachineViewSet, SetViewSet
 
 router = DefaultRouter()
 router.register('dies', DieViewSet, basename='die')
@@ -32,7 +32,6 @@ router.register('categories', MachineCategoryViewSet, basename='category')
 router.register('machines', MachineViewSet, basename='machine')
 router.register('sets', SetViewSet, basename='set')
 router.register('backups', BackupViewSet, basename='backup')
-router.register('racks', RackViewSet, basename='rack')
 router.register('tolerances', DieToleranceViewSet, basename='tolerance')
 router.register('wear-alerts', WearAlertViewSet, basename='wear-alert')
 router.register('machine-die-stock', MachineDieStockViewSet, basename='machine-die-stock')

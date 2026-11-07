@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from machines.models import Rack
 
-class RackSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Rack
-        fields = ['id', 'name', 'row_count', 'column_count']
+# Deprecated: Rack model removed
+class RackSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)

@@ -10,8 +10,6 @@ describe('DieCard', () => {
     current_size: '2.420',
     casing: '25x10',
     status: 'AVAILABLE',
-    rack_name: 'Rack A',
-    shelf: 3,
     set_name: 'Set A01',
     machine_name: 'Machine M1'
   }
@@ -23,8 +21,6 @@ describe('DieCard', () => {
     current_thickness: '2.400',
     casing: '50x15',
     status: 'RUNNING',
-    rack_name: 'Rack B',
-    shelf: 1,
     set_name: 'Set B01',
     machine_name: 'Machine M2'
   }

@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from machines.models import MachineCategory, Machine, Set, Rack
+from machines.models import MachineCategory, Machine, Set
 from dies.models import Die, RoundDie
 
 User = get_user_model()
@@ -17,7 +17,6 @@ class MachinesAPITests(APITestCase):
         self.category = MachineCategory.objects.create(name='Stamping')
         self.machine = Machine.objects.create(category=self.category, name='Press #1')
         self.set_obj = Set.objects.create(machine=self.machine, name='Set A', order=0)
-        self.rack = Rack.objects.create(name='Rack A', row_count=5, column_count=5)
 
     # --- Category ViewSet Tests ---
     def test_list_categories_unauthenticated_fails(self):
@@ -98,38 +97,4 @@ class MachinesAPITests(APITestCase):
         self.set_obj.refresh_from_db()
         self.assertEqual(self.set_obj.machine_id, machine2.id)
 
-    # --- Rack ViewSet Tests ---
-    def test_list_racks(self):
-        self.client.force_authenticate(user=self.regular_user)
-        response = self.client.get('/api/v1/racks/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
 
-    def test_create_rack_admin(self):
-        self.client.force_authenticate(user=self.admin_user)
-        response = self.client.post('/api/v1/racks/', {
-            'name': 'Rack B',
-            'row_count': 10,
-            'column_count': 10
-        })
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-    def test_delete_rack_with_assigned_dies(self):
-        self.client.force_authenticate(user=self.admin_user)
-        # Assign a die to the rack
-        die = Die.objects.create(
-            die_id='DIE-R100',
-            die_type='ROUND',
-            casing='25x10',
-            status='AVAILABLE',
-            rack=self.rack,
-            shelf_number=1
-        )
-        RoundDie.objects.create(
-            die=die,
-            punched_size=2.5,
-            current_size=2.5
-        )
-        response = self.client.delete(f'/api/v1/racks/{self.rack.id}/')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('active dies assigned', response.data['detail'])

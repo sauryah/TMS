@@ -20,7 +20,7 @@ export function RoundDieCard({ die, onClick }: RoundDieCardProps) {
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="button"
-      aria-label={`Round Die ${die.die_id}, Status: ${die.status}, Casing: ${die.casing || 'None'}, Location: ${die.rack_name && die.shelf ? `${die.rack_name} - Shelf ${die.shelf}` : 'None'}`}
+      aria-label={`Round Die ${die.die_id}, Status: ${die.status}, Casing: ${die.casing || 'None'}, Set: ${die.set_name || 'None'}`}
       className="bg-[#0f0f0f] border border-[#1a1a1a] hover:border-[#2a2a2a] border-l-2 border-l-blue-500 hover:bg-[#141414] transition-colors cursor-pointer rounded-sm p-4 flex flex-col justify-between group h-full focus-ring font-mono"
     >
       <div>
@@ -55,15 +55,15 @@ export function RoundDieCard({ die, onClick }: RoundDieCardProps) {
           <span className="text-[#e4e4e4] font-mono truncate block" title={die.casing}>{die.casing || '—'}</span>
         </div>
         <div>
-          <span className="text-[#6b7280] block text-[9px] uppercase tracking-wider mb-0.5">LOCATION</span>
-          <span className="text-[#e4e4e4] font-mono truncate block" title={die.rack_name && die.shelf ? `${die.rack_name} - Shelf ${die.shelf}` : undefined}>
-            {die.rack_name && die.shelf ? `${die.rack_name} - Shelf ${die.shelf}` : '—'}
+          <span className="text-[#6b7280] block text-[9px] uppercase tracking-wider mb-0.5">SET</span>
+          <span className="text-[#e4e4e4] font-mono truncate block" title={die.set_name || undefined}>
+            {die.set_name || '—'}
           </span>
         </div>
         <div>
-          <span className="text-[#6b7280] block text-[9px] uppercase tracking-wider mb-0.5">SET / MACHINE</span>
-          <span className="text-[#e4e4e4] font-mono truncate block" title={die.set_name ? `${die.set_name} (${die.machine_name})` : undefined}>
-            {die.set_name ? `${die.set_name} (${die.machine_name})` : '—'}
+          <span className="text-[#6b7280] block text-[9px] uppercase tracking-wider mb-0.5">MACHINE</span>
+          <span className="text-[#e4e4e4] font-mono truncate block" title={die.machine_name || undefined}>
+            {die.machine_name || '—'}
           </span>
         </div>
       </div>

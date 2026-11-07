@@ -30,11 +30,10 @@ class DieListSerializer(serializers.ModelSerializer):
     set_name = serializers.SerializerMethodField()
     machine_name = serializers.SerializerMethodField()
     active_alerts = serializers.SerializerMethodField()
-    shelf = serializers.IntegerField(source='shelf_number', allow_null=True, required=False)
     
     class Meta:
         model = Die
-        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'current_set', 'rack', 'shelf', 'shelf_number', 'active_alerts', 'version']
+        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'current_set', 'active_alerts', 'version']
         
     @extend_schema_field(serializers.CharField)
     def get_set_name(self, obj):
@@ -55,8 +54,6 @@ class DieListSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-        rep['rack_id'] = instance.rack_id
-        rep['rack_name'] = instance.rack.name if instance.rack else ''
         if instance.die_type == 'ROUND' and hasattr(instance, 'rounddie') and instance.rounddie:
             rep['current_size'] = str(instance.rounddie.current_size)
         elif instance.die_type == 'FLAT' and hasattr(instance, 'flatdie') and instance.flatdie:
@@ -70,11 +67,10 @@ class DieDetailSerializer(serializers.ModelSerializer):
     machine_name = serializers.SerializerMethodField()
     history = DieHistorySerializer(many=True, read_only=True)
     active_alerts = serializers.SerializerMethodField()
-    shelf = serializers.IntegerField(source='shelf_number', allow_null=True, required=False)
     
     class Meta:
         model = Die
-        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'remarks', 'created_at', 'updated_at', 'history', 'current_set', 'rack', 'shelf', 'shelf_number', 'active_alerts', 'version']
+        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'remarks', 'created_at', 'updated_at', 'history', 'current_set', 'active_alerts', 'version']
         
     @extend_schema_field(serializers.CharField)
     def get_set_name(self, obj):
@@ -94,8 +90,6 @@ class DieDetailSerializer(serializers.ModelSerializer):
         
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-        rep['rack_id'] = instance.rack_id
-        rep['rack_name'] = instance.rack.name if instance.rack else ''
         if instance.die_type == 'ROUND' and hasattr(instance, 'rounddie') and instance.rounddie:
             rep['punched_size'] = str(instance.rounddie.punched_size)
             rep['current_size'] = str(instance.rounddie.current_size)
@@ -116,11 +110,10 @@ class DieCreateSerializer(serializers.ModelSerializer):
     punched_thickness = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
     current_thickness = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
     radius = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
-    shelf = serializers.IntegerField(source='shelf_number', allow_null=True, required=False)
     
     class Meta:
         model = Die
-        fields = ['die_id', 'die_type', 'casing', 'status', 'current_set', 'remarks', 'rack', 'shelf', 'shelf_number',
+        fields = ['die_id', 'die_type', 'casing', 'status', 'current_set', 'remarks',
                   'punched_size', 'current_size', 'punched_width', 'current_width',
                   'punched_thickness', 'current_thickness', 'radius', 'version']
                   
@@ -149,16 +142,6 @@ class DieCreateSerializer(serializers.ModelSerializer):
         elif die_type == 'FLAT':
             if any(k not in attrs for k in ['punched_width', 'current_width', 'punched_thickness', 'current_thickness', 'radius']):
                 raise serializers.ValidationError("FLAT die requires punched_width, current_width, punched_thickness, current_thickness, and radius.")
-        
-        # Validate location if rack or shelf_number is provided
-        rack = attrs.get('rack')
-        shelf_number = attrs.get('shelf_number')
-        if rack is not None or shelf_number is not None:
-            from dies.services.validation_service import ValidationService
-            try:
-                ValidationService.validate_location(rack, shelf_number)
-            except ValueError as e:
-                raise serializers.ValidationError(str(e))
         
         return attrs
 
@@ -257,11 +240,6 @@ def serialize_die_list_fast(dies_queryset):
             'set_name': die.current_set.name if die.current_set else '',
             'machine_name': die.current_set.machine.name if (die.current_set and die.current_set.machine) else '',
             'current_set': die.current_set_id,
-            'rack': die.rack_id,
-            'rack_id': die.rack_id,
-            'rack_name': die.rack.name if die.rack else '',
-            'shelf': die.shelf_number,
-            'shelf_number': die.shelf_number,
             'active_alerts': active_alerts,
             'version': getattr(die, 'version', 1),
         }

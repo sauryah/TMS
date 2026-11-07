@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 import { Search, Database, Cpu, Layers, Activity, Sliders, ChevronRight, ArrowUpDown } from 'lucide-react'
 import { isDieActive, compareDiesBySize } from '../../../utils/dieHelpers'
-import { RackLayoutGrid } from './RackLayoutGrid'
 import { DieStats } from '../../dashboard/components/DieStats'
 import { DataTable, Column } from '../../../components/ui/DataTable'
 import { DieCard } from '../../../components/ui/DieCard'
@@ -11,11 +10,10 @@ import { Die } from '../../../types'
 import { SetTreeItem, MachineTreeItem } from './MachineSidebarTree'
 
 interface ViewProps {
-  viewMode: 'list' | 'grid' | 'rack'
+  viewMode: 'list' | 'grid'
   activeDiesList: Die[]
   canCreate: boolean
   navigate: NavigateFunction
-  moveDieLocationMutation: { mutate: (vars: { dieId: string; rack?: number | null; shelf?: number | null }) => void }
   selectedDieIds?: Set<string>
   onSelectId?: (id: string, checked: boolean) => void
   onSelectAll?: (checked: boolean) => void
@@ -62,15 +60,6 @@ const getInventoryColumns = (navigate: NavigateFunction): Column<Die>[] => [
     render: (row) => (
       <span className="font-mono text-[var(--color-muted)]">{row.casing || '—'}</span>
     ),
-  },
-  {
-    key: 'location',
-    label: 'Location',
-    render: (row) => {
-      const loc =
-        row.rack_name && row.shelf ? `${row.rack_name} - S${row.shelf}` : (row as unknown as { location?: string }).location || '—'
-      return <span className="text-[var(--color-text)] font-mono">{loc}</span>
-    },
   },
   {
     key: 'set_name',
@@ -131,7 +120,6 @@ export function SearchView({
   sortField,
   sortOrder,
   handleSort,
-  moveDieLocationMutation,
   page,
   setPage,
   pageSize,
@@ -178,7 +166,7 @@ export function SearchView({
               <h3 className="text-xs font-medium text-[#6b7280] uppercase tracking-wider flex items-center gap-1.5">
                 <Database className="h-3.5 w-3.5 text-blue-500" />
                 <span>
-                  {viewMode === 'grid' ? 'FILTERED GRID' : viewMode === 'list' ? 'FILTERED CATALOG' : 'LOCATION RACK PLACEMENT'}
+                  {viewMode === 'grid' ? 'FILTERED GRID' : 'FILTERED CATALOG'}
                 </span>
               </h3>
               <span className="text-xs text-[#6b7280] tabular-nums">
@@ -197,7 +185,7 @@ export function SearchView({
                   />
                 ))}
               </div>
-            ) : viewMode === 'list' ? (
+            ) : (
               <div className="animate-fadeIn">
                 <DataTable 
                   columns={columns} 
@@ -211,13 +199,6 @@ export function SearchView({
                   onSelectAll={onSelectAll}
                 />
               </div>
-            ) : (
-              <RackLayoutGrid 
-                dies={activeDiesList} 
-                onMoveDie={(dieId, rackId, shelf) => moveDieLocationMutation.mutate({ dieId, rack: rackId, shelf })} 
-                canMove={canCreate} 
-                navigate={navigate}
-              />
             )}
 
             {totalCount > pageSize && (
@@ -293,7 +274,6 @@ export function MachineView({
   canCreate,
   navigate,
   setSelectedNode,
-  moveDieLocationMutation,
   selectedDieIds,
   onSelectId,
   onSelectAll
@@ -339,7 +319,7 @@ export function MachineView({
             <h3 className="text-xs font-medium text-[#6b7280] uppercase tracking-wider mb-3 flex items-center gap-1.5 select-none">
               <Layers className="h-3.5 w-3.5 text-purple-400" />
               <span>
-                {viewMode === 'grid' ? '02 ASSIGNED SETS GRID' : viewMode === 'list' ? '02 ASSIGNED SETS TABLE' : '02 LOCATION RACK PLACEMENT'}
+                {viewMode === 'grid' ? '02 ASSIGNED SETS GRID' : '02 ASSIGNED SETS TABLE'}
               </span>
             </h3>
 
@@ -382,7 +362,7 @@ export function MachineView({
                   })}
                 </div>
               )
-            ) : viewMode === 'list' ? (
+            ) : (
               <div className="animate-fadeIn space-y-3">
                 <DataTable 
                   columns={columns} 
@@ -439,13 +419,6 @@ export function MachineView({
                   </div>
                 )}
               </div>
-            ) : (
-              <RackLayoutGrid 
-                dies={activeDiesList} 
-                onMoveDie={(dieId, rackId, shelf) => moveDieLocationMutation.mutate({ dieId, rack: rackId, shelf })} 
-                canMove={canCreate} 
-                navigate={navigate}
-              />
             )}
           </div>
         </>
@@ -487,7 +460,6 @@ export function SetView({
   activeDiesList,
   canCreate,
   navigate,
-  moveDieLocationMutation,
   selectedDieIds,
   onSelectId,
   onSelectAll
@@ -628,11 +600,11 @@ export function SetView({
               <h3 className="text-xs font-medium text-[#6b7280] uppercase tracking-wider flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5 text-purple-400" />
                 <span>
-                  {viewMode === 'grid' ? '03 ASSIGNED GRID' : viewMode === 'list' ? '03 ASSIGNED CATALOG' : '03 LOCATION RACK PLACEMENT'}
+                  {viewMode === 'grid' ? '03 ASSIGNED GRID' : '03 ASSIGNED CATALOG'}
                 </span>
               </h3>
               
-              {viewMode !== 'rack' && setDies.length > 0 && (
+              {setDies.length > 0 && (
                 <button
                   onClick={() => {
                     setSizeSort(prev => {
@@ -665,7 +637,7 @@ export function SetView({
                 </div>
                 {sortedSetDies.length > localPageSize && renderPaginationControls()}
               </div>
-            ) : viewMode === 'list' ? (
+            ) : (
               <div className="animate-fadeIn space-y-3">
                 <DataTable 
                   columns={columns} 
@@ -677,13 +649,6 @@ export function SetView({
                 />
                 {sortedSetDies.length > localPageSize && renderPaginationControls()}
               </div>
-            ) : (
-              <RackLayoutGrid 
-                dies={activeDiesList} 
-                onMoveDie={(dieId, rackId, shelf) => moveDieLocationMutation.mutate({ dieId, rack: rackId, shelf })} 
-                canMove={canCreate} 
-                navigate={navigate}
-              />
             )}
           </div>
         </>
@@ -722,7 +687,6 @@ export function UnassignedView({
   activeDiesList,
   canCreate,
   navigate,
-  moveDieLocationMutation,
   totalCount,
   page,
   setPage,
@@ -770,7 +734,7 @@ export function UnassignedView({
               <h3 className="text-xs font-medium text-[#6b7280] uppercase tracking-wider flex items-center gap-1.5">
                 <Sliders className="h-3.5 w-3.5 text-amber-500" />
                 <span>
-                  {viewMode === 'grid' ? 'STANDALONE GRID' : viewMode === 'list' ? 'STANDALONE CATALOG' : 'LOCATION RACK PLACEMENT'}
+                  {viewMode === 'grid' ? 'STANDALONE GRID' : 'STANDALONE CATALOG'}
                 </span>
               </h3>
               <span className="text-xs text-[#6b7280] tabular-nums">
@@ -789,7 +753,7 @@ export function UnassignedView({
                   />
                 ))}
               </div>
-            ) : viewMode === 'list' ? (
+            ) : (
               <div className="animate-fadeIn">
                 <DataTable 
                   columns={columns} 
@@ -800,13 +764,6 @@ export function UnassignedView({
                   onSelectAll={onSelectAll}
                 />
               </div>
-            ) : (
-              <RackLayoutGrid 
-                dies={activeDiesList} 
-                onMoveDie={(dieId, rackId, shelf) => moveDieLocationMutation.mutate({ dieId, rack: rackId, shelf })} 
-                canMove={canCreate} 
-                navigate={navigate}
-              />
             )}
             
             {totalCount > pageSize && (
