@@ -40,7 +40,7 @@ class IsAdminOrRootOrOperatorRelocate(permissions.BasePermission):
     Permission check:
     - Safe methods (GET, HEAD, OPTIONS) are allowed for any authenticated user.
     - ROOT and ADMIN can write any fields.
-    - OPERATOR can only PATCH (partial_update) location, rack, and shelf fields.
+    - OPERATOR can only PATCH (partial_update) location and current_set fields.
     """
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):

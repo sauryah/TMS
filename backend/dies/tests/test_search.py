@@ -4,7 +4,6 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 
 from dies.models import Die, RoundDie
-from machines.models import Rack
 from search.meili import client as meili_client, INDEX_NAME
 from decimal import Decimal
 
@@ -31,8 +30,8 @@ class MeilisearchTests(TransactionTestCase):
         try:
             index = meili_client.index(INDEX_NAME)
             task = index.update_settings({
-                'searchableAttributes': ['die_id', 'casing', 'status', 'rack', 'shelf_number', 'set', 'machine', 'size', 'width', 'thickness'],
-                'filterableAttributes': ['die_type', 'status', 'casing', 'rack', 'shelf_number', 'size', 'width', 'thickness', 'machine'],
+                'searchableAttributes': ['die_id', 'casing', 'status', 'set', 'machine', 'size_str', 'width_str', 'thickness_str', 'size', 'width', 'thickness'],
+                'filterableAttributes': ['die_type', 'status', 'casing', 'size', 'width', 'thickness', 'machine'],
                 'sortableAttributes':   ['die_id'],
             })
             uid = task.get('taskUid') or task.get('task_uid')
@@ -47,16 +46,12 @@ class MeilisearchTests(TransactionTestCase):
         except Exception:
             time.sleep(0.5)
 
-        self.rack_a = Rack.objects.create(name="Rack A", row_count=4, column_count=3)
-
     def test_sync_on_create_and_update(self):
         die = Die.objects.create(
             die_id="ROUND-MEILI",
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         round_die = RoundDie.objects.create(
             die=die,
@@ -89,8 +84,6 @@ class MeilisearchTests(TransactionTestCase):
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         RoundDie.objects.create(
             die=die1,
@@ -103,8 +96,6 @@ class MeilisearchTests(TransactionTestCase):
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=2,
         )
         RoundDie.objects.create(
             die=die2,
@@ -131,8 +122,6 @@ class MeilisearchTests(TransactionTestCase):
             die_type="ROUND",
             casing="25'x10'",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         RoundDie.objects.create(
             die=die,

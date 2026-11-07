@@ -1,6 +1,6 @@
 from django.test import TestCase
 from dies.models import Die, RoundDie, FlatDie
-from machines.models import MachineCategory, Machine, Set, Rack
+from machines.models import MachineCategory, Machine, Set
 from history.models import DieHistory
 from decimal import Decimal
 
@@ -10,8 +10,6 @@ class DieSignalTests(TestCase):
         self.machine = Machine.objects.create(category=self.category, name="Machine 1")
         self.set_a = Set.objects.create(machine=self.machine, name="Set A")
         self.set_b = Set.objects.create(machine=self.machine, name="Set B")
-        self.rack_a = Rack.objects.create(name="Rack A", row_count=4, column_count=3)
-        self.rack_b = Rack.objects.create(name="Rack B", row_count=4, column_count=3)
 
     def test_create_new_die_no_history(self):
         die = Die.objects.create(
@@ -19,8 +17,6 @@ class DieSignalTests(TestCase):
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         history_count = DieHistory.objects.filter(die=die).count()
         self.assertEqual(history_count, 0)
@@ -55,23 +51,6 @@ class DieSignalTests(TestCase):
         self.assertIsNotNone(history)
         self.assertEqual(history.old_value, self.set_a.name)
         self.assertEqual(history.new_value, self.set_b.name)
-
-    def test_change_die_rack_creates_history(self):
-        die = Die.objects.create(
-            die_id="ROUND-LOC",
-            die_type="ROUND",
-            casing="25x10",
-            status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
-        )
-        die.rack = self.rack_b
-        die.save()
-
-        history = DieHistory.objects.filter(die=die, field_name="rack_id").first()
-        self.assertIsNotNone(history)
-        self.assertEqual(history.old_value, str(self.rack_a.pk))
-        self.assertEqual(history.new_value, str(self.rack_b.pk))
 
     def test_change_round_die_size_creates_history(self):
         die = Die.objects.create(
@@ -149,8 +128,6 @@ class DieSignalTests(TestCase):
             die_type="ROUND",
             casing="25x10",
             status="AVAILABLE",
-            rack=self.rack_a,
-            shelf_number=1,
         )
         die.save()
         history_count = DieHistory.objects.filter(die=die).count()

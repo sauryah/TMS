@@ -7,7 +7,8 @@
     *   Created sequential Django migrations `backend/dies/migrations/0019_remove_die_rack_shelf.py` and `backend/machines/migrations/0003_delete_rack.py`.
     *   Removed `RackViewSet` router registration from `backend/tms/urls.py` and deprecated serializers/views into inert placeholders.
     *   Cleaned Django admin registrations, audit signals, Meilisearch index sync tasks, location validation services, and CSV/XLSX import processors.
-    *   Updated backend tests across `dies`, `machines`, and `users` apps.
+    *   Updated and fixed backend tests across `dies` (`test_integration`, `test_models`, `test_query_count`, `test_search`, `test_services`, `test_signals`), removing obsolete `Rack` fixtures and imports.
+    *   Corrected `@patch` target in `users/tests/test_backups.py` to point directly to `users.services.backup_service.rebuild_search_index_task.delay`.
 *   **Frontend UI & State De-Rackification**:
     *   Removed `Rack` view mode toggle and `moveDieLocationMutation` from `InventoryPage`, `useInventoryState`, `useInventoryMutations`, and `InventorySubViews`.
     *   Removed bulk rack relocation toolbar from `InventoryPage`.

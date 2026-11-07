@@ -22,11 +22,13 @@ Remove warehouse rack and shelf storage concepts entirely from the platform per 
 ## Completed
 - Handcrafted migrations `dies.0019_remove_die_rack_shelf` and `machines.0003_delete_rack`.
 - Cleaned backend models, serializers, views, admin, signals, search tasks, and tests.
+- Removed legacy `Rack` imports and fixtures from all backend test suites (`test_integration`, `test_models`, `test_query_count`, `test_search`, `test_services`, `test_signals`).
+- Fixed `@patch` target in `users/tests/test_backups.py` to target `users.services.backup_service.rebuild_search_index_task.delay`.
 - Cleaned frontend types, validation schema, subviews, modals, cards, and unit tests (all 106 tests passing).
 - Verified TypeScript build (`tsc --noEmit`) passes with 0 errors.
 
 ## Next Steps
-- Provide user with instructions to run `docker compose exec web python manage.py migrate` at their convenience.
+- User pushes commit to GitHub to trigger CI verification.
 - Await user instructions. Never `git push` autonomously.
 
 ## Blockers

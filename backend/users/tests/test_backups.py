@@ -98,7 +98,7 @@ class BackupTests(APITestCase):
 
     @patch('subprocess.run')
     @patch('django.core.management.call_command')
-    @patch('users.tasks.rebuild_search_index_task.delay')
+    @patch('users.services.backup_service.rebuild_search_index_task.delay')
     @patch('redis.Redis.from_url')
     @patch('django.db.connection.cursor')
     def test_restore_backup_terminates_connections_and_flushes_redis_sessions(

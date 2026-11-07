@@ -1,7 +1,6 @@
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from dies.models import Die, RoundDie, FlatDie
-from machines.models import Rack
 from django.db import connection
 from decimal import Decimal
 from users.models import User, UserSession
@@ -18,16 +17,12 @@ class QueryCountTests(APITestCase):
         UserSession.objects.create(user=self.user, token_hash=token_hash)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
 
-        self.rack_a = Rack.objects.create(name="Rack A", row_count=4, column_count=3)
-        self.rack_b = Rack.objects.create(name="Rack B", row_count=4, column_count=3)
         for i in range(25):
             die = Die.objects.create(
                 die_id=f"R-{i}",
                 die_type="ROUND",
                 casing="25x10",
                 status="AVAILABLE",
-                rack=self.rack_a,
-                shelf_number=i % 4 + 1,
             )
             RoundDie.objects.create(
                 die=die,
@@ -40,8 +35,6 @@ class QueryCountTests(APITestCase):
                 die_type="FLAT",
                 casing="30x15",
                 status="AVAILABLE",
-                rack=self.rack_b,
-                shelf_number=i % 4 + 1,
             )
             FlatDie.objects.create(
                 die=die,

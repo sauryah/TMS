@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from dies.models import Die, RoundDie, FlatDie
-from machines.models import Machine, MachineCategory, Set, Rack
+from machines.models import Machine, MachineCategory, Set
 
 User = get_user_model()
 
@@ -13,7 +13,7 @@ class DieWorkflowIntegrationTest(TestCase):
     fixtures = []
 
     def setUp(self):
-        """Set up test user, machine, rack, and set"""
+        """Set up test user, machine, and set"""
         self.user = User.objects.create_user(
             username='testadmin',
             email='test@example.com',
@@ -29,8 +29,6 @@ class DieWorkflowIntegrationTest(TestCase):
             name='Test Set',
             machine=self.machine
         )
-        self.rack_a = Rack.objects.create(name="Rack A", row_count=4, column_count=3)
-        self.rack_b = Rack.objects.create(name="Rack B", row_count=4, column_count=3)
 
     def test_create_round_die_flow(self):
         """Test: Create ROUND die -> verify in DB -> verify in Meilisearch"""
@@ -39,8 +37,6 @@ class DieWorkflowIntegrationTest(TestCase):
             'die_type': 'ROUND',
             'casing': '25x10',
             'status': 'AVAILABLE',
-            'rack': self.rack_a.id,
-            'shelf_number': 1,
             'current_set': self.set.id,
             'remarks': 'Integration test die',
             'punched_size': 2.5,
@@ -65,8 +61,6 @@ class DieWorkflowIntegrationTest(TestCase):
             'die_type': 'FLAT',
             'casing': '30x15',
             'status': 'RUNNING',
-            'rack': self.rack_b.id,
-            'shelf_number': 2,
             'current_set': self.set.id,
             'remarks': 'FLAT test die',
             'punched_width': 15.5,
@@ -94,16 +88,12 @@ class DieWorkflowIntegrationTest(TestCase):
             die_type='ROUND',
             casing='25x10',
             status='AVAILABLE',
-            rack=self.rack_a,
-            shelf_number=1,
             current_set=self.set
         )
         RoundDie.objects.create(die=die, punched_size=2.5, current_size=2.5)
 
         update_payload = {
             'status': 'RUNNING',
-            'rack': self.rack_b.id,
-            'shelf_number': 3,
             'version': die.version,
         }
         response = self.client.patch(f'/api/v1/dies/{die.die_id}/', update_payload, format='json')
@@ -111,8 +101,6 @@ class DieWorkflowIntegrationTest(TestCase):
 
         die.refresh_from_db()
         self.assertEqual(die.status, 'RUNNING')
-        self.assertEqual(die.rack, self.rack_b)
-        self.assertEqual(die.shelf_number, 3)
 
     def test_list_dies_with_filter(self):
         """Test: Create multiple dies -> list with filters -> verify results"""
@@ -122,8 +110,6 @@ class DieWorkflowIntegrationTest(TestCase):
                 die_type='ROUND' if i % 2 == 0 else 'FLAT',
                 casing=f'{25+i}x10',
                 status='AVAILABLE',
-                rack=self.rack_a,
-                shelf_number=i + 1,
                 current_set=self.set
             )
             if die.die_type == 'ROUND':
@@ -154,8 +140,6 @@ class DieWorkflowIntegrationTest(TestCase):
             die_type='ROUND',
             casing='25x10',
             status='AVAILABLE',
-            rack=self.rack_a,
-            shelf_number=1,
             current_set=self.set
         )
         RoundDie.objects.create(die=die, punched_size=2.5, current_size=2.5)
@@ -183,8 +167,6 @@ class DieWorkflowIntegrationTest(TestCase):
             'die_type': 'ROUND',
             'casing': '25x10',
             'status': 'AVAILABLE',
-            'rack': self.rack_a.id,
-            'shelf_number': 1,
             'punched_size': 2.5,
             'current_size': 2.5,
         }
@@ -210,7 +192,6 @@ class SearchIntegrationTest(TestCase):
         self.category = MachineCategory.objects.create(name='Search Test Category')
         self.machine = Machine.objects.create(name='Search Test Machine', category=self.category)
         self.set = Set.objects.create(name='Search Test Set', machine=self.machine)
-        self.rack = Rack.objects.create(name="Search Rack", row_count=4, column_count=3)
 
     def test_search_by_die_id_filter(self):
         """Test: Create die -> search by die_id filter -> verify result"""
@@ -219,8 +200,6 @@ class SearchIntegrationTest(TestCase):
             die_type='ROUND',
             casing='25x10',
             status='AVAILABLE',
-            rack=self.rack,
-            shelf_number=1,
             current_set=self.set
         )
         RoundDie.objects.create(die=die, punched_size=2.5, current_size=2.5)
@@ -240,8 +219,6 @@ class SearchIntegrationTest(TestCase):
                 die_type='ROUND',
                 casing='25x10',
                 status=status,
-                rack=self.rack,
-                shelf_number=i + 1,
                 current_set=self.set
             )
             RoundDie.objects.create(die=die, punched_size=2.5, current_size=2.5)
@@ -260,8 +237,6 @@ class SearchIntegrationTest(TestCase):
                 die_type='ROUND',
                 casing='25x10',
                 status='AVAILABLE',
-                rack=self.rack,
-                shelf_number=i + 1,
                 current_set=self.set
             )
             RoundDie.objects.create(die=die, punched_size=size, current_size=size)
