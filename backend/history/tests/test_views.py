@@ -269,6 +269,53 @@ class PrintRecordApiTests(APITestCase):
         self.assertNotEqual(res.data['doc_ref'], 'TDS-20261007-9999')
         self.assertTrue(PrintRecord.objects.filter(doc_ref=res.data['doc_ref']).exists())
 
+    def test_daily_sequence_counter_resets_daily_and_increments(self):
+        from history.views import get_next_daily_sequence, generate_next_doc_ref
+        from history.models import DailyPrintSequence
+        from django.db import transaction
+
+        # Day 1: 20261106
+        with transaction.atomic():
+            seq1 = get_next_daily_sequence('20261106', advance=True)
+            seq2 = get_next_daily_sequence('20261106', advance=True)
+        self.assertEqual(seq1, 1)
+        self.assertEqual(seq2, 2)
+
+        # Day 2: 20261107 - must reset to 1
+        with transaction.atomic():
+            seq_next_day = get_next_daily_sequence('20261107', advance=True)
+        self.assertEqual(seq_next_day, 1)
+
+        # Doc ref format verification
+        with transaction.atomic():
+            doc_ref_1 = generate_next_doc_ref(date_str='20261106', advance=True)
+        self.assertEqual(doc_ref_1, "TDS-20261106-0003")
+
+        with transaction.atomic():
+            doc_ref_2 = generate_next_doc_ref(date_str='20261107', advance=True)
+        self.assertEqual(doc_ref_2, "TDS-20261107-0002")
+
+    def test_create_print_record_uses_per_day_sequence(self):
+        self._auth('operator_print_user', 'operator_print_password')
+        res1 = self.client.post(self.print_records_url, {
+            'work_order': 'WO-AUTO-01',
+            'total_passes': 4
+        }, format='json')
+        self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+
+        res2 = self.client.post(self.print_records_url, {
+            'work_order': 'WO-AUTO-02',
+            'total_passes': 4
+        }, format='json')
+        self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
+
+        ref1 = res1.data['doc_ref']
+        ref2 = res2.data['doc_ref']
+        self.assertNotEqual(ref1, ref2)
+        seq1 = int(ref1.split('-')[-1])
+        seq2 = int(ref2.split('-')[-1])
+        self.assertEqual(seq2, seq1 + 1)
+
     def test_list_print_records_regular_user_denied(self):
         self._auth('operator_print_user', 'operator_print_password')
         res = self.client.get(self.print_records_url)

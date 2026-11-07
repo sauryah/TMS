@@ -114,6 +114,19 @@ class PrintRecord(models.Model):
         return f"PrintRecord: {self.doc_ref} ({self.work_order}) by {self.username}"
 
 
+class DailyPrintSequence(models.Model):
+    date = models.DateField(unique=True, db_index=True)
+    last_seq = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['date']),
+        ]
+
+    def __str__(self):
+        return f"DailyPrintSequence {self.date}: {self.last_seq}"
+
+
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.core.cache import cache

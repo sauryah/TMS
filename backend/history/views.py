@@ -391,29 +391,75 @@ class UnifiedHistoryListView(APIView):
 from rest_framework import status
 from django.utils import timezone
 from django.db.models.functions import Length
-from history.models import PrintRecord
+from history.models import PrintRecord, DailyPrintSequence
 from history.serializers import PrintRecordSerializer
 from users.views.auth import get_client_ip
 
 
-def generate_next_doc_ref(doc_type='WIRE_DRAWING_TDS', date_str=None):
+def get_next_daily_sequence(target_date=None, advance=False):
+    """
+    Atomically retrieves or increments the daily sequence number for a given date.
+    When advance=True, uses select_for_update() within an atomic transaction to ensure
+    collision-free sequence assignment.
+    """
+    if target_date is None:
+        target_date = timezone.now().date()
+    elif isinstance(target_date, str):
+        try:
+            target_date = timezone.datetime.strptime(target_date, '%Y%m%d').date()
+        except (ValueError, TypeError):
+            target_date = timezone.now().date()
+
+    date_str = target_date.strftime('%Y%m%d')
+    prefix = f"TDS-{date_str}-"
+
+    if advance:
+        seq_obj, created = DailyPrintSequence.objects.select_for_update().get_or_create(
+            date=target_date,
+            defaults={'last_seq': 0}
+        )
+        if created or seq_obj.last_seq == 0:
+            last_record = (
+                PrintRecord.objects.filter(doc_ref__startswith=prefix)
+                .order_by(Length('doc_ref').desc(), '-doc_ref')
+                .first()
+            )
+            if last_record and last_record.doc_ref:
+                try:
+                    existing_seq = int(last_record.doc_ref.split('-')[-1])
+                except (ValueError, IndexError):
+                    existing_seq = 0
+            else:
+                existing_seq = 0
+            seq_obj.last_seq = max(seq_obj.last_seq, existing_seq)
+
+        seq_obj.last_seq += 1
+        seq_obj.save()
+        return seq_obj.last_seq
+    else:
+        seq_obj = DailyPrintSequence.objects.filter(date=target_date).first()
+        if seq_obj:
+            return seq_obj.last_seq + 1
+        last_record = (
+            PrintRecord.objects.filter(doc_ref__startswith=prefix)
+            .order_by(Length('doc_ref').desc(), '-doc_ref')
+            .first()
+        )
+        if last_record and last_record.doc_ref:
+            try:
+                existing_seq = int(last_record.doc_ref.split('-')[-1])
+                return existing_seq + 1
+            except (ValueError, IndexError):
+                return 1
+        return 1
+
+
+def generate_next_doc_ref(doc_type='WIRE_DRAWING_TDS', date_str=None, advance=False):
     if not date_str:
         date_str = timezone.now().strftime('%Y%m%d')
     prefix = f"TDS-{date_str}-"
-    last_record = (
-        PrintRecord.objects.filter(doc_ref__startswith=prefix)
-        .order_by(Length('doc_ref').desc(), '-doc_ref')
-        .first()
-    )
-    if last_record and last_record.doc_ref:
-        try:
-            seq_part = last_record.doc_ref.split('-')[-1]
-            next_seq = int(seq_part) + 1
-        except (ValueError, IndexError):
-            next_seq = 1
-    else:
-        next_seq = 1
-    return f"{prefix}{next_seq:04d}"
+    seq = get_next_daily_sequence(date_str, advance=advance)
+    return f"{prefix}{seq:04d}"
 
 
 def generate_default_work_order(date_str=None):
@@ -545,12 +591,9 @@ class PrintRecordListView(APIView):
             prefix = f"TDS-{today_str}-"
 
             if not candidate_ref or PrintRecord.objects.filter(doc_ref=candidate_ref).exists():
-                candidate = generate_next_doc_ref(data.get('doc_type', 'WIRE_DRAWING_TDS'), today_str)
-                attempt = 0
-                while PrintRecord.objects.filter(doc_ref=candidate).exists() and attempt < 50:
-                    seq = int(candidate.split('-')[-1]) + 1
-                    candidate = f"{prefix}{seq:04d}"
-                    attempt += 1
+                candidate = generate_next_doc_ref(data.get('doc_type', 'WIRE_DRAWING_TDS'), today_str, advance=True)
+                while PrintRecord.objects.filter(doc_ref=candidate).exists():
+                    candidate = generate_next_doc_ref(data.get('doc_type', 'WIRE_DRAWING_TDS'), today_str, advance=True)
                 data['doc_ref'] = candidate
             else:
                 data['doc_ref'] = candidate_ref
