@@ -105,7 +105,7 @@ export function SettingsPage() {
       `Account: ${username}`,
       `Generated: ${new Date().toLocaleString()}`,
       `-----------------------------------------`,
-      ...generatedCodes.map((c, i) => `${(i + 1).toString().padStart(2, ' ')}. ${c}`),
+      ...generatedCodes.map((c: string, i: number) => `${(i + 1).toString().padStart(2, ' ')}. ${c}`),
       `-----------------------------------------`,
       `Each code can only be used once for secondary sign-in.`
     ].join('\n')
@@ -126,7 +126,7 @@ export function SettingsPage() {
       `Account: ${username}`,
       `Generated: ${new Date().toISOString()}`,
       `-----------------------------------------`,
-      ...generatedCodes.map((c, i) => `${(i + 1).toString().padStart(2, ' ')}. ${c}`),
+      ...generatedCodes.map((c: string, i: number) => `${(i + 1).toString().padStart(2, ' ')}. ${c}`),
       `-----------------------------------------`,
       `Store these codes safely in a secure password manager or vault.`,
       `Each code is single-use and will be invalidated once entered.`
