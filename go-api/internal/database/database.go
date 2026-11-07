@@ -24,9 +24,9 @@ type DieRepresentation struct {
 	SetName                string  `json:"set_name"`
 	MachineName            string  `json:"machine_name"`
 	CurrentSet             *int    `json:"current_set"`
-	RackID                 *int    `json:"rack_id"`
-	RackName               string  `json:"rack_name"`
-	Shelf                  *int    `json:"shelf"`
+	RackID                 *int    `json:"rack_id,omitempty"`
+	RackName               string  `json:"rack_name,omitempty"`
+	Shelf                  *int    `json:"shelf,omitempty"`
 	CurrentSize            *string `json:"current_size,omitempty"`
 	CurrentWidth           *string `json:"current_width,omitempty"`
 	CurrentThickness       *string `json:"current_thickness,omitempty"`
@@ -34,10 +34,12 @@ type DieRepresentation struct {
 }
 
 func (d *DieRepresentation) ComputeLocation() {
-	if d.RackName != "" && d.Shelf != nil {
-		d.Location = fmt.Sprintf("%s - Shelf %d", d.RackName, *d.Shelf)
+	if d.MachineName != "" {
+		d.Location = d.MachineName
+	} else if d.SetName != "" {
+		d.Location = d.SetName
 	} else {
-		d.Location = ""
+		d.Location = "Unassigned"
 	}
 }
 
@@ -171,7 +173,6 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 					AND (
 						d.die_id ILIKE $%d 
 						OR d.casing ILIKE $%d 
-						OR rk.name ILIKE $%d 
 						OR d.status ILIKE $%d 
 						OR s.name ILIKE $%d 
 						OR m.name ILIKE $%d
@@ -179,7 +180,7 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 						OR f.current_width = $%d
 						OR f.current_thickness = $%d
 					)
-				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+1, argCounter+1))
+				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+1, argCounter+1))
 				args = append(args, likeVal, fmt.Sprintf("%.3f", numMin))
 				argCounter += 2
 			} else {
@@ -187,7 +188,6 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 					AND (
 						d.die_id ILIKE $%d 
 						OR d.casing ILIKE $%d 
-						OR rk.name ILIKE $%d 
 						OR d.status ILIKE $%d 
 						OR s.name ILIKE $%d 
 						OR m.name ILIKE $%d
@@ -195,7 +195,7 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 						OR (f.current_width >= $%d AND f.current_width < $%d)
 						OR (f.current_thickness >= $%d AND f.current_thickness < $%d)
 					)
-				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+2, argCounter+1, argCounter+2, argCounter+1, argCounter+2))
+				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+2, argCounter+1, argCounter+2, argCounter+1, argCounter+2))
 				args = append(args, likeVal, fmt.Sprintf("%.3f", numMin), fmt.Sprintf("%.3f", numMax))
 				argCounter += 3
 			}
@@ -204,12 +204,11 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 				AND (
 					d.die_id ILIKE $%d 
 					OR d.casing ILIKE $%d 
-					OR rk.name ILIKE $%d 
 					OR d.status ILIKE $%d 
 					OR s.name ILIKE $%d 
 					OR m.name ILIKE $%d
 				)
-			`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter))
+			`, argCounter, argCounter, argCounter, argCounter, argCounter))
 			args = append(args, likeVal)
 			argCounter++
 		}
@@ -251,7 +250,7 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 	}
 	if location != "" {
 		cleanLoc := strings.Trim(location, `"'`)
-		sqlParts = append(sqlParts, fmt.Sprintf("AND (rk.name ILIKE $%d OR CAST(d.shelf_number AS TEXT) ILIKE $%d)", argCounter, argCounter))
+		sqlParts = append(sqlParts, fmt.Sprintf("AND (m.name ILIKE $%d OR s.name ILIKE $%d)", argCounter, argCounter))
 		args = append(args, "%"+cleanLoc+"%")
 		argCounter++
 	}
@@ -269,13 +268,11 @@ func BuildQueryPostgresDirectly(q, dieType, statusVal, casing, sizeMin, sizeMax,
 			d.id, d.die_id, d.die_type, d.casing, d.status, d.current_set_id,
 			s.name as set_name,
 			m.name as machine_name,
-			d.rack_id, rk.name as rack_name, d.shelf_number AS shelf,
 			r.current_size,
 			f.current_width, f.current_thickness, f.radius
 		FROM dies_die d
 		LEFT JOIN machines_set s ON d.current_set_id = s.id
 		LEFT JOIN machines_machine m ON s.machine_id = m.id
-		LEFT JOIN machines_rack rk ON d.rack_id = rk.id
 		LEFT JOIN dies_rounddie r ON d.id = r.die_id
 		LEFT JOIN dies_flatdie f ON d.id = f.die_id
 		WHERE 1=1
@@ -310,7 +307,6 @@ func BuildQueryPostgresDirectlyCount(q, dieType, statusVal, casing, sizeMin, siz
 		FROM dies_die d
 		LEFT JOIN machines_set s ON d.current_set_id = s.id
 		LEFT JOIN machines_machine m ON s.machine_id = m.id
-		LEFT JOIN machines_rack rk ON d.rack_id = rk.id
 		LEFT JOIN dies_rounddie r ON d.id = r.die_id
 		LEFT JOIN dies_flatdie f ON d.id = f.die_id
 		WHERE 1=1
@@ -344,13 +340,11 @@ func (db *PostgresDB) QueryPostgresByIDs(ctx context.Context, hitIDs []int64, si
 			d.id, d.die_id, d.die_type, d.casing, d.status, d.current_set_id,
 			s.name as set_name,
 			m.name as machine_name,
-			d.rack_id, rk.name as rack_name, d.shelf_number AS shelf,
 			r.current_size,
 			f.current_width, f.current_thickness, f.radius
 		FROM dies_die d
 		LEFT JOIN machines_set s ON d.current_set_id = s.id
 		LEFT JOIN machines_machine m ON s.machine_id = m.id
-		LEFT JOIN machines_rack rk ON d.rack_id = rk.id
 		LEFT JOIN dies_rounddie r ON d.id = r.die_id
 		LEFT JOIN dies_flatdie f ON d.id = f.die_id
 		WHERE d.id = ANY($1)
@@ -378,7 +372,7 @@ func (db *PostgresDB) QueryPostgresByIDs(ctx context.Context, hitIDs []int64, si
 	}
 	if location != "" {
 		cleanLoc := strings.Trim(location, `"'`)
-		sqlParts = append(sqlParts, fmt.Sprintf("AND (rk.name ILIKE $%d OR CAST(d.shelf_number AS TEXT) ILIKE $%d)", argCounter, argCounter))
+		sqlParts = append(sqlParts, fmt.Sprintf("AND (m.name ILIKE $%d OR s.name ILIKE $%d)", argCounter, argCounter))
 		args = append(args, "%"+cleanLoc+"%")
 		argCounter++
 	}
@@ -437,13 +431,13 @@ func scanDies(rows *sql.Rows) ([]DieRepresentation, error) {
 	var dies []DieRepresentation
 	for rows.Next() {
 		var d DieRepresentation
-		var setID, rackID, shelf sql.NullInt64
-		var setName, machineName, rackName sql.NullString
+		var setID sql.NullInt64
+		var setName, machineName sql.NullString
 		var size, width, thickness, radius sql.NullString
 
 		err := rows.Scan(
 			&d.ID, &d.DieID, &d.DieType, &d.Casing, &d.Status, &setID,
-			&setName, &machineName, &rackID, &rackName, &shelf, &size, &width, &thickness, &radius,
+			&setName, &machineName, &size, &width, &thickness, &radius,
 		)
 		if err != nil {
 			return nil, err
@@ -459,17 +453,7 @@ func scanDies(rows *sql.Rows) ([]DieRepresentation, error) {
 		if machineName.Valid {
 			d.MachineName = machineName.String
 		}
-		if rackID.Valid {
-			val := int(rackID.Int64)
-			d.RackID = &val
-		}
-		if rackName.Valid {
-			d.RackName = rackName.String
-		}
-		if shelf.Valid {
-			val := int(shelf.Int64)
-			d.Shelf = &val
-		}
+		d.ComputeLocation()
 
 		if d.DieType == "ROUND" && size.Valid {
 			d.CurrentSize = &size.String

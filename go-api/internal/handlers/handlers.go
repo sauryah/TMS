@@ -583,7 +583,6 @@ func scoreDie(die database.DieRepresentation, q string) int {
 		(die.DieType == "FLAT" && (matchDimension(die.CurrentWidth) || matchDimension(die.CurrentThickness))) ||
 		strings.Contains(strings.ToLower(die.Casing), qLower) ||
 		strings.Contains(strings.ToLower(die.Location), qLower) ||
-		strings.Contains(strings.ToLower(die.RackName), qLower) ||
 		strings.Contains(strings.ToLower(die.SetName), qLower) ||
 		strings.Contains(strings.ToLower(die.MachineName), qLower) ||
 		strings.Contains(strings.ToLower(die.Status), qLower) {
@@ -680,7 +679,7 @@ func (h *Handler) QueryMeilisearchAndPostgres(ctx context.Context, params *Searc
 		filters = append(filters, fmt.Sprintf("thickness <= %s", params.ThickMax))
 	}
 	if params.Location != "" {
-		filters = append(filters, fmt.Sprintf("rack = '%s'", escapeMeiliFilterValue(params.Location)))
+		filters = append(filters, fmt.Sprintf("machine = '%s'", escapeMeiliFilterValue(params.Location)))
 	}
 
 

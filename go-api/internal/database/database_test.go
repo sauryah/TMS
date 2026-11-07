@@ -45,12 +45,12 @@ func TestBuildQueryPostgresDirectly(t *testing.T) {
 	}
 
 	// Test location filter
-	query, args = BuildQueryPostgresDirectly("", "", "", "", "", "", "", "", "", "", "", "", "", "Rack A", 10, 0)
-	if !strings.Contains(query, "rk.name ILIKE $1") {
+	query, args = BuildQueryPostgresDirectly("", "", "", "", "", "", "", "", "", "", "", "", "", "Machine 1", 10, 0)
+	if !strings.Contains(query, "m.name ILIKE $1") {
 		t.Errorf("expected location filter placeholder, got: %s", query)
 	}
-	if len(args) != 1 || args[0] != "%Rack A%" {
-		t.Errorf("expected arg %%Rack A%%, got: %v", args)
+	if len(args) != 1 || args[0] != "%Machine 1%" {
+		t.Errorf("expected arg %%Machine 1%%, got: %v", args)
 	}
 
 	// Test optimized numeric search query without unindexed CAST expressions

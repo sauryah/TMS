@@ -1099,8 +1099,8 @@ func TestQueryMeilisearchAndPostgres_LocationFilterPropagatedToMeilisearch(t *te
 		t.Fatalf("expected status OK, got %d", w.Code)
 	}
 
-	if !strings.Contains(meiliFilter, "rack = 'Rack B'") {
-		t.Errorf("expected meili filter to contain rack = 'Rack B', got %q", meiliFilter)
+	if !strings.Contains(meiliFilter, "machine = 'Rack B'") {
+		t.Errorf("expected meili filter to contain machine = 'Rack B', got %q", meiliFilter)
 	}
 	if capturedLocation != "Rack B" {
 		t.Errorf("expected location 'Rack B', got %q", capturedLocation)
