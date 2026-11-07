@@ -27,6 +27,7 @@ Remove warehouse rack and shelf storage concepts entirely from the platform per 
 - Added `'version'` to allowed fields for `OPERATOR` PATCH in `backend/users/permissions.py`, fixing `test_operator_rbac_boundaries`.
 - Cleaned frontend types, validation schema, subviews, modals, cards, and unit tests (all 106 tests passing).
 - Updated footer attribution across `Footer.tsx` and `AboutModal.tsx`, added interactive `ContactModal` with 1-click email copy, and separated static developer attribution from architecture system info.
+- Bumped application platform release version to v1.1.0 across frontend (`package.json`), backend (`settings.py`, `schema.yml`), documentation (`README.md`, `CHANGELOG.md`, `DOCKER.md`, `docker-compose.ghcr.yml`), and MCP server (`tms_mcp_server.py`).
 - Verified TypeScript build (`tsc --noEmit`) passes with 0 errors.
 
 ## Next Steps

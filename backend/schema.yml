@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: TMS API
-  version: 1.0.0
+  version: 1.1.0
   description: TMS Django REST API for dies, machines, users, backups, and real-time
     events.
 paths:

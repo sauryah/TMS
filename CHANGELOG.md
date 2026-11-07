@@ -5,6 +5,21 @@ All notable changes to the Tool Management System (TMS) project will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-07
+
+### Changed
+- **De-Rackification of Die Inventory**: Fully decommissioned physical warehouse rack and shelf tracking concepts (`Rack` model, `Die.rack`, and `Die.shelf_number` fields removed across backend and frontend). Tool management streamlined to direct shopfloor machine line allocations, quick-swap sets, and status lifecycle flows.
+- **UI Contrast & Symmetry**: Enhanced Dark Terminal, Classic Slate, and Precision Light themes with balanced foreground contrast across data tables, filter chips, and badges.
+
+### Added
+- **Developer Contact Modal**: Added interactive `ContactModal` with developer attribution, selectable contact email, 1-click clipboard copying, and secondary external email launcher.
+- **Dedicated System Architecture & Security Modal**: Refactored `AboutModal` into a technical specification modal highlighting the dual-engine write/read pipeline, technology stack, and container security controls.
+
+### Fixed
+- **Optimistic Concurrency RBAC**: Added `'version'` field to allowed payload fields for `OPERATOR` PATCH requests, preventing HTTP 403 Forbidden errors during die relocation.
+- **CI Service Parity**: Added Meilisearch v1.7 healthchecked service container to GitHub Actions backend test workflows.
+- **Celery Redis Compatibility**: Declared `celery[redis]` transport extras to ensure dependency compatibility between Kombu and Redis drivers.
+
 ## [1.0.0] - 2026-11-01
 
 ### Added

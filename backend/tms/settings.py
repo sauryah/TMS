@@ -190,7 +190,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'TMS API',
     'DESCRIPTION': 'TMS Django REST API for dies, machines, users, backups, and real-time events.',
-    'VERSION': '1.0.0',
+    'VERSION': '1.1.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
 

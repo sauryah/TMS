@@ -178,10 +178,10 @@ To deploy a specific release instead of `latest`:
 
 ```bash
 # Via environment variable
-TMS_VERSION=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
+TMS_VERSION=1.1.0 docker compose -f docker-compose.ghcr.yml up -d
 
 # Or add to your .env file
-echo "TMS_VERSION=1.0.0" >> .env
+echo "TMS_VERSION=1.1.0" >> .env
 docker compose -f docker-compose.ghcr.yml up -d
 ```
 

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version v1.0.0">
+  <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version v1.1.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Proprietary-slate?style=flat-square" alt="License: Proprietary"></a>
   <img src="https://img.shields.io/badge/deployment-Docker%20Compose-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Deployment: Docker Compose">
   <img src="https://img.shields.io/badge/platform-LAN%20%2F%20Self--Hosted-059669?style=flat-square" alt="Platform: LAN / Self-Hosted">

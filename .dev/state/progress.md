@@ -8,6 +8,16 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Platform Release v1.1.0 ✅
+**Status:** Complete  
+**Date:** 2026-11-07  
+
+**Completed:**
+- **De-Rackification**: Removed physical warehouse rack and shelf tracking from database models, API endpoints, and frontend user interfaces, refocusing asset management directly on shopfloor machines and tool sets.
+- **UI Modernization & Contact Integration**: Integrated dedicated developer contact modal with 1-click clipboard copy, isolated architecture specifications modal, and symmetrical contrast enhancements across Dark Terminal and Precision Light themes.
+- **RBAC & Concurrency Hardening**: Added optimistic lock version token authorization for Operator relocation actions.
+- **Dependency & CI Parity**: Declared `celery[redis]` transport extras and added Meilisearch service container healthcheck to CI workflows.
+
 ### Platform Release v1.0.0 ✅
 **Status:** Complete  
 **Date:** 2026-11-01  

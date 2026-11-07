@@ -1,5 +1,10 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-07 Platform v1.1.0 Release
+*   **Application Version Synchronization**:
+    *   Synchronized application version to `1.1.0` (v1.1.0) across frontend (`frontend/package.json`), backend (`backend/tms/settings.py`, `backend/schema.yml`), documentation (`README.md`, `CHANGELOG.md`, `DOCKER.md`, `docker-compose.ghcr.yml`), and MCP server (`scripts/tms_mcp_server.py`).
+    *   Updated `CHANGELOG.md` with release notes detailing de-rackification, UI theme symmetry, contact modal, and architecture sysinfo modal.
+
 ### 2026-11-07 Full Removal of Warehouse Racks and Shelves
 *   **Backend Database & API De-Rackification**:
     *   Removed `Die.rack` foreign key, `Die.shelf_number`, and composite index `die_rack_shelf_idx` in `backend/dies/models.py`.
