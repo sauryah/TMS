@@ -1,3 +1,4 @@
+from datetime import timedelta
 import logging
 from celery import shared_task
 from celery.signals import task_failure, task_success
@@ -321,140 +322,161 @@ def rebuild_search_index_task(self, filename=None):
 def process_outbox_task(self=None):
     """
     Process pending OutboxTask records and perform actual Meilisearch sync operations in batches.
-    Uses select_for_update(skip_locked=True) inside a transaction to prevent concurrent duplicate execution.
-    Limits batch size to 250 records to prevent memory spikes and unbounded queries.
+    Claims tasks within a brief transaction (status='IN_PROGRESS'), performs external HTTP calls
+    to Meilisearch outside of any database transaction, and finalizes task status in a second
+    short transaction. Also resets stale claims from crashed workers.
     """
     now = timezone.now()
     events_to_broadcast = []
     has_backlog = False
 
+    # 1. Reset stale claimed tasks from crashed workers (> 5 minutes old)
+    stale_cutoff = now - timedelta(minutes=5)
+    stale_count = OutboxTask.objects.filter(
+        is_processed=False,
+        status='IN_PROGRESS',
+        claimed_at__lt=stale_cutoff
+    ).update(status='PENDING', claimed_at=None)
+    if stale_count:
+        logger.warning(f"Reset {stale_count} stale IN_PROGRESS outbox tasks to PENDING.")
+
+    # 2. Claim up to 250 pending tasks atomically
     with transaction.atomic():
-        # Query up to 250 unprocessed outbox records ordered by creation time, locking rows and skipping locked ones
         pending_tasks = list(
             OutboxTask.objects.select_for_update(skip_locked=True)
-            .filter(is_processed=False)
+            .filter(is_processed=False, status='PENDING')
             .order_by('created_at')[:250]
         )
-        
+
         if not pending_tasks:
             logger.info("Processing outbox. No pending tasks.")
             return
-            
-        logger.info(f"Processing outbox. Found {len(pending_tasks)} pending tasks.")
-        has_backlog = (len(pending_tasks) == 250)
-        
-        sync_tasks = []
-        delete_tasks = []
-        import json, hmac, hashlib
-        from django.conf import settings
 
-        for task in pending_tasks:
-            if not task.payload_hash:
-                logger.error(f"Security Alert: OutboxTask {task.id} payload integrity hash is missing! Skipping task processing.")
-                task.is_processed = True
-                task.processed_at = now
-                task.save(update_fields=['is_processed', 'processed_at'])
-                continue
+        task_ids = [t.id for t in pending_tasks]
+        OutboxTask.objects.filter(id__in=task_ids).update(
+            status='IN_PROGRESS',
+            claimed_at=now
+        )
 
-            serialized = json.dumps(task.payload, sort_keys=True)
-            expected_hash = hmac.new(
-                settings.SECRET_KEY.encode('utf-8'),
-                serialized.encode('utf-8'),
-                hashlib.sha256
-            ).hexdigest()
-            if not hmac.compare_digest(task.payload_hash, expected_hash):
-                logger.error(f"Security Alert: OutboxTask {task.id} payload integrity hash mismatch! Skipping task processing.")
-                task.is_processed = True
-                task.processed_at = now
-                task.save(update_fields=['is_processed', 'processed_at'])
-                continue
+    logger.info(f"Processing outbox. Claimed {len(pending_tasks)} pending tasks.")
+    has_backlog = (len(pending_tasks) == 250)
 
-            if task.task_type == 'SYNC_DIE':
-                sync_tasks.append(task)
-            elif task.task_type == 'DELETE_DIE':
-                delete_tasks.append(task)
-            else:
-                logger.warning(f"Unknown task type for OutboxTask {task.id}: {task.task_type}")
-                task.is_processed = True
-                task.processed_at = now
-                task.save(update_fields=['is_processed', 'processed_at'])
+    # 3. Perform verification and external Meilisearch HTTP calls OUTSIDE the DB transaction
+    processed_task_ids = set()
+    failed_task_ids = set()
 
-        # Process DELETE_DIE tasks in one batch
-        if delete_tasks:
-            delete_ids = [str(t.payload.get('die_id')) for t in delete_tasks if t.payload.get('die_id')]
-            if delete_ids:
-                try:
-                    task = meili_client.index(INDEX_NAME).delete_documents(delete_ids)
+    sync_tasks = []
+    delete_tasks = []
+    import json, hmac, hashlib
+    from django.conf import settings
+
+    for task in pending_tasks:
+        if not task.payload_hash:
+            logger.error(f"Security Alert: OutboxTask {task.id} payload integrity hash is missing! Skipping task processing.")
+            processed_task_ids.add(task.id)
+            continue
+
+        serialized = json.dumps(task.payload, sort_keys=True)
+        expected_hash = hmac.new(
+            settings.SECRET_KEY.encode('utf-8'),
+            serialized.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(task.payload_hash, expected_hash):
+            logger.error(f"Security Alert: OutboxTask {task.id} payload integrity hash mismatch! Skipping task processing.")
+            processed_task_ids.add(task.id)
+            continue
+
+        if task.task_type == 'SYNC_DIE':
+            sync_tasks.append(task)
+        elif task.task_type == 'DELETE_DIE':
+            delete_tasks.append(task)
+        else:
+            logger.warning(f"Unknown task type for OutboxTask {task.id}: {task.task_type}")
+            processed_task_ids.add(task.id)
+
+    # Process DELETE_DIE tasks in one batch
+    if delete_tasks:
+        delete_ids = [str(t.payload.get('die_id')) for t in delete_tasks if t.payload.get('die_id')]
+        if delete_ids:
+            try:
+                task = meili_client.index(INDEX_NAME).delete_documents(delete_ids)
+                task_uid = task.task_uid if hasattr(task, 'task_uid') else task['taskUid']
+                meili_client.wait_for_task(task_uid, timeout_in_ms=3000)
+                processed_task_ids.update(t.id for t in delete_tasks)
+                logger.info(f"Successfully deleted {len(delete_ids)} die documents from Meilisearch in batch")
+
+                if len(delete_tasks) > 1:
+                    events_to_broadcast.append(('bulk_delete', {'count': len(delete_tasks)}))
+                else:
+                    for t in delete_tasks:
+                        die_id = t.payload.get('die_id')
+                        die_str_id = t.payload.get('die_str_id') or str(die_id)
+                        events_to_broadcast.append(('single_delete', {'id': die_str_id}))
+            except Exception as exc:
+                logger.error(f"Failed to process batch delete tasks: {exc}")
+                # Fall back to individual async deletes if batch fails
+                for t in delete_tasks:
+                    try:
+                        die_id = t.payload.get('die_id')
+                        die_str_id = t.payload.get('die_str_id')
+                        delete_die_document_task.delay(die_id, die_str_id)
+                        processed_task_ids.add(t.id)
+                    except Exception as sub_exc:
+                        logger.error(f"Failed individual fallback delete task {t.id}: {sub_exc}")
+                        failed_task_ids.add(t.id)
+
+    # Process SYNC_DIE tasks in batches of 250
+    if sync_tasks:
+        batch_size = 250
+        for i in range(0, len(sync_tasks), batch_size):
+            chunk_tasks = sync_tasks[i:i+batch_size]
+            die_ids = [t.payload.get('die_id') for t in chunk_tasks if t.payload.get('die_id')]
+
+            try:
+                dies = list(Die.objects.select_related('current_set__machine', 'rounddie', 'flatdie', 'rack').filter(id__in=die_ids))
+                docs = []
+                for die in dies:
+                    docs.append(die_to_meili_document(die))
+
+                if docs:
+                    task = meili_client.index(INDEX_NAME).add_documents(docs)
                     task_uid = task.task_uid if hasattr(task, 'task_uid') else task['taskUid']
                     meili_client.wait_for_task(task_uid, timeout_in_ms=3000)
-                    for t in delete_tasks:
-                        t.is_processed = True
-                        t.processed_at = now
-                    OutboxTask.objects.bulk_update(delete_tasks, ['is_processed', 'processed_at'])
-                    logger.info(f"Successfully deleted {len(delete_ids)} die documents from Meilisearch in batch")
-                    
-                    if len(delete_tasks) > 1:
-                        events_to_broadcast.append(('bulk_delete', {'count': len(delete_tasks)}))
-                    else:
-                        for t in delete_tasks:
-                            die_id = t.payload.get('die_id')
-                            die_str_id = t.payload.get('die_str_id') or str(die_id)
-                            events_to_broadcast.append(('single_delete', {'id': die_str_id}))
-                except Exception as exc:
-                    logger.error(f"Failed to process batch delete tasks: {exc}")
-                    # Fall back to individual async deletes if batch fails
-                    for t in delete_tasks:
-                        try:
-                            die_id = t.payload.get('die_id')
-                            die_str_id = t.payload.get('die_str_id')
-                            delete_die_document_task.delay(die_id, die_str_id)
-                            t.is_processed = True
-                            t.processed_at = now
-                            t.save(update_fields=['is_processed', 'processed_at'])
-                        except Exception as sub_exc:
-                            logger.error(f"Failed individual fallback delete task {t.id}: {sub_exc}")
 
-        # Process SYNC_DIE tasks in batches of 250
-        if sync_tasks:
-            batch_size = 250
-            for i in range(0, len(sync_tasks), batch_size):
-                chunk_tasks = sync_tasks[i:i+batch_size]
-                die_ids = [t.payload.get('die_id') for t in chunk_tasks if t.payload.get('die_id')]
-                
-                try:
-                    dies = list(Die.objects.select_related('current_set__machine', 'rounddie', 'flatdie', 'rack').filter(id__in=die_ids))
-                    docs = []
+                processed_task_ids.update(t.id for t in chunk_tasks)
+                logger.info(f"Successfully synced batch of {len(docs)} dies to Meilisearch")
+
+                if len(dies) > 1:
+                    events_to_broadcast.append(('bulk_update', {'count': len(dies)}))
+                else:
                     for die in dies:
-                        docs.append(die_to_meili_document(die))
-                    
-                    if docs:
-                        task = meili_client.index(INDEX_NAME).add_documents(docs)
-                        task_uid = task.task_uid if hasattr(task, 'task_uid') else task['taskUid']
-                        meili_client.wait_for_task(task_uid, timeout_in_ms=3000)
-                    
-                    for t in chunk_tasks:
-                        t.is_processed = True
-                        t.processed_at = now
-                    OutboxTask.objects.bulk_update(chunk_tasks, ['is_processed', 'processed_at'])
-                    logger.info(f"Successfully synced batch of {len(docs)} dies to Meilisearch")
-                    
-                    if len(dies) > 1:
-                        events_to_broadcast.append(('bulk_update', {'count': len(dies)}))
-                    else:
-                        for die in dies:
-                            events_to_broadcast.append(('single_update', {'id': die.die_id}))
-                except Exception as exc:
-                    logger.error(f"Failed to process batch sync tasks: {exc}")
-                    # Fall back to individual async syncs if batch fails
-                    for t in chunk_tasks:
-                        try:
-                            die_id = t.payload.get('die_id')
-                            sync_die_task.delay(die_id)
-                            t.is_processed = True
-                            t.processed_at = now
-                            t.save(update_fields=['is_processed', 'processed_at'])
-                        except Exception as sub_exc:
-                            logger.error(f"Failed individual fallback sync task {t.id}: {sub_exc}")
+                        events_to_broadcast.append(('single_update', {'id': die.die_id}))
+            except Exception as exc:
+                logger.error(f"Failed to process batch sync tasks: {exc}")
+                # Fall back to individual async syncs if batch fails
+                for t in chunk_tasks:
+                    try:
+                        die_id = t.payload.get('die_id')
+                        sync_die_task.delay(die_id)
+                        processed_task_ids.add(t.id)
+                    except Exception as sub_exc:
+                        logger.error(f"Failed individual fallback sync task {t.id}: {sub_exc}")
+                        failed_task_ids.add(t.id)
+
+    # 4. Mark tasks processed or failed in brief final transaction
+    with transaction.atomic():
+        if processed_task_ids:
+            OutboxTask.objects.filter(id__in=processed_task_ids).update(
+                is_processed=True,
+                status='PROCESSED',
+                processed_at=timezone.now()
+            )
+        if failed_task_ids:
+            OutboxTask.objects.filter(id__in=failed_task_ids).update(
+                status='FAILED',
+                processed_at=timezone.now()
+            )
 
     # Broadcast update and delete events OUTSIDE the database transaction
     from tms.events import broadcast_event

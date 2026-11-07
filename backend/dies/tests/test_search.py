@@ -304,6 +304,65 @@ class MeilisearchTests(TransactionTestCase):
         # The outbox task must persist upon commit
         self.assertTrue(OutboxTask.objects.filter(payload__die_id=die.id).exists())
 
+    @patch('search.tasks.meili_client')
+    def test_process_outbox_prevents_double_claiming_and_resets_stale(self, mock_meili):
+        from dies.models import OutboxTask
+        from search.tasks import process_outbox_task
+        from django.utils import timezone
+        from datetime import timedelta
+        from unittest.mock import MagicMock
+
+        mock_task = MagicMock()
+        mock_task.task_uid = 'test-claim-task'
+        mock_meili.index.return_value.add_documents.return_value = mock_task
+
+        now = timezone.now()
+        die1 = Die.objects.create(die_id="CLAIM-001", die_type="ROUND", casing="6x3")
+        die2 = Die.objects.create(die_id="CLAIM-002", die_type="ROUND", casing="6x3")
+        die3 = Die.objects.create(die_id="CLAIM-003", die_type="ROUND", casing="6x3")
+
+        # 1. Fresh task in progress by another worker (< 5 min old)
+        active_task = OutboxTask.objects.create(
+            task_type='SYNC_DIE',
+            payload={'die_id': die1.id},
+            status='IN_PROGRESS',
+            claimed_at=now - timedelta(minutes=1)
+        )
+
+        # 2. Stale task in progress by a crashed worker (> 5 min old)
+        stale_task = OutboxTask.objects.create(
+            task_type='SYNC_DIE',
+            payload={'die_id': die2.id},
+            status='IN_PROGRESS',
+            claimed_at=now - timedelta(minutes=15)
+        )
+
+        # 3. New pending task
+        pending_task = OutboxTask.objects.create(
+            task_type='SYNC_DIE',
+            payload={'die_id': die3.id},
+            status='PENDING'
+        )
+
+        # Execute outbox processor
+        process_outbox_task()
+
+        active_task.refresh_from_db()
+        stale_task.refresh_from_db()
+        pending_task.refresh_from_db()
+
+        # Active task claimed by another worker must NOT have been touched
+        self.assertEqual(active_task.status, 'IN_PROGRESS')
+        self.assertFalse(active_task.is_processed)
+
+        # Stale task must have been reset and successfully processed
+        self.assertEqual(stale_task.status, 'PROCESSED')
+        self.assertTrue(stale_task.is_processed)
+
+        # Pending task must have been claimed and processed
+        self.assertEqual(pending_task.status, 'PROCESSED')
+        self.assertTrue(pending_task.is_processed)
+
 
 
 

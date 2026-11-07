@@ -144,9 +144,17 @@ class WearAlert(models.Model):
 
 
 class OutboxTask(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('PROCESSED', 'Processed'),
+        ('FAILED', 'Failed'),
+    ]
     task_type    = models.CharField(max_length=50)  # e.g., 'SYNC_DIE' or 'DELETE_DIE'
     payload      = models.JSONField()
     payload_hash = models.CharField(max_length=64, blank=True, default='')  # SHA-256 integrity check
+    status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
+    claimed_at   = models.DateTimeField(null=True, blank=True, db_index=True)
     is_processed = models.BooleanField(default=False)
     created_at   = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
