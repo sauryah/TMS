@@ -1,5 +1,9 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-09 Shell Script Executable Permissions
+*   **Permission Hardening for Automation Scripts**:
+    *   Set executable permissions (`+x` / mode `100755`) on `setup.sh` and shell utilities in `scripts/` (`build-wasm.sh`, `client-install-template.sh`, `dependency-auditor.sh`, `env-doctor.sh`, `generate-certs.sh`, `sync-meili.sh`, `uninstall-certs.sh`, `verify-backup-integrity.sh`) enabling direct execution without manual permission adjustments.
+
 ### 2026-11-07 Platform v1.1.0 Release
 *   **Application Version Synchronization**:
     *   Synchronized application version to `1.1.0` (v1.1.0) across frontend (`frontend/package.json`), backend (`backend/tms/settings.py`, `backend/schema.yml`), documentation (`README.md`, `CHANGELOG.md`, `DOCKER.md`, `docker-compose.ghcr.yml`), and MCP server (`scripts/tms_mcp_server.py`).
