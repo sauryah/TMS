@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Third party apps
+    'django.contrib.postgres',
     'rest_framework',
     'drf_spectacular',
     'corsheaders',

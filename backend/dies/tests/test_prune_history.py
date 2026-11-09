@@ -57,3 +57,25 @@ class PruneHistoryTests(TestCase):
         self.assertFalse(DieHistory.objects.filter(pk=self.old_history.pk).exists())
         # Verify fresh record is not deleted
         self.assertTrue(DieHistory.objects.filter(pk=self.fresh_history.pk).exists())
+
+    def test_prune_history_chunked_batches(self):
+        # Create an additional old history record
+        old_history_2 = DieHistory.objects.create(
+            die=self.die,
+            field_name="casing",
+            old_value="10x10",
+            new_value="20x20",
+        )
+        retention_days = settings.HISTORY_RETENTION_DAYS
+        old_time = timezone.now() - timedelta(days=retention_days + 10)
+        DieHistory.objects.filter(pk=old_history_2.pk).update(timestamp=old_time)
+
+        out = StringIO()
+        # Pass batch-size 1 to enforce multiple chunk iterations
+        call_command('prune_history', '--batch-size', '1', stdout=out)
+        output = out.getvalue()
+
+        self.assertIn("Pruned 2 records", output)
+        self.assertFalse(DieHistory.objects.filter(pk=self.old_history.pk).exists())
+        self.assertFalse(DieHistory.objects.filter(pk=old_history_2.pk).exists())
+        self.assertTrue(DieHistory.objects.filter(pk=self.fresh_history.pk).exists())

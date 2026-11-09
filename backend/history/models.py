@@ -1,10 +1,12 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+from django.contrib.postgres.indexes import BrinIndex
 
 class DieHistory(models.Model):
     die        = models.ForeignKey('dies.Die', on_delete=models.CASCADE, related_name='history')
     changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, db_index=True)
-    timestamp  = models.DateTimeField(auto_now_add=True)
+    timestamp  = models.DateTimeField(default=timezone.now)
     field_name = models.CharField(max_length=50)
     old_value  = models.TextField()
     new_value  = models.TextField()
@@ -17,9 +19,13 @@ class DieHistory(models.Model):
     class Meta:
         ordering = ['-timestamp']
         indexes  = [
-            models.Index(fields=['die', 'timestamp']),
-            models.Index(fields=['timestamp']),
-            models.Index(fields=['die', 'field_name', 'timestamp']),
+            # High-performance seek for parent hash during cryptographic save lock
+            models.Index(fields=['die', '-id'], name='die_hist_chain_idx'),
+            # Primary lookup for die-specific history timeline
+            models.Index(fields=['die', '-timestamp'], name='die_hist_lookup_idx'),
+            # Ultra-compact block range index for time-window audit reporting (1M+ rows)
+            BrinIndex(fields=['timestamp'], name='die_hist_ts_brin_idx', pages_per_range=128),
+            models.Index(fields=['die', 'field_name', 'timestamp'], name='history_die_die_id_64fa37_idx'),
         ]
 
     def compute_hash(self, prev_hash=None, version=None):
@@ -88,7 +94,7 @@ class MachineHistory(models.Model):
     old_value   = models.TextField(null=True, blank=True)
     new_value   = models.TextField(null=True, blank=True)
     changed_by  = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, db_index=True)
-    timestamp   = models.DateTimeField(auto_now_add=True)
+    timestamp   = models.DateTimeField(default=timezone.now)
     ip_address  = models.GenericIPAddressField(null=True, blank=True)
     prev_hash   = models.CharField(max_length=64, blank=True, null=True)
     hash        = models.CharField(max_length=64, blank=True, null=True)
@@ -97,8 +103,12 @@ class MachineHistory(models.Model):
     class Meta:
         ordering = ['-timestamp']
         indexes = [
-            models.Index(fields=['entity_type', 'entity_id']),
-            models.Index(fields=['timestamp']),
+            # High-performance seek for parent hash during cryptographic save lock
+            models.Index(fields=['entity_type', 'entity_id', '-id'], name='mach_hist_chain_idx'),
+            # Primary lookup for entity-specific history timeline
+            models.Index(fields=['entity_type', 'entity_id', '-timestamp'], name='mach_hist_lookup_idx'),
+            # Ultra-compact block range index for time-window audit reporting (1M+ rows)
+            BrinIndex(fields=['timestamp'], name='mach_hist_ts_brin_idx', pages_per_range=128),
         ]
 
     def compute_hash(self, prev_hash=None, version=None):
@@ -188,7 +198,7 @@ class DailyPrintSequence(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['date']),
+            models.Index(fields=['date'], name='history_dai_date_69bc50_idx'),
         ]
 
     def __str__(self):

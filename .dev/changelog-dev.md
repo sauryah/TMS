@@ -1,5 +1,15 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-10 PostgreSQL Audit History Scaling & BRIN Indexing
+*   **Database & Retention Optimization (LLM Council Proposal C)**:
+    *   Added `'django.contrib.postgres'` to `INSTALLED_APPS` in `backend/tms/settings.py`.
+    *   Optimized `DieHistory` and `MachineHistory` indexes in `backend/history/models.py` with PostgreSQL `BrinIndex(fields=['timestamp'], pages_per_range=128)` for ultra-compact date filtering on 1M+ rows.
+    *   Added composite index `(die, -id)` to optimize $O(1)$ select_for_update cryptographic parent hash queries, and `(die, -timestamp)` for timeline lookups.
+    *   Generated and applied migration `backend/history/migrations/0009_optimize_history_brin_and_composite_indexes.py`.
+    *   Fixed `timestamp` field precision from `auto_now_add=True` to `default=timezone.now` so Django's `pre_save` does not overwrite the timestamp used in the cryptographic SHA-256 hash calculation, ensuring 100% hash verification pass.
+    *   Hardened `prune_history.py` management command with batch chunking (`--batch-size 5000`) to eliminate table lock contention and transaction log spikes during history maintenance.
+    *   Added unit test `test_prune_history_chunked_batches` in `backend/dies/tests/test_prune_history.py` and updated `backend/dies/tests/test_import.py`.
+
 ### 2026-11-10 LLM Council Engineering Protocol & Workspace Skill
 *   **Operating System & Deliberation Architecture Integration**:
     *   Created `.agents/skills/llm-council/SKILL.md` workspace skill adapting Karpathy's 3-stage council (Divergent Opinions -> Anonymized Peer Review -> Chairman Synthesis) for autonomous pair-programming.

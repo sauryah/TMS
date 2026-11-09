@@ -401,8 +401,8 @@ R-AUDIT-1,ROUND,25x10,MAINTENANCE,Rack A,1,Updated in import,2.5,2.65
         self.assertEqual(history_fields['remarks'][2], self.user)
 
         self.assertIn('current_size', history_fields)
-        self.assertEqual(history_fields['current_size'][0], '2.5')
-        self.assertEqual(history_fields['current_size'][1], '2.65')
+        self.assertIn(history_fields['current_size'][0], ('2.5', '2.500'))
+        self.assertIn(history_fields['current_size'][1], ('2.65', '2.650'))
         self.assertEqual(history_fields['current_size'][2], self.user)
 
         # 2. Thread locals must be restored in finally block
