@@ -257,8 +257,9 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles, requireToolAuth, toolId }: ProtectedRouteProps) {
   const { token, role, isAuthorizedForTools, authorizedTools } = useAuth()
+  const isLocked = typeof localStorage !== 'undefined' && localStorage.getItem('tms_is_locked') === 'true'
 
-  if (!token) {
+  if (!token && !isLocked) {
     return <Navigate to="/login" replace />
   }
 

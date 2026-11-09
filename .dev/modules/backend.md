@@ -37,7 +37,7 @@ backend/
 ├── tms/             # Core settings, main URLs, WSGI/ASGI, Celery config
 ├── dies/            # Dies, RoundDie, FlatDie, WearAlert, DieTolerance, MaintenanceLog, ImportLog, OutboxTask
 ├── history/         # DieHistory, MachineHistory, PrintRecord models, signals, and views
-├── machines/        # MachineCategory, Machine, Set, Rack models and ViewSets
+├── machines/        # MachineCategory, Machine, Set models and ViewSets
 ├── search/          # Celery Meilisearch indexing tasks
 ├── users/           # Custom User, UserSession, UserActivityLog, auth views & permissions
 └── manage.py        # Django management CLI script
@@ -51,8 +51,7 @@ backend/
 - `die_type`: Enum ('ROUND', 'FLAT')
 - `casing`: Dimensions envelope string (e.g. `25x10`)
 - `status`: Enum (`AVAILABLE`, `RUNNING`, `CLEANING`, `POLISHING`, `DAMAGED`, `SCRAPPED`, `MISSING`, `MAINTENANCE`)
-- `rack`: Foreign key to Rack (nullable)
-- `shelf_number`: Positive small int (nullable)
+- `current_machine`: Foreign key to Machine (nullable)
 - `current_set`: Foreign key to Set (nullable)
 - `remarks`: Maintenance notes text
 - `version`: Optimistic locking integer
@@ -81,7 +80,7 @@ backend/
 - `hash`: SHA-256 hash of current history record (tamper-evident chain)
 
 ### MachineHistory
-- `entity_type`: Enum ('MACHINE', 'SET', 'CATEGORY', 'RACK')
+- `entity_type`: Enum ('MACHINE', 'SET', 'CATEGORY', 'RACK' [legacy])
 - `entity_id`: Integer primary key of target entity
 - `entity_name`: String label of target entity
 - `action`: Enum ('CREATED', 'UPDATED', 'DELETED')

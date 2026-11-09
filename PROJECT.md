@@ -134,7 +134,7 @@ graph TD
 
 ### 2026-11-01 · feat: initial commit - Tool Management System (TMS) v1.0.0
 - **Core Architecture**: Dual-engine write path (Django 4.2 REST API) and read path (Go 1.22 search proxy & SSE broadcast) with PostgreSQL 18, Redis 7, and Meilisearch v1.7.
-- **Die Inventory Management**: Full physical grid tracking (racks, shelves, slots), Round and Flat die support, machine allocations, and physical recount audits.
+- **Die Inventory Management**: Full physical tracking (racks/shelves pre-v1.1.0; machine line allocations in v1.1.0+), Round and Flat die support, and physical recount audits.
 - **Wire Drawing Workbench**: 3-mode ISO/DIN vector TDS reporting engine, interactive in-place reverse solvers, 4-pass-per-row schematic pipeline, 3D WebGL bore visualizer, and Rust/Wasm FEA stress solver.
 - **Security & RBAC**: Role-based access control (ROOT, ADMIN, OPERATOR, VIEWER), single-use recovery backup codes MFA, session eviction on role modifications, and non-root process execution (USER tmsuser, UID 1001).
 - **Design System & Typography**: Triple-theme system (Dark Terminal, Classic Slate, Precision Light), 100% self-hosted WOFF2 fonts, and zero tracking.

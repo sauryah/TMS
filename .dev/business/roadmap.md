@@ -8,10 +8,8 @@
 - Redis AOF persistence enabled.
 - Docker resource limits applied to all services.
 
-## Phase 2: Location Grid & Physical Schema (Completed)
-- Migrated free-text `Die.location` to structured `rack` (FK) + `shelf_number`.
-- Validation prevents assignment to non-existent layout spots.
-- API endpoints updated to use rack_id/shelf_number filters.
+## Phase 2: Location Grid & Physical Schema (Completed; Decommissioned in v1.1.0)
+- Migrated free-text `Die.location` to structured layout fields (subsequently replaced with direct shopfloor machine line allocations in v1.1.0 de-rackification).
 
 ## Phase 3: Wear Alert Automation & Physical Auditing (Completed)
 - DieTolerance and WearAlert models implemented with configurable thresholds.

@@ -1,7 +1,7 @@
 # React Frontend SPA (frontend.md)
 
 ## Purpose
-High-density manufacturing telemetry dashboard, CAD vector blueprint renderer, 3D von Mises stress heatmap, Sachs' slab theory deformation simulator, Rust/Wasm high-resolution FEA workbench, ISO/DIN Technical Data Sheet (TDS) vector reporting engine, visual rack relocation grid, Wire Drawing Elongation Calculator, die series generator, and spreadsheet import interfaces.
+High-density manufacturing telemetry dashboard, CAD vector blueprint renderer, 3D von Mises stress heatmap, Sachs' slab theory deformation simulator, Rust/Wasm high-resolution FEA workbench, ISO/DIN Technical Data Sheet (TDS) vector reporting engine, shopfloor machine allocation views, Wire Drawing Elongation Calculator, die series generator, and spreadsheet import interfaces.
 
 ---
 

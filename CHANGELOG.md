@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Containerization & Security Hardening**: Non-root container process isolation (`USER tmsuser`, UID 1001), automated database backups with MD5 verification, and hardened startup secret validation.
 
 #### Die Inventory Management & Asset Tracking
-- **Physical Grid & Location Tracking**: Physical rack, shelf, and shelf-slot assignment for drawing dies with real-time location conflict prevention.
+- **Physical Grid & Location Tracking (pre-v1.1.0)**: Initial physical rack and shelf assignment, replaced in v1.1.0 with direct shopfloor machine line allocations.
 - **Multi-Type Die Support**: Complete lifecycle tracking for both Round dies and Flat (shaped) dies with casing dimensions, punched sizes, current wear dimensions, and recut histories.
 - **Machine & Set Allocation**: Machine inventory organization into categories, production machines, and quick-swap die sets with automated descending series sorting.
 - **Stock & Recount Audits**: Physical recount verification, enamel stock tracking, and complete audit trail of every status and location modification.

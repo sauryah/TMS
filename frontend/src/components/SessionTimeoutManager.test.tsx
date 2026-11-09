@@ -150,6 +150,8 @@ describe('SessionTimeoutManager', () => {
     // Assert screen is locked and persisted in localStorage
     expect(screen.getByText('SESSION LOCKED')).toBeDefined()
     expect(localStorage.getItem('tms_is_locked')).toBe('true')
+    expect(mockSetToken).toHaveBeenCalledWith(null)
+    expect(localStorage.getItem('tms_token')).toBeNull()
     expect(mockLogout).not.toHaveBeenCalled()
 
     // 8. Advance past lock grace period (5 minutes unattended on lock screen) -> forced logout
@@ -241,6 +243,7 @@ describe('SessionTimeoutManager', () => {
 
     // Assert: Now it unlocks, sets token, and removes lock from localStorage
     expect(mockSetToken).toHaveBeenCalledWith('new-valid-jwt-token')
+    expect(localStorage.getItem('tms_token')).toBe('new-valid-jwt-token')
     expect(localStorage.getItem('tms_is_locked')).toBeNull()
     expect(screen.queryByText('SESSION LOCKED')).toBeNull()
   })
@@ -304,5 +307,42 @@ describe('SessionTimeoutManager', () => {
       vi.advanceTimersByTime(1000)
     })
     expect(screen.queryByText(/SESSION TIMEOUT WARNING/i)).toBeNull()
+  })
+
+  test('should synchronize lock and unlock across tabs via storage event', () => {
+    currentToken = 'valid-token'
+    localStorage.setItem('tms_token', 'valid-token')
+    vi.mocked(useAuth).mockReturnValue({
+      token: currentToken,
+      logout: mockLogout,
+      username: 'test_operator',
+      setToken: mockSetToken
+    } as any)
+
+    render(<SessionTimeoutManager />)
+
+    // Simulate lock event in another browser tab
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'tms_is_locked',
+        newValue: 'true'
+      }))
+    })
+
+    expect(screen.getByText('SESSION LOCKED')).toBeDefined()
+    expect(mockSetToken).toHaveBeenCalledWith(null)
+    expect(localStorage.getItem('tms_token')).toBeNull()
+
+    // Simulate unlock event in another browser tab
+    localStorage.setItem('tms_token', 'unlocked-jwt-token')
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'tms_is_locked',
+        newValue: null
+      }))
+    })
+
+    expect(mockSetToken).toHaveBeenCalledWith('unlocked-jwt-token')
+    expect(screen.queryByText('SESSION LOCKED')).toBeNull()
   })
 })

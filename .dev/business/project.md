@@ -4,7 +4,7 @@
 TMS is an industrial-grade **Tool Management System** designed to replace manual, unstructured Excel spreadsheets for tracking precision extrusion and wire-drawing dies on discrete manufacturing shop floors. 
 
 ## Why does it exist?
-Extrusion dies are high-value, highly calibrated toolings that deform and wear down under high pressure and temperature. Tracking their physical dimensions, operational statuses, physical rack locations, and audit trails is critical for quality control standards (e.g. ISO 9001, IATF 16949) and preventing production halted downtime.
+Extrusion dies are high-value, highly calibrated toolings that deform and wear down under high pressure and temperature. Tracking their physical dimensions, operational statuses, shopfloor machine allocations, and audit trails is critical for quality control standards (e.g. ISO 9001, IATF 16949) and preventing production halted downtime.
 
 ## How does it work?
 The system utilizes a split architecture:

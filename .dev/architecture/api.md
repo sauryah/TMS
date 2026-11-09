@@ -42,7 +42,7 @@ Complete catalog of all API endpoints across Django and Go services.
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/dies/` | Authenticated | Paginated list of dies with type and dimensions |
 | `POST` | `/api/v1/dies/` | Admin / Root | Register a new Round or Flat die |
-| `GET/PATCH/DELETE` | `/api/v1/dies/{id}/` | Authenticated/Admin | Details, partial update (Operator: rack/shelf; Admin: full), delete |
+| `GET/PATCH/DELETE` | `/api/v1/dies/{id}/` | Authenticated/Admin | Details, partial update (Operator: status/machine assignment; Admin: full), delete |
 | `POST` | `/api/v1/dies/{id}/recut/` | Admin / Root | Recut die (updates current size/width/thickness and logs measurement) |
 | `GET/POST` | `/api/v1/dies/{id}/maintenance_logs/` | Authenticated | List or append maintenance service records |
 | `GET` | `/api/v1/dies/{id}/history/` | Authenticated | View audit history logs for a single die |

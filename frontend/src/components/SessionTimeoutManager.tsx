@@ -23,6 +23,8 @@ export function SessionTimeoutManager() {
   const [unlocking, setUnlocking] = useState(false)
   const [absoluteWarning, setAbsoluteWarning] = useState<string | null>(null)
 
+  const displayUsername = username || (typeof localStorage !== 'undefined' ? (localStorage.getItem('tms_locked_username') || localStorage.getItem('tms_username')) : null)
+
   // Two-Factor Authentication state during lock screen re-auth
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaToken, setMfaToken] = useState<string | null>(null)
@@ -79,17 +81,29 @@ export function SessionTimeoutManager() {
     lockedAt.current = Date.now()
     try {
       localStorage.setItem('tms_is_locked', 'true')
+      if (displayUsername) {
+        localStorage.setItem('tms_locked_username', displayUsername)
+      }
+      localStorage.removeItem('tms_token')
     } catch {
       // localStorage write non-fatal
+    }
+    if (setToken) {
+      setToken(null)
     }
     if (channelRef.current) {
       channelRef.current.postMessage({ type: 'LOCK_SESSION' })
     }
-  }, [])
+  }, [displayUsername, setToken])
 
   const unlockSessionLocally = useCallback((newToken?: string) => {
-    if (newToken && setToken) {
-      setToken(newToken)
+    if (newToken) {
+      try {
+        localStorage.setItem('tms_token', newToken)
+      } catch {}
+      if (setToken) {
+        setToken(newToken)
+      }
     }
     const now = Date.now()
     lastActivity.current = now
@@ -105,12 +119,13 @@ export function SessionTimeoutManager() {
 
     try {
       localStorage.removeItem('tms_is_locked')
+      localStorage.removeItem('tms_locked_username')
     } catch {
       // localStorage write non-fatal
     }
 
     if (channelRef.current) {
-      channelRef.current.postMessage({ type: 'UNLOCK_SESSION', timestamp: now })
+      channelRef.current.postMessage({ type: 'UNLOCK_SESSION', timestamp: now, token: newToken })
     }
     broadcastActivity(now)
   }, [broadcastActivity, setToken])
@@ -132,7 +147,17 @@ export function SessionTimeoutManager() {
             setShowWarning(false)
             setIsLocked(true)
             lockedAt.current = Date.now()
+            try {
+              localStorage.removeItem('tms_token')
+            } catch {}
+            if (setToken) {
+              setToken(null)
+            }
           } else if (event.data?.type === 'UNLOCK_SESSION') {
+            const newToken = event.data?.token || (typeof localStorage !== 'undefined' ? localStorage.getItem('tms_token') : null)
+            if (newToken && setToken) {
+              setToken(newToken)
+            }
             setIsLocked(false)
             lockedAt.current = null
             lastActivity.current = Date.now()
@@ -157,7 +182,17 @@ export function SessionTimeoutManager() {
           setShowWarning(false)
           setIsLocked(true)
           lockedAt.current = Date.now()
+          try {
+            localStorage.removeItem('tms_token')
+          } catch {}
+          if (setToken) {
+            setToken(null)
+          }
         } else {
+          const newToken = typeof localStorage !== 'undefined' ? localStorage.getItem('tms_token') : null
+          if (newToken && setToken) {
+            setToken(newToken)
+          }
           setIsLocked(false)
           lockedAt.current = null
           lastActivity.current = Date.now()
@@ -180,6 +215,7 @@ export function SessionTimeoutManager() {
   const handleForcedLogout = useCallback(() => {
     try {
       localStorage.removeItem('tms_is_locked')
+      localStorage.removeItem('tms_locked_username')
     } catch {}
     setIsLocked(false)
     lockedAt.current = null
@@ -189,19 +225,20 @@ export function SessionTimeoutManager() {
   }, [logout, navigate])
 
   useEffect(() => {
-    if (!token) {
+    if (!token && !isLocked) {
       prevTokenRef.current = null
       setShowWarning(false)
       setIsLocked(false)
       lockedAt.current = null
       try {
         localStorage.removeItem('tms_is_locked')
+        localStorage.removeItem('tms_locked_username')
       } catch {}
       return
     }
 
     // Reset timers when transition from logged out to logged in
-    if (!prevTokenRef.current) {
+    if (!prevTokenRef.current && token) {
       lastActivity.current = Date.now()
       sessionCreatedAt.current = Date.now()
       failedUnlockAttempts.current = 0
@@ -267,7 +304,7 @@ export function SessionTimeoutManager() {
       events.forEach(event => window.removeEventListener(event, handleActivity))
       clearInterval(interval)
     }
-  }, [token, handleForcedLogout, lockSession, broadcastActivity])
+  }, [token, isLocked, handleForcedLogout, lockSession, broadcastActivity])
 
   const stayLoggedIn = async () => {
     try {
@@ -297,7 +334,7 @@ export function SessionTimeoutManager() {
           'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
-          username: username || '',
+          username: displayUsername || '',
           password: unlockPassword
         })
       })
@@ -458,9 +495,9 @@ export function SessionTimeoutManager() {
               <p className="mt-1 text-[11px] text-[#6b7280] leading-relaxed">
                 Work session preserved. Enter credentials to resume.
               </p>
-              {username && (
+              {displayUsername && (
                 <div className="mt-3 px-2.5 py-1 bg-[#141414] border border-[#262626] rounded-sm text-xs font-mono text-zinc-300">
-                  {username}
+                  {displayUsername}
                 </div>
               )}
             </div>

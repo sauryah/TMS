@@ -1,5 +1,16 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-10 Cryptographic Server-Enforced Lock Boundary & Complete Documentation De-Rackification
+*   **Cryptographic Server-Side Lock Boundary (LLM Council Proposal B)**:
+    *   Hardened `frontend/src/components/SessionTimeoutManager.tsx` with token eviction upon lock (`localStorage.removeItem('tms_token')` and `setToken(null)`). Any API request dispatched while locked returns `HTTP 401 Unauthorized` directly from Django and Go, preventing client DevTools bypass.
+    *   Updated `displayUsername` caching in `localStorage.setItem('tms_locked_username', ...)` so user identity persists on the locked modal across reloads and tab events while the token itself is erased.
+    *   Updated `ProtectedRoute` in `frontend/src/App.tsx` (`!token && !isLocked`) to maintain active form DOM mounting beneath the lock modal, while instantly kicking users to `/login` if `tms_is_locked` is removed.
+    *   Updated cross-tab broadcast synchronization (`BroadcastChannel` & `storage` events) to evict tokens on remote lock and restore newly authenticated tokens on remote unlock.
+    *   Added Vitest unit test in `SessionTimeoutManager.test.tsx` testing token eviction on lock, fresh token restoration on unlock, and remote storage lock/unlock synchronization (111/111 passing).
+*   **Exhaustive Documentation De-Rackification**:
+    *   Purged all legacy warehouse rack and shelf references across `.dev/modules/backend.md`, `.dev/modules/frontend.md`, `.dev/architecture/api.md`, `.dev/modules/dies.md`, `.dev/architecture/database.md`, `.dev/architecture/coding-standards.md`, `.dev/business/project.md`, `.dev/business/roadmap.md`, `.dev/state/progress.md`, `PROJECT.md`, and `CHANGELOG.md`.
+    *   Verified 100% zero discrepancies across documentation and production implementations.
+
 ### 2026-11-10 Security Hardening, Lock Screen MFA & Documentation Hygiene (LLM Council Audit)
 *   **Lock Screen Security & Persistent State**:
     *   Hardened `SessionTimeoutManager.tsx` to persist `tms_is_locked` in `localStorage`, preventing lock screen bypass upon browser reload or in secondary tabs.
