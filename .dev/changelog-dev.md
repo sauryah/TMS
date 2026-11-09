@@ -1,5 +1,20 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-10 Security Hardening, Lock Screen MFA & Documentation Hygiene (LLM Council Audit)
+*   **Lock Screen Security & Persistent State**:
+    *   Hardened `SessionTimeoutManager.tsx` to persist `tms_is_locked` in `localStorage`, preventing lock screen bypass upon browser reload or in secondary tabs.
+    *   Added multi-tab broadcast synchronization (`LOCK_SESSION` and `UNLOCK_SESSION`) via `BroadcastChannel` and storage event listeners.
+    *   Added Two-Factor Authentication (MFA) backup code verification step to the lock screen unlock flow (`/api/v1/auth/backup-codes/verify/`), closing the vulnerability where MFA-enabled accounts could bypass 2FA on unlock.
+    *   Added request blocking in `useApi.ts` preventing background or foreground API dispatching while the session is locked.
+*   **SSE Invalidation & BRIN Exception Logging**:
+    *   Updated `useRealtimeSync.ts` to invalidate all queries (`queryClient.invalidateQueries()`) upon network reconnection, preventing stale data for sets, backups, and inventory recount records.
+    *   Hardened `auto_prune_history` in `backend/history/tasks.py` with `connection.vendor == 'postgresql'` check and explicit exception logging via `logger.warning`.
+    *   Updated absolute expiration banner text in `SessionTimeoutManager.tsx` to dynamically interpolate active configured timeout hours.
+*   **Documentation Parity & Goal Alignment**:
+    *   Purged legacy warehouse rack and shelf references across `README.md`, `PROJECT.md`, `.dev/modules/machines.md`, `.dev/architecture/api.md`, and `.dev/architecture/database.md`.
+    *   Synchronized `.dev/state/current-goal.md` target date (2026-11-10), updated `.dev/audits/latest.md` for v1.1.0 release verification, and updated `.dev/metrics/metrics.md`.
+    *   Added 2 new frontend unit tests in `SessionTimeoutManager.test.tsx` (110/110 passing).
+
 ### 2026-11-10 Session Lifecycle, Network Resiliency & Ledger Maintenance (LLM Council Implementation)
 *   **Automated Housekeeping & Celery Beat Scheduling**:
     *   Registered `expire_sessions_task` in `backend/users/tasks.py` and scheduled `auto-expire-sessions-periodic` in `backend/tms/settings.py` (`CELERY_BEAT_SCHEDULE`) to run every 15 minutes, actively purging dead sessions and evicting Redis cache keys without waiting for subsequent user HTTP calls.

@@ -63,7 +63,7 @@ graph TD
 | :--- | :--- | :--- |
 | **Unauthenticated** | Redirected to `/login`. Safe and mutating API routes require authentication (return HTTP 401). | Full lockout. Cannot browse inventory or access tool features without credentials. |
 | **Regular** | Read-only browsing of inventory, dashboard telemetry, and machines. | Read-Only. Mutation forms, die creation, and administrative tabs are disabled. |
-| **Operator** | Read-only search, metrics, inventory browsing, plus physical rack/shelf relocation. | Relocation only. Locked out of die creation, machine edits, user administration, and backups. |
+| **Operator** | Read-only search, metrics, inventory browsing, machine die reassignments, and recount audits. | Production adjustments only. Locked out of die creation, machine edits, user administration, and backups. |
 | **Admin** | Register new dies, edit location/status/remarks, trigger bulk spreadsheet imports, CRUD on Sets & Machines. | Full asset management. Locked out of user administration, theme toggles, and database backup restoration. |
 | **Root** | Create/deactivate user accounts, assign roles, toggle tool permissions, manage backups, restore system states, switch system visual themes. | Full administrative access. Single superuser account created via shell seeder. |
 
@@ -80,9 +80,8 @@ Dies are modeled under a unified base model (`Die`) with type-specific attribute
 *   `die_id` (String, unique, alphanumeric)
 *   `casing` (String, dimensions envelope, e.g. `25x10`)
 *   `status` (Enum: `AVAILABLE`, `RUNNING`, `CLEANING`, `POLISHING`, `DAMAGED`, `SCRAPPED`, `MISSING`, `MAINTENANCE`)
-*   `rack` (Foreign Key → Rack, physical rack placement, nullable)
-*   `shelf_number` (Positive Small Integer, shelf position on rack, nullable)
-*   `current_set` (Foreign Key → Set, nullable)
+*   `current_machine` (Foreign Key → Machine, active production machine assignment, nullable)
+*   `current_set` (Foreign Key → Set, drafting sequence set allocation, nullable)
 *   `remarks` (Text, notes or maintenance reports)
 
 ### Round Die Attributes
@@ -126,6 +125,12 @@ graph TD
 ---
 
 ## 8. Chronological Changelog
+
+### 2026-11-07 · release: Tool Management System (TMS) v1.1.0
+- **De-Rackification**: Removed physical warehouse rack and shelf tracking from database models, API endpoints, and frontend user interfaces, refocusing asset management directly on shopfloor machines and tool sets.
+- **UI Modernization & Contact Integration**: Integrated dedicated developer contact modal with 1-click clipboard copy, isolated architecture specifications modal, and symmetrical contrast enhancements across Dark Terminal and Precision Light themes.
+- **RBAC & Concurrency Hardening**: Added optimistic lock version token authorization for Operator relocation actions.
+- **Dependency & CI Parity**: Declared `celery[redis]` transport extras and added Meilisearch service container healthcheck to CI workflows.
 
 ### 2026-11-01 · feat: initial commit - Tool Management System (TMS) v1.0.0
 - **Core Architecture**: Dual-engine write path (Django 4.2 REST API) and read path (Go 1.22 search proxy & SSE broadcast) with PostgreSQL 18, Redis 7, and Meilisearch v1.7.

@@ -92,6 +92,17 @@ export const useApi = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const request = useCallback(async <T = any>(url: string, options: RequestOptions = {}): Promise<T> => {
+    // Guard: Block API requests when session is locked, except for auth/unlock endpoints
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('tms_is_locked') === 'true') {
+      const isAuthEndpoint = url.includes('/auth/login') ||
+                             url.includes('/backup-codes/verify') ||
+                             url.includes('/auth/keep-alive') ||
+                             url.includes('/server-info')
+      if (!isAuthEndpoint) {
+        throw new ApiError('Session is locked. Re-authentication required.', 'unauthorized', 401)
+      }
+    }
+
     const headers: Record<string, string> = { ...(options.headers as Record<string, string>) }
     if (!(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json'

@@ -74,9 +74,8 @@ export function useRealtimeSync(options: {
           consecutiveFailures = 0
           window.dispatchEvent(new CustomEvent('sse-status', { detail: { status: 'connected' } }))
           if (wasDisconnected) {
-            // Re-sync all state after network reconnection
-            invalidateRelevantQueries(DIE_UPDATE_EVENT)
-            invalidateRelevantQueries(MACHINE_UPDATE_EVENT)
+            // Re-sync all state across all domains after network reconnection
+            queryClient.invalidateQueries()
           }
         }
 

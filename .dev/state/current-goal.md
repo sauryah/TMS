@@ -8,11 +8,11 @@ Define the current objective for AI sessions.
 
 ## Current Goal
 **Objective:** Tool Management System (TMS) v1.1.0 Maintenance & Streamlined Operations
-**Target Date:** 2026-11-07
+**Target Date:** 2026-11-10
 **Priority:** High
 
 ## Goal Description
-Maintain platform stability, documentation integrity, and test coverage for Tool Management System (TMS) v1.1.0 across all backend and frontend services post-rack removal and UI modernization.
+Maintain platform stability, security hardening, documentation integrity, and test coverage for Tool Management System (TMS) v1.1.0 across all backend and frontend services post-rack removal, session timeout hardening, and UI modernization.
 
 ## Success Criteria
 1. Root documentation (`README.md`, `CHANGELOG.md`, `DOCKER.md`) and package manifests aligned with v1.1.0.

@@ -11,8 +11,8 @@ Complete database schema documentation for PostgreSQL 18.
 erDiagram
     MachineCategory ||--o{ Machine : "has many"
     Machine ||--o{ Set : "has many"
+    Machine ||--o{ Die : "allocates"
     Set ||--o{ Die : "has many"
-    Rack ||--o{ Die : "stores"
     Die ||--|| RoundDie : "type round"
     Die ||--|| FlatDie : "type flat"
     Die ||--o{ DieHistory : "audits"
@@ -57,16 +57,6 @@ CREATE TABLE machines_set (
 );
 ```
 
-### Rack (`machines_rack`)
-```sql
-CREATE TABLE machines_rack (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    row_count INTEGER NOT NULL,
-    column_count INTEGER NOT NULL
-);
-```
-
 ### Die (`dies_die`)
 ```sql
 CREATE TABLE dies_die (
@@ -75,8 +65,7 @@ CREATE TABLE dies_die (
     die_type VARCHAR(10) NOT NULL CHECK (die_type IN ('ROUND', 'FLAT')),
     casing VARCHAR(50) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
-    rack_id INTEGER REFERENCES machines_rack(id) ON DELETE SET NULL,
-    shelf_number SMALLINT CHECK (shelf_number >= 1),
+    current_machine_id INTEGER REFERENCES machines_machine(id) ON DELETE SET NULL,
     current_set_id INTEGER REFERENCES machines_set(id) ON DELETE SET NULL,
     remarks TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -133,7 +122,7 @@ CREATE INDEX idx_diehistory_timestamp ON history_diehistory(timestamp DESC);
 ```sql
 CREATE TABLE history_machinehistory (
     id SERIAL PRIMARY KEY,
-    entity_type VARCHAR(10) NOT NULL CHECK (entity_type IN ('MACHINE', 'SET', 'CATEGORY', 'RACK')),
+    entity_type VARCHAR(10) NOT NULL CHECK (entity_type IN ('MACHINE', 'SET', 'CATEGORY')),
     entity_id INTEGER NOT NULL,
     entity_name VARCHAR(100) NOT NULL,
     action VARCHAR(10) NOT NULL CHECK (action IN ('CREATED', 'UPDATED', 'DELETED')),

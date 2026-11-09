@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, act, screen, fireEvent } from '@testing-library/react'
+import { render, act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SessionTimeoutManager } from './SessionTimeoutManager'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useAuth } from '../contexts/AuthContext'
@@ -23,6 +23,7 @@ describe('SessionTimeoutManager', () => {
   const mockLogout = vi.fn()
   const mockRequest = vi.fn()
   const mockNavigate = vi.fn()
+  const mockSetToken = vi.fn()
   let currentToken: string | null = null
 
   beforeEach(() => {
@@ -30,9 +31,11 @@ describe('SessionTimeoutManager', () => {
     mockLogout.mockClear()
     mockRequest.mockClear()
     mockNavigate.mockClear()
+    mockSetToken.mockClear()
     currentToken = null
+    localStorage.clear()
 
-    // Mock fetch for server-info
+    // Mock fetch for server-info and auth
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url === '/api/v1/server-info/') {
         return Promise.resolve({
@@ -55,7 +58,7 @@ describe('SessionTimeoutManager', () => {
       userId: 1,
       isAuthorizedForTools: false,
       authorizedTools: [],
-      setToken: vi.fn(),
+      setToken: mockSetToken,
       setRefreshToken: vi.fn(),
       login: vi.fn(),
       handleRefreshFailure: vi.fn(),
@@ -86,7 +89,7 @@ describe('SessionTimeoutManager', () => {
       userId: null,
       isAuthorizedForTools: false,
       authorizedTools: [],
-      setToken: vi.fn(),
+      setToken: mockSetToken,
       setRefreshToken: vi.fn(),
       login: vi.fn(),
       handleRefreshFailure: vi.fn(),
@@ -112,7 +115,7 @@ describe('SessionTimeoutManager', () => {
       userId: 1,
       isAuthorizedForTools: false,
       authorizedTools: [],
-      setToken: vi.fn(),
+      setToken: mockSetToken,
       setRefreshToken: vi.fn(),
       login: vi.fn(),
       handleRefreshFailure: vi.fn(),
@@ -144,8 +147,9 @@ describe('SessionTimeoutManager', () => {
       vi.advanceTimersByTime(3 * 60 * 1000)
     })
 
-    // Assert screen is locked but logout not called yet (preserving forms)
+    // Assert screen is locked and persisted in localStorage
     expect(screen.getByText('SESSION LOCKED')).toBeDefined()
+    expect(localStorage.getItem('tms_is_locked')).toBe('true')
     expect(mockLogout).not.toHaveBeenCalled()
 
     // 8. Advance past lock grace period (5 minutes unattended on lock screen) -> forced logout
@@ -157,13 +161,97 @@ describe('SessionTimeoutManager', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 
+  test('should restore locked state from localStorage on page reload', () => {
+    localStorage.setItem('tms_is_locked', 'true')
+    currentToken = 'valid-token'
+    vi.mocked(useAuth).mockReturnValue({
+      token: currentToken,
+      logout: mockLogout,
+      username: 'test_operator',
+      setToken: mockSetToken
+    } as any)
+
+    render(<SessionTimeoutManager />)
+
+    // Immediately shows locked screen because localStorage has tms_is_locked = true
+    expect(screen.getByText('SESSION LOCKED')).toBeDefined()
+    expect(mockLogout).not.toHaveBeenCalled()
+  })
+
+  test('should handle MFA-required unlock without bypassing 2FA', async () => {
+    currentToken = 'valid-token'
+    localStorage.setItem('tms_is_locked', 'true')
+    vi.mocked(useAuth).mockReturnValue({
+      token: currentToken,
+      logout: mockLogout,
+      username: 'test_operator',
+      setToken: mockSetToken
+    } as any)
+
+    render(<SessionTimeoutManager />)
+    expect(screen.getByText('SESSION LOCKED')).toBeDefined()
+
+    // 1. Submit password to unlock endpoint
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/v1/auth/login/') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            mfa_required: true,
+            mfa_token: 'signed-mfa-token-xyz',
+            username: 'test_operator',
+            remaining_codes: 8
+          })
+        })
+      }
+      if (url === '/api/v1/auth/backup-codes/verify/') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            token: 'new-valid-jwt-token'
+          })
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    })
+
+    const passwordInput = screen.getByPlaceholderText(/Enter password/i)
+    fireEvent.change(passwordInput, { target: { value: 'password123' } })
+    const unlockBtn = screen.getByText('Unlock Session')
+
+    await act(async () => {
+      fireEvent.click(unlockBtn)
+    })
+
+    // Assert: Screen must NOT unlock! It must transition to MFA backup code verification step!
+    expect(screen.getByText(/Two-Factor Authentication Required/i)).toBeDefined()
+    expect(screen.getByText(/Remaining backup codes: 8/i)).toBeDefined()
+    expect(screen.getByPlaceholderText(/Enter single-use backup code/i)).toBeDefined()
+    expect(localStorage.getItem('tms_is_locked')).toBe('true')
+    expect(mockSetToken).not.toHaveBeenCalled()
+
+    // 2. Submit backup code
+    const mfaInput = screen.getByPlaceholderText(/Enter single-use backup code/i)
+    fireEvent.change(mfaInput, { target: { value: 'ABCDEF12' } })
+    const verifyMfaBtn = screen.getByText('Verify & Unlock')
+
+    await act(async () => {
+      fireEvent.click(verifyMfaBtn)
+    })
+
+    // Assert: Now it unlocks, sets token, and removes lock from localStorage
+    expect(mockSetToken).toHaveBeenCalledWith('new-valid-jwt-token')
+    expect(localStorage.getItem('tms_is_locked')).toBeNull()
+    expect(screen.queryByText('SESSION LOCKED')).toBeNull()
+  })
+
   test('should display warning at 28 minutes and allow stayLoggedIn', async () => {
     currentToken = 'valid-token'
     vi.mocked(useAuth).mockReturnValue({
       token: currentToken,
       logout: mockLogout,
       username: 'test_operator',
-      setToken: vi.fn()
+      setToken: mockSetToken
     } as any)
 
     render(<SessionTimeoutManager />)
@@ -192,7 +280,7 @@ describe('SessionTimeoutManager', () => {
       token: currentToken,
       logout: mockLogout,
       username: 'test_operator',
-      setToken: vi.fn()
+      setToken: mockSetToken
     } as any)
 
     render(<SessionTimeoutManager />)

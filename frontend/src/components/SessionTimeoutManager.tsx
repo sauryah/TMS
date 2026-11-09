@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useApi } from '../hooks/useApi'
@@ -15,15 +15,25 @@ export function SessionTimeoutManager() {
 
   const [showWarning, setShowWarning] = useState(false)
   const [countdown, setCountdown] = useState(120)
-  const [isLocked, setIsLocked] = useState(false)
+  const [isLocked, setIsLocked] = useState(() => {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('tms_is_locked') === 'true'
+  })
   const [unlockPassword, setUnlockPassword] = useState('')
   const [unlockError, setUnlockError] = useState<string | null>(null)
   const [unlocking, setUnlocking] = useState(false)
   const [absoluteWarning, setAbsoluteWarning] = useState<string | null>(null)
 
+  // Two-Factor Authentication state during lock screen re-auth
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [mfaToken, setMfaToken] = useState<string | null>(null)
+  const [backupCode, setBackupCode] = useState('')
+  const [remainingCodes, setRemainingCodes] = useState<number | null>(null)
+
   const lastActivity = useRef(Date.now())
   const lastBroadcast = useRef(Date.now())
-  const lockedAt = useRef<number | null>(null)
+  const lockedAt = useRef<number | null>(
+    (typeof localStorage !== 'undefined' && localStorage.getItem('tms_is_locked') === 'true') ? Date.now() : null
+  )
   const failedUnlockAttempts = useRef(0)
   const sessionCreatedAt = useRef(Date.now())
   const channelRef = useRef<BroadcastChannel | null>(null)
@@ -49,6 +59,62 @@ export function SessionTimeoutManager() {
       .catch(() => {})
   }, [])
 
+  const broadcastActivity = useCallback((timestamp: number) => {
+    if (Date.now() - lastBroadcast.current > 10000) {
+      lastBroadcast.current = Date.now()
+      if (channelRef.current) {
+        channelRef.current.postMessage({ type: 'USER_ACTIVITY', timestamp })
+      }
+      try {
+        localStorage.setItem('tms_last_activity', timestamp.toString())
+      } catch {
+        // localStorage write non-fatal
+      }
+    }
+  }, [])
+
+  const lockSession = useCallback(() => {
+    setShowWarning(false)
+    setIsLocked(true)
+    lockedAt.current = Date.now()
+    try {
+      localStorage.setItem('tms_is_locked', 'true')
+    } catch {
+      // localStorage write non-fatal
+    }
+    if (channelRef.current) {
+      channelRef.current.postMessage({ type: 'LOCK_SESSION' })
+    }
+  }, [])
+
+  const unlockSessionLocally = useCallback((newToken?: string) => {
+    if (newToken && setToken) {
+      setToken(newToken)
+    }
+    const now = Date.now()
+    lastActivity.current = now
+    sessionCreatedAt.current = now
+    setIsLocked(false)
+    lockedAt.current = null
+    setUnlockPassword('')
+    setBackupCode('')
+    setMfaRequired(false)
+    setMfaToken(null)
+    setUnlockError(null)
+    failedUnlockAttempts.current = 0
+
+    try {
+      localStorage.removeItem('tms_is_locked')
+    } catch {
+      // localStorage write non-fatal
+    }
+
+    if (channelRef.current) {
+      channelRef.current.postMessage({ type: 'UNLOCK_SESSION', timestamp: now })
+    }
+    broadcastActivity(now)
+  }, [broadcastActivity, setToken])
+
   // Cross-Tab Synchronization setup (BroadcastChannel + storage fallback)
   useEffect(() => {
     let channel: BroadcastChannel | null = null
@@ -61,6 +127,15 @@ export function SessionTimeoutManager() {
         channel.onmessage = (event) => {
           if (event.data?.type === 'USER_ACTIVITY' && typeof event.data.timestamp === 'number') {
             lastActivity.current = Math.max(lastActivity.current, event.data.timestamp)
+            setShowWarning(false)
+          } else if (event.data?.type === 'LOCK_SESSION') {
+            setShowWarning(false)
+            setIsLocked(true)
+            lockedAt.current = Date.now()
+          } else if (event.data?.type === 'UNLOCK_SESSION') {
+            setIsLocked(false)
+            lockedAt.current = null
+            lastActivity.current = Date.now()
             setShowWarning(false)
           }
         }
@@ -77,6 +152,17 @@ export function SessionTimeoutManager() {
           lastActivity.current = Math.max(lastActivity.current, ts)
           setShowWarning(false)
         }
+      } else if (e.key === 'tms_is_locked') {
+        if (e.newValue === 'true') {
+          setShowWarning(false)
+          setIsLocked(true)
+          lockedAt.current = Date.now()
+        } else {
+          setIsLocked(false)
+          lockedAt.current = null
+          lastActivity.current = Date.now()
+          setShowWarning(false)
+        }
       }
     }
 
@@ -91,19 +177,16 @@ export function SessionTimeoutManager() {
     }
   }, [])
 
-  const broadcastActivity = (timestamp: number) => {
-    if (Date.now() - lastBroadcast.current > 10000) {
-      lastBroadcast.current = Date.now()
-      if (channelRef.current) {
-        channelRef.current.postMessage({ type: 'USER_ACTIVITY', timestamp })
-      }
-      try {
-        localStorage.setItem('tms_last_activity', timestamp.toString())
-      } catch {
-        // localStorage write non-fatal
-      }
-    }
-  }
+  const handleForcedLogout = useCallback(() => {
+    try {
+      localStorage.removeItem('tms_is_locked')
+    } catch {}
+    setIsLocked(false)
+    lockedAt.current = null
+    setShowWarning(false)
+    logout()
+    navigate('/login')
+  }, [logout, navigate])
 
   useEffect(() => {
     if (!token) {
@@ -111,6 +194,9 @@ export function SessionTimeoutManager() {
       setShowWarning(false)
       setIsLocked(false)
       lockedAt.current = null
+      try {
+        localStorage.removeItem('tms_is_locked')
+      } catch {}
       return
     }
 
@@ -118,8 +204,6 @@ export function SessionTimeoutManager() {
     if (!prevTokenRef.current) {
       lastActivity.current = Date.now()
       sessionCreatedAt.current = Date.now()
-      setIsLocked(false)
-      lockedAt.current = null
       failedUnlockAttempts.current = 0
     }
     prevTokenRef.current = token
@@ -143,12 +227,11 @@ export function SessionTimeoutManager() {
 
       if (absRemaining <= 0) {
         clearInterval(interval)
-        logout()
-        navigate('/login')
+        handleForcedLogout()
         return
       } else if (absRemaining <= 10 * 60 * 1000) {
         const mins = Math.max(1, Math.ceil(absRemaining / 60000))
-        setAbsoluteWarning(`Shift session will expire in ${mins} minute${mins > 1 ? 's' : ''} (12-hour limit). Please save your changes.`)
+        setAbsoluteWarning(`Shift session will expire in ${mins} minute${mins > 1 ? 's' : ''} (${absoluteHoursRef.current}-hour limit). Please save your changes.`)
       } else {
         setAbsoluteWarning(null)
       }
@@ -157,10 +240,7 @@ export function SessionTimeoutManager() {
       if (lockedAt.current) {
         if (now - lockedAt.current >= LOCK_GRACE_PERIOD_MS) {
           clearInterval(interval)
-          logout()
-          navigate('/login')
-          setIsLocked(false)
-          lockedAt.current = null
+          handleForcedLogout()
         }
         return
       }
@@ -176,9 +256,7 @@ export function SessionTimeoutManager() {
         setCountdown(remaining)
 
         if (remaining <= 0) {
-          setShowWarning(false)
-          setIsLocked(true)
-          lockedAt.current = Date.now()
+          lockSession()
         }
       } else {
         setShowWarning(false)
@@ -189,7 +267,7 @@ export function SessionTimeoutManager() {
       events.forEach(event => window.removeEventListener(event, handleActivity))
       clearInterval(interval)
     }
-  }, [token, logout, navigate])
+  }, [token, handleForcedLogout, lockSession, broadcastActivity])
 
   const stayLoggedIn = async () => {
     try {
@@ -199,13 +277,12 @@ export function SessionTimeoutManager() {
       setShowWarning(false)
       broadcastActivity(now)
     } catch {
-      logout()
-      navigate('/login')
-      setShowWarning(false)
+      handleForcedLogout()
     }
   }
 
-  const handleUnlock = async (e: React.FormEvent) => {
+  // Step 1 of Unlock: Password check
+  const handleUnlockPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!unlockPassword.trim()) return
 
@@ -225,34 +302,37 @@ export function SessionTimeoutManager() {
         })
       })
 
+      const data = await res.json().catch(() => ({}))
+
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
         failedUnlockAttempts.current += 1
         if (failedUnlockAttempts.current >= 5) {
-          logout()
-          navigate('/login')
-          setIsLocked(false)
+          handleForcedLogout()
           return
         }
-        setUnlockError(errData.detail || 'Incorrect password. Please try again.')
+        setUnlockError(data.detail || 'Incorrect password. Please try again.')
         setUnlocking(false)
         return
       }
 
-      const data = await res.json()
-      if (data.token && setToken) {
-        setToken(data.token)
+      // If user has MFA enabled, step 2 is required
+      if (data.mfa_required) {
+        setMfaRequired(true)
+        setMfaToken(data.mfa_token)
+        setRemainingCodes(data.remaining_codes ?? null)
+        setUnlockError(null)
+        setUnlocking(false)
+        return
       }
 
-      const now = Date.now()
-      lastActivity.current = now
-      sessionCreatedAt.current = now
-      setIsLocked(false)
-      lockedAt.current = null
-      setUnlockPassword('')
-      setUnlockError(null)
-      failedUnlockAttempts.current = 0
-      broadcastActivity(now)
+      // Standard login response must have a token
+      if (!data.token) {
+        setUnlockError('Unexpected login response: missing authentication token.')
+        setUnlocking(false)
+        return
+      }
+
+      unlockSessionLocally(data.token)
     } catch {
       setUnlockError('Authentication failed. Check your network connection.')
     } finally {
@@ -260,9 +340,57 @@ export function SessionTimeoutManager() {
     }
   }
 
+  // Step 2 of Unlock: MFA Backup Code verification
+  const handleUnlockMfa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!backupCode.trim() || !mfaToken) return
+
+    setUnlocking(true)
+    setUnlockError(null)
+
+    try {
+      const res = await fetch('/api/v1/auth/backup-codes/verify/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          mfa_token: mfaToken,
+          backup_code: backupCode.trim()
+        })
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        failedUnlockAttempts.current += 1
+        if (failedUnlockAttempts.current >= 5) {
+          handleForcedLogout()
+          return
+        }
+        setUnlockError(data.detail || 'Invalid backup code.')
+        setUnlocking(false)
+        return
+      }
+
+      if (!data.token) {
+        setUnlockError('Verification succeeded but no authentication token was returned.')
+        setUnlocking(false)
+        return
+      }
+
+      unlockSessionLocally(data.token)
+    } catch {
+      setUnlockError('Verification failed. Check your network connection.')
+    } finally {
+      setUnlocking(false)
+    }
+  }
+
   return (
     <>
-      {/* 1. Absolute Timeout Banner (10 minutes before 12-hour expiration) */}
+      {/* 1. Absolute Timeout Banner (10 minutes before shift expiration) */}
       {absoluteWarning && (
         <div className="fixed top-0 left-0 right-0 z-[9998] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-center text-xs font-mono text-amber-400 flex items-center justify-center gap-2 animate-fadeIn backdrop-blur-sm">
           <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -290,22 +418,14 @@ export function SessionTimeoutManager() {
             <div className="mt-4 pt-3 border-t border-[#1a1a1a] flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  logout()
-                  navigate('/login')
-                  setShowWarning(false)
-                }}
+                onClick={handleForcedLogout}
                 className="px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider text-[#6b7280] hover:text-[#e4e4e4] bg-[#141414] hover:bg-[#1f1f1f] border border-[#2a2a2a] rounded-sm transition cursor-pointer"
               >
                 Logout
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowWarning(false)
-                  setIsLocked(true)
-                  lockedAt.current = Date.now()
-                }}
+                onClick={lockSession}
                 className="px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider text-amber-400 hover:text-amber-300 bg-[#141414] hover:bg-[#1f1f1f] border border-amber-500/40 rounded-sm transition cursor-pointer"
               >
                 Lock Now
@@ -336,7 +456,7 @@ export function SessionTimeoutManager() {
                 SESSION LOCKED
               </h3>
               <p className="mt-1 text-[11px] text-[#6b7280] leading-relaxed">
-                Work session preserved. Enter password to resume.
+                Work session preserved. Enter credentials to resume.
               </p>
               {username && (
                 <div className="mt-3 px-2.5 py-1 bg-[#141414] border border-[#262626] rounded-sm text-xs font-mono text-zinc-300">
@@ -345,46 +465,106 @@ export function SessionTimeoutManager() {
               )}
             </div>
 
-            <form onSubmit={handleUnlock} className="mt-5 space-y-3">
-              <div>
-                <input
-                  type="password"
-                  value={unlockPassword}
-                  onChange={(e) => setUnlockPassword(e.target.value)}
-                  placeholder="Enter password"
-                  autoFocus
-                  required
-                  className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] focus:border-emerald-500 rounded-sm text-xs font-mono text-[#e4e4e4] placeholder-zinc-600 focus:outline-none transition"
-                />
-              </div>
+            {!mfaRequired ? (
+              // Step 1 Form: Password Unlock
+              <form onSubmit={handleUnlockPassword} className="mt-5 space-y-3">
+                <div>
+                  <input
+                    type="password"
+                    value={unlockPassword}
+                    onChange={(e) => setUnlockPassword(e.target.value)}
+                    placeholder="Enter password"
+                    autoFocus
+                    required
+                    className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] focus:border-emerald-500 rounded-sm text-xs font-mono text-[#e4e4e4] placeholder-zinc-600 focus:outline-none transition"
+                  />
+                </div>
 
-              {unlockError && (
-                <p className="text-[11px] font-mono text-rose-400 text-center animate-shake">
-                  {unlockError}
-                </p>
-              )}
+                {unlockError && (
+                  <p className="text-[11px] font-mono text-rose-400 text-center animate-shake">
+                    {unlockError}
+                  </p>
+                )}
 
-              <div className="pt-2 flex flex-col gap-2">
-                <button
-                  type="submit"
-                  disabled={unlocking}
-                  className="w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/50 text-xs font-mono uppercase tracking-wider rounded-sm transition cursor-pointer disabled:opacity-50"
-                >
-                  {unlocking ? 'Verifying...' : 'Unlock Session'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout()
-                    navigate('/login')
-                    setIsLocked(false)
-                  }}
-                  className="w-full py-1.5 text-[11px] font-mono uppercase tracking-wider text-[#6b7280] hover:text-[#e4e4e4] transition cursor-pointer"
-                >
-                  Log Out Completely
-                </button>
-              </div>
-            </form>
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="submit"
+                    disabled={unlocking}
+                    className="w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/50 text-xs font-mono uppercase tracking-wider rounded-sm transition cursor-pointer disabled:opacity-50"
+                  >
+                    {unlocking ? 'Verifying...' : 'Unlock Session'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleForcedLogout}
+                    className="w-full py-1.5 text-[11px] font-mono uppercase tracking-wider text-[#6b7280] hover:text-[#e4e4e4] transition cursor-pointer"
+                  >
+                    Log Out Completely
+                  </button>
+                </div>
+              </form>
+            ) : (
+              // Step 2 Form: MFA Backup Code Unlock
+              <form onSubmit={handleUnlockMfa} className="mt-5 space-y-3">
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-sm text-center">
+                  <p className="text-[11px] text-amber-400 font-mono">
+                    Two-Factor Authentication Required
+                  </p>
+                  {remainingCodes !== null && (
+                    <p className="text-[10px] text-zinc-400 mt-0.5">
+                      Remaining backup codes: {remainingCodes}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    value={backupCode}
+                    onChange={(e) => setBackupCode(e.target.value)}
+                    placeholder="Enter single-use backup code"
+                    autoFocus
+                    required
+                    className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] focus:border-amber-500 rounded-sm text-xs font-mono text-[#e4e4e4] placeholder-zinc-600 focus:outline-none transition uppercase"
+                  />
+                </div>
+
+                {unlockError && (
+                  <p className="text-[11px] font-mono text-rose-400 text-center animate-shake">
+                    {unlockError}
+                  </p>
+                )}
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="submit"
+                    disabled={unlocking}
+                    className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/50 text-xs font-mono uppercase tracking-wider rounded-sm transition cursor-pointer disabled:opacity-50"
+                  >
+                    {unlocking ? 'Verifying 2FA...' : 'Verify & Unlock'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMfaRequired(false)
+                      setMfaToken(null)
+                      setBackupCode('')
+                      setUnlockError(null)
+                    }}
+                    className="w-full py-1 text-[11px] font-mono uppercase tracking-wider text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+                  >
+                    Back to Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleForcedLogout}
+                    className="w-full py-1 text-[11px] font-mono uppercase tracking-wider text-[#6b7280] hover:text-[#e4e4e4] transition cursor-pointer"
+                  >
+                    Log Out Completely
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -47,14 +47,13 @@ Complete catalog of all API endpoints across Django and Go services.
 | `GET/POST` | `/api/v1/dies/{id}/maintenance_logs/` | Authenticated | List or append maintenance service records |
 | `GET` | `/api/v1/dies/{id}/history/` | Authenticated | View audit history logs for a single die |
 
-### Physical Layout & Storage Grid (Django Gunicorn)
+### Physical Layout & Production Assets (Django Gunicorn)
 
 | Method | Route | Access | Purpose / Details |
 | :--- | :--- | :--- | :--- |
 | `GET/POST` | `/api/v1/categories/` | Authenticated / Admin | List or create machine categories |
 | `GET/POST` | `/api/v1/machines/` | Authenticated / Admin | List or create machines |
 | `GET/POST` | `/api/v1/sets/` | Authenticated / Admin | List or create tool sets |
-| `GET/POST/PATCH/DELETE` | `/api/v1/racks/` | Authenticated / Admin | Manage physical storage racks (grid rows x columns) |
 
 ### Machine Die Stock & Recount Audits (Django Gunicorn)
 
@@ -76,7 +75,7 @@ Complete catalog of all API endpoints across Django and Go services.
 
 | Method | Route | Access | Purpose / Details |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/import/` | Admin / Root | Upload CSV/Excel spreadsheet for idempotent die import (with rack pre-caching) |
+| `POST` | `/api/v1/import/` | Admin / Root | Upload CSV/Excel spreadsheet for idempotent die import |
 | `GET` | `/api/v1/import/template/` | Admin / Root | Download standard Excel template for bulk imports |
 | `GET` | `/api/v1/import/logs/` | Admin / Root | View past bulk import execution logs and row validation errors |
 
@@ -85,7 +84,7 @@ Complete catalog of all API endpoints across Django and Go services.
 | Method | Route | Access | Purpose / Details |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/history/` | Authenticated | List die history audit logs |
-| `GET` | `/api/v1/history/machines/` | Authenticated | List machine/set/category/rack change logs |
+| `GET` | `/api/v1/history/machines/` | Authenticated | List machine/set/category change logs |
 | `GET` | `/api/v1/history/dashboard/` | Authenticated | Dashboard recent history feed |
 | `GET` | `/api/v1/history/unified/` | Authenticated | Chronological unified timeline combining die and machine edits with diffs |
 | `GET` | `/api/v1/history/print-records/next-ref/` | Authenticated | Preview next sequential document reference and default work order |

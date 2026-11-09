@@ -7,28 +7,30 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Session Lifecycle, Network Resiliency & Ledger Maintenance (LLM Council Implementation)
+**Task:** Security Hardening, Lock Screen MFA & Documentation Hygiene (LLM Council Audit)
 **Status:** Complete
 **Started:** 2026-11-10
 **Target Completion:** 2026-11-10
 **Confidence:** 100%
 
 ## Task Description
-Implement the synthesized plan from the LLM Council deliberation:
-- **Milestone 1:** Celery Beat scheduled task for `expire_sessions` every 15m; BRIN index range summarization in `backend/history/tasks.py`; dynamic timeout configuration exposed via `ServerInfoView` and login payload.
-- **Milestone 2:** SSE industrial network resilience in `useRealtimeSync.ts` (indefinite exponential backoff capped at 30s with jitter, query invalidation on reconnect).
-- **Milestone 3:** Client-side cross-tab activity sync (`BroadcastChannel` + `storage`), dynamic frontend idle/absolute limits, 10-minute absolute warning banner, and in-place Lock Screen modal preserving form drafts with password unlock.
+Implement the findings from the LLM Council Audit:
+- **Lock Screen Reload & Multi-Tab Bypass:** Persist `tms_is_locked` in `localStorage`, initialize `isLocked` from storage, and broadcast `LOCK_SESSION` / `UNLOCK_SESSION` across all open tabs.
+- **Lock Screen MFA Bypass:** Integrate 2-step MFA backup code challenge into the lock screen re-auth flow, requiring single-use code verification for MFA-enabled accounts.
+- **SSE Query Invalidation:** Reconnection now invokes `queryClient.invalidateQueries()`, preventing stale data for sets, backups, and recount records.
+- **Documentation Parity:** Purge deprecated rack references in `README.md`, `PROJECT.md`, `.dev/modules/machines.md`, and `.dev/architecture/` docs.
+- **Task & Banner Hygiene:** Add vendor check and warning logging to BRIN summarization in `backend/history/tasks.py`; interpolate dynamic hours into absolute expiry banner.
+- **State & Audit Synchronization:** Update `current-goal.md` target date (2026-11-10), update `latest.md` audit report to v1.1.0, and update `metrics.md`.
 
 ## Completed
-- Registered `expire_sessions_task` in `backend/users/tasks.py` and scheduled `auto-expire-sessions-periodic` in `backend/tms/settings.py` (`CELERY_BEAT_SCHEDULE`).
-- Added `SELECT brin_summarize_new_values` for `die_hist_ts_brin_idx` and `mach_hist_ts_brin_idx` in `backend/history/tasks.py`.
-- Updated `ServerInfoView` (`AllowAny`) and `issue_user_login_tokens` in `backend/users/views/auth.py` to return session timeout configurations.
-- Added backend unit tests in `backend/users/tests/test_auth.py` (all 48 tests passing).
-- Removed 5-attempt disconnect limit in `frontend/src/hooks/useRealtimeSync.ts`, implementing continuous backoff and post-reconnection query invalidation.
-- Enhanced `frontend/src/components/SessionTimeoutManager.tsx` with dynamic config, cross-tab synchronization, 10-minute shift warning, and in-place Lock Screen re-authentication.
-- Updated and expanded frontend unit tests in `SessionTimeoutManager.test.tsx` (108/108 passing; clean Vite build).
-- Rebuilt and verified all 11 Docker Compose service containers running healthy.
-- Updated `changelog-dev.md`, `active-task.md`, and `progress.md`.
+- Updated `frontend/src/components/SessionTimeoutManager.tsx` with persistent localStorage lock state, multi-tab broadcast sync, dynamic absolute timeout banner, and MFA backup code verification.
+- Added API request blocking in `frontend/src/hooks/useApi.ts` when session is locked.
+- Updated `frontend/src/hooks/useRealtimeSync.ts` to invalidate all queries on reconnection.
+- Hardened `backend/history/tasks.py` with PostgreSQL vendor check and warning logger.
+- Cleaned legacy rack and shelf references in `README.md`, `PROJECT.md`, `.dev/modules/machines.md`, `.dev/architecture/api.md`, and `.dev/architecture/database.md`.
+- Updated `.dev/state/current-goal.md`, `.dev/audits/latest.md`, and `.dev/metrics/metrics.md`.
+- Added unit tests in `frontend/src/components/SessionTimeoutManager.test.tsx` (110/110 passing; 0 TypeScript errors).
+- All 11 Docker service containers verified healthy.
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

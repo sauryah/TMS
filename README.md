@@ -122,7 +122,7 @@ graph TD
 | :--- | :--- | :--- |
 | **Die Tracking Dashboard** | Real-time plant telemetry & status cards | KPI stats with glow borders, search bar with autocomplete, status donut breakdown, maintenance queue |
 | **Die Inventory** | Master registry for round & flat dies | Filter by status/casing/machine, automatic set series sorting (largest to smallest), CAD vector blueprint sync |
-| **Machine Sets** | Machine allocations & rack placement | Drag-and-drop storage rack map, set configuration, operational active/inactive ratio |
+| **Machine Sets** | Machine tool allocations & series | Shopfloor machine tool assignment, set sequence configuration, operational active/inactive ratio |
 | **Wire Drawing Workbench** | Engineering calculations & 3D FEA | Rust/Wasm volumetric FEA solver, von Mises stress heatmap, bore geometry inspector, ISO/DIN TDS vector printout |
 | **Die Series Generator** | Drafting schedule synthesis | Target elongation / area reduction sequence generation, custom drafting ratios, CSV export |
 | **Audit History** | Immutable field-level change ledger | Trigger-backed change history with cryptographic hash chaining, operator identity, exportable audit trail |
@@ -141,16 +141,16 @@ graph TD
 * **Single-Use Backup Codes Authentication**: Cryptographically hashed (SHA-256) one-time recovery codes for secondary sign-in security without requiring mobile authenticator apps, plus `reset_mfa` CLI emergency recovery.
 * **Real-Time Live SSE Event Distribution**: Redis Pub/Sub multiplexing PostgreSQL `LISTEN/NOTIFY` events across multi-container instances with single-use ticket authentication.
 * **Interactive CAD Highlighting**: Bidirectional vector sync between table dimensions and blueprint SVG nodes.
-* **Visual Storage Rack Map**: Drag-and-drop grid interface for physical warehouse rack management.
+* **Machine Allocation & Set Tracking**: Continuous series sorting and assignment of drawing die suites across plant production machinery.
 * **Fuzzy & Parametric Search**: Sub-millisecond lookups via Go microservice with Redis $O(1)$ generation-counter caching, PostgreSQL range queries, and Meilisearch.
 * **Granular Role-Based Access Control (RBAC)**:
   * *Unauthenticated*: Redirected to login; safe and mutating APIs require authentication.
   * *Regular*: Standard authenticated read-only access to inventory, plant metrics, and assigned tool suites.
-  * *Operator*: Read-only search, metrics, inventory browsing, plus physical rack/shelf relocation.
+  * *Operator*: Read-only search, metrics, inventory browsing, machine die reassignments, and physical recount audits.
   * *Admin*: Full CRUD on dies, machines, and sets, plus bulk spreadsheet imports.
   * *Root*: User administration, tool permission toggles, database backup/restore, and system theme switching.
 * **Session Management**: Single active session enforcement with immediate revocation and automatic cache eviction upon role or permission changes.
-* **Sheet-to-Database Import**: Validation-backed, idempotent CSV/Excel import system with rack pre-caching.
+* **Sheet-to-Database Import**: Validation-backed, idempotent CSV/Excel import system with machine and casing pre-caching.
 * **3D Stress Analysis**: WebGL von Mises stress heatmaps with angle/bearing sliders, cutaway planes, crack defect overlays, and snapshot export.
 * **Engineering Workbench**: CAD geometry inspector, deformation simulator, Siebel's force calculations, and trade-off comparison matrices.
 * **Granular Tool Permissions**: Per-user feature toggles with real-time background auth sync.
@@ -342,7 +342,7 @@ tms/
 │   ├── tms/                   # Core settings, URLs, Celery config
 │   ├── dies/                  # Die models, signals, viewsets, services (recut, wear, import, search, validation)
 │   ├── history/               # Audit logging (DieHistory, MachineHistory, PrintRecord) and views
-│   ├── machines/              # Assets (Categories, Machines, Sets, Racks)
+│   ├── machines/              # Assets (Categories, Machines, Sets)
 │   ├── search/                # Celery Meilisearch indexing tasks and outbox processor
 │   └── users/                 # RBAC, auth views, permissions, session management
 ├── certs/                     # TLS certificates (generated, gitignored)
