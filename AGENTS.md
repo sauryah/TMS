@@ -41,18 +41,19 @@ Escalate when:
 - Infrastructure cost changes significantly
 - Any remote git push (never push without explicit user authorization)
 
-## Confidence Thresholds
-- ≥95%: Decide and implement
-- 70-94%: Decide, implement, document reasoning
-- <70%: Stop, ask for clarification
+## Confidence Thresholds & LLM Council Protocol
+- ≥95%: Decide and implement autonomously.
+- 70-94%: **Trigger LLM Council Protocol** (activate `.agents/skills/llm-council/SKILL.md` or `.dev/processes/llm-council-protocol.md`). Deliberate across divergent perspectives (Architect, Security, Performance), conduct anonymized peer review and ranking, formulate a synthesized plan, and document reasoning before implementing.
+- <70%: Stop, ask for clarification.
 
 ## Review Loops
 Every implementation must pass:
-1. Compilation/Build verification (including `pip check` for dependency consistency)
-2. Test execution (verified against the infrastructure trinity: Postgres, Redis, Meilisearch)
-3. Architecture review (if structural changes)
-4. Security review (if auth/data changes)
-5. Documentation update
+1. LLM Council Deliberation Gate (mandatory when confidence is 70–94%, or when modifying architecture, security/RBAC, schema, or deterministic physics)
+2. Compilation/Build verification (including `pip check` for dependency consistency)
+3. Test execution (verified against the infrastructure trinity: Postgres, Redis, Meilisearch)
+4. Architecture review (if structural changes)
+5. Security review (if auth/data changes)
+6. Documentation update
 
 ## Dependency & CI Parity Rules
 1. **Transitive Dependency Compatibility:** When modifying packages (such as Celery broker transports), declare driver extras (e.g., `celery[redis]`) to guarantee that `pip` validates version compatibility during installation. Run `pip check` to ensure zero broken dependencies.
@@ -74,6 +75,7 @@ Every implementation must pass:
 ## Quick Reference
 | Directory | Purpose |
 |-----------|---------|
+| `.agents/skills/` | Custom autonomous agent skills & runbooks (e.g. `llm-council`) |
 | `.dev/architecture/` | Technical design and constraints |
 | `.dev/business/` | Product vision and strategy |
 | `.dev/modules/` | Codebase navigation |

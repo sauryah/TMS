@@ -1,5 +1,12 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-10 LLM Council Engineering Protocol & Workspace Skill
+*   **Operating System & Deliberation Architecture Integration**:
+    *   Created `.agents/skills/llm-council/SKILL.md` workspace skill adapting Karpathy's 3-stage council (Divergent Opinions -> Anonymized Peer Review -> Chairman Synthesis) for autonomous pair-programming.
+    *   Documented official engineering protocol in `.dev/processes/llm-council-protocol.md` defining triggers (Confidence 70%–94%, structural architecture, security/RBAC, schema migrations, deterministic wire drawing physics).
+    *   Updated `AGENTS.md` Confidence Thresholds and Review Loops to mandate LLM Council deliberation as a pre-implementation gate for high-stakes modifications.
+    *   Updated `.dev/processes/engineering-workflow.md` and `.dev/processes/review-process.md` adding Gate 0 (LLM Council Deliberation) to review gates and approval matrices.
+
 ### 2026-11-09 Shell Script Executable Permissions
 *   **Permission Hardening for Automation Scripts**:
     *   Set executable permissions (`+x` / mode `100755`) on `setup.sh` and shell utilities in `scripts/` (`build-wasm.sh`, `client-install-template.sh`, `dependency-auditor.sh`, `env-doctor.sh`, `generate-certs.sh`, `sync-meili.sh`, `uninstall-certs.sh`, `verify-backup-integrity.sh`) enabling direct execution without manual permission adjustments.

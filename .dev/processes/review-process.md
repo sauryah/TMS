@@ -8,6 +8,15 @@ Define review gates and checklists for all implementations.
 
 ## Review Gates
 
+### Gate 0: LLM Council Deliberation (Pre-Implementation)
+**When:** Confidence is 70%–94%, or when proposing structural architecture, security/RBAC, schema changes, or wire drawing physics.
+**Checklist:**
+- [ ] Problem statement and constraints formulated clearly
+- [ ] 3 divergent proposals gathered from distinct personas (Architect, Security, Performance)
+- [ ] Anonymized peer reviews and blind rankings executed
+- [ ] Chairman synthesis report compiled with mitigated flaws and actionable plan
+- [ ] Plan aligns with TMS invariants (dual-engine split, air-gap first, RBAC, theme parity)
+
 ### Gate 1: Compilation/Build
 **When:** Before any code changes are committed.
 **Checklist:**
@@ -89,11 +98,12 @@ Define review gates and checklists for all implementations.
 
 | Change Type | Approval Required |
 |-------------|-------------------|
-| New Feature | Code review + Architecture review |
+| New Feature (Complex) | LLM Council deliberation + Code review + Architecture review |
+| New Feature (Standard) | Code review + Architecture review |
 | Bug Fix | Code review |
-| Refactoring | Code review |
-| Security Patch | Code review + Security review |
-| Architecture Change | Architecture review + Security review |
+| Refactoring (Structural) | LLM Council deliberation + Code review |
+| Security Patch | LLM Council deliberation + Code review + Security review |
+| Architecture Change | LLM Council deliberation + Architecture review + Security review |
 
 ## Review Comments
 - All review comments must be addressed before merge

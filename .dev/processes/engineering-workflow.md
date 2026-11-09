@@ -21,12 +21,14 @@ Define the standard workflow for all engineering tasks on TMS.
 - Consider security implications
 - Estimate complexity and confidence level
 - Document approach if confidence <95%
+- When confidence is 70%–94% or high-risk boundaries are touched (structural architecture, security/RBAC, schema changes, or wire drawing physics), invoke the **LLM Council Protocol** (`.agents/skills/llm-council/SKILL.md` / `llm-council-protocol.md`) for 3-stage deliberation (Divergent Proposals -> Anonymized Peer Review -> Chairman Synthesis).
 
 ### 3. Review (Before Implementation)
 - Verify approach follows established patterns
 - Check for existing solutions in codebase
 - Confirm no breaking changes to public APIs
 - Validate against security and dependency rules in `AGENTS.md`
+- Ensure LLM Council verdict is documented and approved if the council protocol was triggered
 - When modifying dependencies, confirm package extras and version compatibility (e.g. `celery[redis]` vs `redis`)
 
 ### 4. Implement
