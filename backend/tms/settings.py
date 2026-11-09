@@ -269,6 +269,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'search.tasks.prune_processed_outbox_tasks',
         'schedule': crontab(hour=4, minute=0),  # Daily at 4 AM
     },
+    'auto-expire-sessions-periodic': {
+        'task': 'users.tasks.expire_sessions_task',
+        'schedule': crontab(minute='*/15'),  # Every 15 minutes
+    },
     'process-outbox-periodic': {
         'task': 'search.tasks.process_outbox_task',
         'schedule': 5.0,  # Every 5 seconds

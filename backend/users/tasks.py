@@ -54,6 +54,18 @@ def restore_backup_task(self, filepath, filename, user_id, session_data=None):
 
 
 @shared_task
+def expire_sessions_task():
+    """
+    Periodic task to prune user sessions that have timed out due to idleness or absolute duration,
+    evicting their Redis cache keys and logging activity.
+    """
+    from django.core.management import call_command
+    logger.info("Executing periodic expire_sessions task...")
+    call_command('expire_sessions')
+    return {'status': 'success'}
+
+
+@shared_task
 def auto_backup_task():
     """
     Automated scheduled backup task triggered by Celery Beat.

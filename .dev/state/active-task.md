@@ -7,28 +7,28 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** PostgreSQL Audit History Optimization (BRIN Indexing & Chunked Pruning)
+**Task:** Session Lifecycle, Network Resiliency & Ledger Maintenance (LLM Council Implementation)
 **Status:** Complete
 **Started:** 2026-11-10
 **Target Completion:** 2026-11-10
 **Confidence:** 100%
 
 ## Task Description
-Implement LLM Council Proposal C for scaling PostgreSQL die audit history past 1,000,000 records:
-- Add `BrinIndex` on `timestamp` for `DieHistory` and `MachineHistory` with `pages_per_range=128`.
-- Add composite B-tree indexes on `(die, -id)` and `(die, -timestamp)` for $O(1)$ cryptographic chain parent seek and timeline rendering.
-- Generate and apply migration `0009_optimize_history_brin_and_composite_indexes`.
-- Fix timestamp auto_now_add overwrite bug ensuring 100% cryptographic SHA-256 hash verification.
-- Implement chunked batch pruning in `prune_history.py` (default 5000 per transaction) and add regression unit tests.
+Implement the synthesized plan from the LLM Council deliberation:
+- **Milestone 1:** Celery Beat scheduled task for `expire_sessions` every 15m; BRIN index range summarization in `backend/history/tasks.py`; dynamic timeout configuration exposed via `ServerInfoView` and login payload.
+- **Milestone 2:** SSE industrial network resilience in `useRealtimeSync.ts` (indefinite exponential backoff capped at 30s with jitter, query invalidation on reconnect).
+- **Milestone 3:** Client-side cross-tab activity sync (`BroadcastChannel` + `storage`), dynamic frontend idle/absolute limits, 10-minute absolute warning banner, and in-place Lock Screen modal preserving form drafts with password unlock.
 
 ## Completed
-- Added `'django.contrib.postgres'` to `INSTALLED_APPS` in `settings.py`.
-- Replaced bloated B-trees with `BrinIndex` and added composite indexes in `history/models.py`.
-- Generated and executed migration `history.0009_optimize_history_brin_and_composite_indexes`.
-- Fixed timestamp `default=timezone.now` in `DieHistory` and `MachineHistory`.
-- Hardened `prune_history.py` with chunked batch deletion and added test in `test_prune_history.py`.
-- Verified all history and dies tests pass against PostgreSQL 18 container.
-- Updated `changelog-dev.md` and `active-task.md`.
+- Registered `expire_sessions_task` in `backend/users/tasks.py` and scheduled `auto-expire-sessions-periodic` in `backend/tms/settings.py` (`CELERY_BEAT_SCHEDULE`).
+- Added `SELECT brin_summarize_new_values` for `die_hist_ts_brin_idx` and `mach_hist_ts_brin_idx` in `backend/history/tasks.py`.
+- Updated `ServerInfoView` (`AllowAny`) and `issue_user_login_tokens` in `backend/users/views/auth.py` to return session timeout configurations.
+- Added backend unit tests in `backend/users/tests/test_auth.py` (all 48 tests passing).
+- Removed 5-attempt disconnect limit in `frontend/src/hooks/useRealtimeSync.ts`, implementing continuous backoff and post-reconnection query invalidation.
+- Enhanced `frontend/src/components/SessionTimeoutManager.tsx` with dynamic config, cross-tab synchronization, 10-minute shift warning, and in-place Lock Screen re-authentication.
+- Updated and expanded frontend unit tests in `SessionTimeoutManager.test.tsx` (108/108 passing; clean Vite build).
+- Rebuilt and verified all 11 Docker Compose service containers running healthy.
+- Updated `changelog-dev.md`, `active-task.md`, and `progress.md`.
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

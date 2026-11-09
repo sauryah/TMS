@@ -8,6 +8,19 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Session Lifecycle, Network Resiliency & Ledger Maintenance ✅
+**Status:** Complete  
+**Date:** 2026-11-10  
+
+**Completed:**
+- **Automated Session Eviction**: Scheduled Celery Beat task `auto-expire-sessions-periodic` running every 15 minutes to clean dead sessions and Redis keys.
+- **BRIN Maintenance**: Nightly `brin_summarize_new_values` for high-volume audit tables (`die_hist_ts_brin_idx`, `mach_hist_ts_brin_idx`).
+- **Dynamic Configuration**: Server exposes `session_idle_timeout_minutes` and `session_absolute_timeout_hours` via `ServerInfoView` and login payload.
+- **SSE Network Resiliency**: Converted SSE reconnection in `useRealtimeSync.ts` to infinite backoff with full query refresh upon reconnect.
+- **Cross-Tab Activity Synchronization**: Synchronized user interactions across browser tabs using `BroadcastChannel` and storage events.
+- **Shopfloor Form Preservation (Lock Screen)**: In-place modal re-authentication preventing loss of unsaved form data upon idle timeouts.
+- **Absolute Session Warnings**: 10-minute advance banner for 12-hour shift expirations.
+
 ### Platform Release v1.1.0 ✅
 **Status:** Complete  
 **Date:** 2026-11-07  

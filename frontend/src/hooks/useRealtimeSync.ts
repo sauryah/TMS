@@ -39,23 +39,21 @@ export function useRealtimeSync(options: {
     let isCancelled = false
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
     let consecutiveFailures = 0
-    const MAX_RECONNECT_ATTEMPTS = 5
 
     const scheduleReconnect = () => {
-      if (!isCancelled && token && consecutiveFailures < MAX_RECONNECT_ATTEMPTS) {
-        const baseDelay = Math.min(1000 * Math.pow(2, consecutiveFailures), 30000)
+      if (!isCancelled && token) {
+        // Continuous exponential backoff capped at 30 seconds with jitter
+        const baseDelay = Math.min(1000 * Math.pow(2, Math.min(consecutiveFailures, 5)), 30000)
         const jitter = Math.random() * 1000
         const delay = baseDelay + jitter
         reconnectTimer = setTimeout(() => {
           connectSSE()
         }, delay)
-      } else if (consecutiveFailures >= MAX_RECONNECT_ATTEMPTS) {
-        console.warn('EventSource max reconnection attempts reached. Realtime updates suspended.')
       }
     }
 
     const connectSSE = async () => {
-      if (consecutiveFailures >= MAX_RECONNECT_ATTEMPTS || isCancelled) return
+      if (isCancelled) return
 
       try {
         const res = await request('/api/auth/sse-ticket/', { method: 'POST' })
@@ -72,8 +70,14 @@ export function useRealtimeSync(options: {
         eventSource = new EventSource(`/api/events/?ticket=${encodeURIComponent(ticket)}`)
 
         eventSource.onopen = () => {
+          const wasDisconnected = consecutiveFailures > 0
           consecutiveFailures = 0
           window.dispatchEvent(new CustomEvent('sse-status', { detail: { status: 'connected' } }))
+          if (wasDisconnected) {
+            // Re-sync all state after network reconnection
+            invalidateRelevantQueries(DIE_UPDATE_EVENT)
+            invalidateRelevantQueries(MACHINE_UPDATE_EVENT)
+          }
         }
 
         eventSource.onmessage = (event) => {
@@ -203,7 +207,6 @@ export function useRealtimeSync(options: {
 
     return () => {
       isCancelled = true
-      consecutiveFailures = MAX_RECONNECT_ATTEMPTS
       window.dispatchEvent(new CustomEvent('sse-status', { detail: { status: 'disconnected' } }))
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)

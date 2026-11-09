@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, act } from '@testing-library/react'
+import { render, act, screen, fireEvent } from '@testing-library/react'
 import { SessionTimeoutManager } from './SessionTimeoutManager'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useAuth } from '../contexts/AuthContext'
@@ -32,12 +32,26 @@ describe('SessionTimeoutManager', () => {
     mockNavigate.mockClear()
     currentToken = null
 
+    // Mock fetch for server-info
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/v1/server-info/') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            session_idle_timeout_minutes: 30,
+            session_absolute_timeout_hours: 12
+          })
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    })
+
     vi.mocked(useAuth).mockReturnValue({
       token: currentToken,
       refreshToken: null,
       logout: mockLogout,
       role: 'admin',
-      username: 'test',
+      username: 'test_operator',
       userId: 1,
       isAuthorizedForTools: false,
       authorizedTools: [],
@@ -94,7 +108,7 @@ describe('SessionTimeoutManager', () => {
       refreshToken: 'valid-refresh',
       logout: mockLogout,
       role: 'admin',
-      username: 'test',
+      username: 'test_operator',
       userId: 1,
       isAuthorizedForTools: false,
       authorizedTools: [],
@@ -125,14 +139,82 @@ describe('SessionTimeoutManager', () => {
     })
     expect(mockLogout).not.toHaveBeenCalled()
 
-    // 7. Advance past IDLE_LIMIT (28 minutes) + WARNING_LIMIT (2 minutes) -> 30 minutes total since login
-    // Let's go to 30 minutes and 1 second after login (we need to advance another 3 minutes)
+    // 7. Advance past 28 minutes warning and reach 30 minutes (idle timeout -> lock screen)
     act(() => {
       vi.advanceTimersByTime(3 * 60 * 1000)
     })
 
-    // 8. Assert that logout and navigate to login were called
+    // Assert screen is locked but logout not called yet (preserving forms)
+    expect(screen.getByText('SESSION LOCKED')).toBeDefined()
+    expect(mockLogout).not.toHaveBeenCalled()
+
+    // 8. Advance past lock grace period (5 minutes unattended on lock screen) -> forced logout
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000 + 1000)
+    })
+
     expect(mockLogout).toHaveBeenCalledTimes(1)
     expect(mockNavigate).toHaveBeenCalledWith('/login')
+  })
+
+  test('should display warning at 28 minutes and allow stayLoggedIn', async () => {
+    currentToken = 'valid-token'
+    vi.mocked(useAuth).mockReturnValue({
+      token: currentToken,
+      logout: mockLogout,
+      username: 'test_operator',
+      setToken: vi.fn()
+    } as any)
+
+    render(<SessionTimeoutManager />)
+
+    // Advance to 28 minutes (warning triggered)
+    act(() => {
+      vi.advanceTimersByTime(28 * 60 * 1000 + 1000)
+    })
+
+    expect(screen.getByText(/SESSION TIMEOUT WARNING/i)).toBeDefined()
+
+    // Click stay logged in
+    mockRequest.mockResolvedValueOnce({ status: 'active' })
+    const stayBtn = screen.getByText('Stay Logged In')
+    await act(async () => {
+      fireEvent.click(stayBtn)
+    })
+
+    expect(mockRequest).toHaveBeenCalledWith('/api/auth/keep-alive/', { method: 'POST' })
+    expect(screen.queryByText(/SESSION TIMEOUT WARNING/i)).toBeNull()
+  })
+
+  test('should synchronize user activity across tabs via storage event', () => {
+    currentToken = 'valid-token'
+    vi.mocked(useAuth).mockReturnValue({
+      token: currentToken,
+      logout: mockLogout,
+      username: 'test_operator',
+      setToken: vi.fn()
+    } as any)
+
+    render(<SessionTimeoutManager />)
+
+    // Advance to warning at 28m 30s
+    act(() => {
+      vi.advanceTimersByTime(28.5 * 60 * 1000)
+    })
+    expect(screen.getByText(/SESSION TIMEOUT WARNING/i)).toBeDefined()
+
+    // Simulate activity in another browser tab
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'tms_last_activity',
+        newValue: Date.now().toString()
+      }))
+    })
+
+    // Advance 1 second - warning should be dismissed due to remote tab activity
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(screen.queryByText(/SESSION TIMEOUT WARNING/i)).toBeNull()
   })
 })

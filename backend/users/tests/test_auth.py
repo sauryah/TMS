@@ -495,6 +495,21 @@ class AuthTests(APITestCase):
                 pass
             cache.delete(django_cache_key)
 
+    def test_expire_sessions_celery_task(self):
+        from users.tasks import expire_sessions_task
+        res = expire_sessions_task()
+        self.assertEqual(res, {'status': 'success'})
+
+    def test_server_info_view_unauthenticated_and_contains_session_config(self):
+        server_info_url = reverse('server-info')
+        self.client.credentials()
+        response = self.client.get(server_info_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('hostname', response.data)
+        self.assertIn('ip', response.data)
+        self.assertEqual(response.data.get('session_idle_timeout_minutes'), settings.SESSION_IDLE_TIMEOUT_MINUTES)
+        self.assertEqual(response.data.get('session_absolute_timeout_hours'), settings.SESSION_ABSOLUTE_TIMEOUT_HOURS)
+
     def test_multi_device_concurrent_sessions(self):
         from django.test import override_settings
         

@@ -186,7 +186,9 @@ def issue_user_login_tokens(user, request):
         'token': token_str,
         'role': user.role,
         'is_authorized_for_tools': user.is_authorized_for_tools,
-        'authorized_tools': user.authorized_tools
+        'authorized_tools': user.authorized_tools,
+        'session_idle_timeout_minutes': getattr(settings, 'SESSION_IDLE_TIMEOUT_MINUTES', 30),
+        'session_absolute_timeout_hours': getattr(settings, 'SESSION_ABSOLUTE_TIMEOUT_HOURS', 12),
     }, status=status.HTTP_200_OK)
     
     response.set_cookie(
@@ -834,7 +836,7 @@ class DetailedHealthCheckView(APIView):
 
 @method_decorator(transaction.non_atomic_requests, name='dispatch')
 class ServerInfoView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     throttle_classes = []
 
     def get(self, request, *args, **kwargs):
@@ -849,6 +851,8 @@ class ServerInfoView(APIView):
         return Response({
             "hostname": hostname,
             "ip": server_ip,
+            "session_idle_timeout_minutes": getattr(settings, 'SESSION_IDLE_TIMEOUT_MINUTES', 30),
+            "session_absolute_timeout_hours": getattr(settings, 'SESSION_ABSOLUTE_TIMEOUT_HOURS', 12),
         })
 
 

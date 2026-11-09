@@ -1,5 +1,20 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-10 Session Lifecycle, Network Resiliency & Ledger Maintenance (LLM Council Implementation)
+*   **Automated Housekeeping & Celery Beat Scheduling**:
+    *   Registered `expire_sessions_task` in `backend/users/tasks.py` and scheduled `auto-expire-sessions-periodic` in `backend/tms/settings.py` (`CELERY_BEAT_SCHEDULE`) to run every 15 minutes, actively purging dead sessions and evicting Redis cache keys without waiting for subsequent user HTTP calls.
+    *   Added automated BRIN index page summarization (`SELECT brin_summarize_new_values('die_hist_ts_brin_idx')` and `'mach_hist_ts_brin_idx'`) in `backend/history/tasks.py` to keep audit index ranges synchronized after pruning.
+    *   Exposed `session_idle_timeout_minutes` and `session_absolute_timeout_hours` via unauthenticated `ServerInfoView` (`AllowAny`) and login response payloads in `backend/users/views/auth.py`.
+    *   Added unit tests `test_expire_sessions_celery_task` and `test_server_info_view_unauthenticated_and_contains_session_config` in `backend/users/tests/test_auth.py`.
+*   **SSE Industrial Network Resiliency**:
+    *   Hardened `frontend/src/hooks/useRealtimeSync.ts` by removing the 5-attempt reconnection cutoff (`MAX_RECONNECT_ATTEMPTS`), transitioning to continuous exponential backoff (capped at 30s with random jitter) and automatic state query invalidation upon network re-establishment.
+*   **Client Session Continuity & Form Preservation UX**:
+    *   Refactored `frontend/src/components/SessionTimeoutManager.tsx` to dynamically ingest server timeout policies via `/api/v1/server-info/`.
+    *   Integrated cross-tab user activity synchronization via `BroadcastChannel('tms_activity_sync')` with debounced fallback to `localStorage` storage events, preventing secondary browser tabs from prematurely logging operators out.
+    *   Implemented in-place Lock Screen modal ("SESSION LOCKED") protecting shop-floor form inputs from being cleared on idle timeouts, offering password re-authentication with brute-force lockout safeguards.
+    *   Added 10-minute advance warning banner for 12-hour absolute session expiration.
+    *   Updated and expanded frontend unit tests in `SessionTimeoutManager.test.tsx` (108/108 Vitest tests passing).
+
 ### 2026-11-10 PostgreSQL Audit History Scaling & BRIN Indexing
 *   **Database & Retention Optimization (LLM Council Proposal C)**:
     *   Added `'django.contrib.postgres'` to `INSTALLED_APPS` in `backend/tms/settings.py`.
