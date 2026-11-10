@@ -33,6 +33,11 @@ class MeilisearchTests(TransactionTestCase):
                 'searchableAttributes': ['die_id', 'casing', 'status', 'set', 'machine', 'size_str', 'width_str', 'thickness_str', 'size', 'width', 'thickness'],
                 'filterableAttributes': ['die_type', 'status', 'casing', 'size', 'width', 'thickness', 'machine'],
                 'sortableAttributes':   ['die_id'],
+                'typoTolerance': {
+                    'enabled': True,
+                    'minWordSizeForTypos': {'oneTypo': 5, 'twoTypos': 9},
+                    'disableOnAttributes': ['die_id'],
+                },
             })
             uid = task.get('taskUid') or task.get('task_uid')
             meili_client.wait_for_task(uid, timeout_in_ms=5000)

@@ -1,5 +1,19 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-10 Die ID Search Relevance Defense-in-Depth & Meilisearch Typo Disabling (LLM Council)
+*   **Meilisearch Typo Disabling on Die ID**:
+    *   Configured `'disableOnAttributes': ['die_id']` inside `typoTolerance` settings across [`backend/search/meili.py`](file:///D:/TMS/backend/search/meili.py), [`backend/search/tasks.py`](file:///D:/TMS/backend/search/tasks.py), and [`backend/dies/management/commands/sync_search.py`](file:///D:/TMS/backend/dies/management/commands/sync_search.py). Prevents sequential tooling serial numbers from matching unrelated dies within 1-2 edit distances (resolving query `cy251202154` matching 78 unrelated serials).
+    *   Updated test harness index setup in [`backend/dies/tests/test_search.py`](file:///D:/TMS/backend/dies/tests/test_search.py) and [`backend/dies/tests/test_import.py`](file:///D:/TMS/backend/dies/tests/test_import.py) to match production settings.
+*   **Go Search API Digit Query Relevance Pruning**:
+    *   Restored strict digit-containing query filtering in [`go-api/internal/handlers/handlers.go`](file:///D:/TMS/go-api/internal/handlers/handlers.go) (`QueryMeilisearchAndPostgres`): when `hasDigits == true`, candidates scoring `<= 50` (baseline fuzzy hits) are dropped from the result set.
+    *   Updated pagination `totalCount` to report `len(filtered)` when digit filtering is active, preventing mismatched total counters in search result banners.
+    *   Updated [`go-api/internal/handlers/handlers_test.go`](file:///D:/TMS/go-api/internal/handlers/handlers_test.go) with explicit regression tests asserting that `cy251202154` returns 1 match and discards `CY251202054`.
+*   **Cache & Verification**:
+    *   Incremented `search_cache_gen` to 3 in Redis via Django shell.
+    *   Rebuilt and restarted `tms-go-api:latest` container.
+    *   Verified live Go API search returns exactly 1 result for `cy251202154` (`CY251202154`, `total: 1`).
+    *   Ran test suites: Go (100% pass), Django (93/93 pass), Vitest (111/111 pass).
+
 ### 2026-11-10 Die ID Search Prefix Matching Hardening
 *   **Die ID Strict Prefix Matching**:
     *   Hardened PostgreSQL query builder in [`go-api/internal/database/database.go`](file:///D:/TMS/go-api/internal/database/database.go#L139-L225) (`buildWhereClauses`): switched `d.die_id` filtering from arbitrary wildcard `ILIKE '%query%'` to strict starts-with prefix matching `d.die_id ILIKE 'query%'`.

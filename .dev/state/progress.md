@@ -8,6 +8,17 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Die ID Search Relevance Defense-in-Depth & Meilisearch Typo Disabling ✅
+**Status:** Complete  
+**Date:** 2026-11-10  
+
+**Completed:**
+- **Meilisearch Typo Disabling on Die ID**: Configured `typoTolerance.disableOnAttributes = ["die_id"]` across initialization (`backend/search/meili.py`), task worker (`backend/search/tasks.py`), and management commands (`backend/dies/management/commands/sync_search.py`). Prevents sequential tooling serial numbers from matching unrelated dies within 1-2 character edit distances.
+- **Go API Digit Query Relevance Pruning**: Restored strict digit-containing query filtering in `go-api/internal/handlers/handlers.go` (`QueryMeilisearchAndPostgres`), pruning low-relevance baseline candidates (`score <= 50`).
+- **Accurate Result Pagination**: Synchronized total match reporting to return `len(filtered)` for digit queries, preventing mismatched search result headers.
+- **Cache Refresh**: Incremented `search_cache_gen` to 3 in Redis to invalidate stale search entries.
+- **Test Verification**: Added regression tests in `handlers_test.go` and verified 100% pass across Go (100%), Django (93/93), and Vitest (111/111). Live query for `cy251202154` verified to return exactly 1 record (`CY251202154`, `total: 1`).
+
 ### Die ID Search Prefix Matching Hardening ✅
 **Status:** Complete  
 **Date:** 2026-11-10  

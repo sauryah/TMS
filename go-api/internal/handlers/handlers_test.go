@@ -551,18 +551,53 @@ func TestRelevanceSorting(t *testing.T) {
 		t.Errorf("expected DIE-CASING-MATCH to be ranked first for casing query, got: %+v", results)
 	}
 
-	// Test Case 6: Digit-containing query preserves valid typo-tolerant / fuzzy hits
-	// When searching for "TC-20", candidates with score 50 (e.g. from Meilisearch typo tolerance)
-	// must NOT be dropped, and totalCount must preserve Meilisearch's totalHits.
+	// Test Case 6: Digit-containing query drops unrelated baseline/fuzzy hits (score <= 50)
+	// When searching for "TC-20", candidates scoring <= 50 (unrelated to TC-20) are filtered out,
+	// while candidates matching exact/prefix ID or attributes are preserved.
 	results, totalCount, err := h.QueryMeilisearchAndPostgres(context.Background(), &SearchParams{Q: "TC-20", Limit: 10})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(results) != len(candidates) {
-		t.Errorf("expected all %d candidates to be preserved for digit query TC-20, got %d", len(candidates), len(results))
+	if len(results) != 0 {
+		t.Errorf("expected unrelated score-50 candidates to be filtered for digit query TC-20, got %d results", len(results))
 	}
-	if totalCount < len(results) {
-		t.Errorf("expected totalCount >= %d, got %d", len(results), totalCount)
+	if totalCount != 0 {
+		t.Errorf("expected totalCount == 0 for filtered digit query, got %d", totalCount)
+	}
+
+	// Test Case 7: Strict ID search filtering (e.g., "cy251202154") drops false positives
+	dieSpecificID := "CY251202154"
+	dieSimilarID := "CY251202054"
+	specificCandidates := []database.DieRepresentation{
+		{ID: 10, DieID: dieSpecificID, DieType: "ROUND", CurrentSize: &size1600, Casing: "25X10", MachineName: "MAG-CU"},
+		{ID: 11, DieID: dieSimilarID, DieType: "ROUND", CurrentSize: &size2500, Casing: "25X10", MachineName: "MAG-CU"},
+	}
+	mockSpecificDb := &MockDatabase{
+		QueryPostgresByIDsFn: func(ctx context.Context, hitIDs []int64, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, machineID, setID, unassigned, location string) ([]database.DieRepresentation, error) {
+			return specificCandidates, nil
+		},
+	}
+	mockSpecificSearch := &MockSearch{
+		SearchFn: func(query string, searchRequest *meilisearch.SearchRequest) (*meilisearch.SearchResponse, error) {
+			return &meilisearch.SearchResponse{
+				Hits: []interface{}{
+					map[string]interface{}{"id": "10"},
+					map[string]interface{}{"id": "11"},
+				},
+				EstimatedTotalHits: 2,
+			}, nil
+		},
+	}
+	hSpecific := NewHandler(cfg, mockSpecificDb, &MockCache{}, mockSpecificSearch, nil)
+	resultsSpecific, totalSpecific, err := hSpecific.QueryMeilisearchAndPostgres(context.Background(), &SearchParams{Q: "cy251202154", Limit: 10})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resultsSpecific) != 1 || resultsSpecific[0].DieID != "CY251202154" {
+		t.Fatalf("expected exactly 1 result matching CY251202154, got: %+v", resultsSpecific)
+	}
+	if totalSpecific != 1 {
+		t.Errorf("expected totalSpecific == 1, got %d", totalSpecific)
 	}
 }
 

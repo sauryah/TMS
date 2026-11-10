@@ -235,6 +235,7 @@ def rebuild_search_index_task(self, filename=None):
                 'typoTolerance': {
                     'enabled': True,
                     'minWordSizeForTypos': {'oneTypo': 5, 'twoTypos': 9},
+                    'disableOnAttributes': ['die_id'],
                 },
             })
         except Exception as e:

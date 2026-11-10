@@ -24,6 +24,7 @@ class Command(BaseCommand):
                 'typoTolerance': {
                     'enabled': True,
                     'minWordSizeForTypos': {'oneTypo': 5, 'twoTypos': 9},
+                    'disableOnAttributes': ['die_id'],
                 },
             })
         except Exception as e:

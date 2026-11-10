@@ -27,6 +27,7 @@ def init_meilisearch():
             'typoTolerance': {
                 'enabled': True,
                 'minWordSizeForTypos': {'oneTypo': 5, 'twoTypos': 9},
+                'disableOnAttributes': ['die_id'],
             },
         })
         logger.info(f"Meilisearch index '{INDEX_NAME}' initialized successfully")

@@ -762,10 +762,21 @@ func (h *Handler) QueryMeilisearchAndPostgres(ctx context.Context, params *Searc
 
 	slog.Info("Search results count before relevance sorting", "count", len(combined))
 
+	hasDigits := false
+	for _, char := range qClean {
+		if char >= '0' && char <= '9' {
+			hasDigits = true
+			break
+		}
+	}
+
 	var filtered []database.DieRepresentation
 	var scores []int
 	for _, die := range combined {
 		score := scoreDie(die, params.Q)
+		if hasDigits && score <= 50 {
+			continue
+		}
 		filtered = append(filtered, die)
 		scores = append(scores, score)
 	}
@@ -789,7 +800,13 @@ func (h *Handler) QueryMeilisearchAndPostgres(ctx context.Context, params *Searc
 	}
 
 	totalCount := len(filtered)
-	if meiliSuccess && totalHits > totalCount {
+	if hasDigits {
+		if params.Offset > 0 {
+			totalCount = params.Offset + len(filtered)
+		} else {
+			totalCount = len(filtered)
+		}
+	} else if meiliSuccess && totalHits > totalCount {
 		totalCount = totalHits
 	}
 
