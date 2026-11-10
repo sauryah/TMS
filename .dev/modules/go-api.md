@@ -27,6 +27,7 @@ Handles high-throughput read operations: high-performance search proxy, Meilisea
 - `POST /api/go/tools/calculate/die-series`: Automated die step series generator according to reduction criteria.
 
 ## Key Search & Scoring Rules
+- **Die ID Prefix-Only Matching**: Searches targeting `die_id` use strict starts-with prefix matching (`d.die_id ILIKE 'query%'`, score 90 for exact, score 80 for prefix). Arbitrary internal substring matches on `die_id` (e.g., query `88001` matching `PREFIX-88001`) are excluded. Textual metadata fields (`casing`, `status`, `set_name`, `machine_name`) continue to support substring matching (score 70).
 - **Size & Dimension Precision**: Dimension fields (`CurrentSize`, `CurrentWidth`, `CurrentThickness`) use exact numeric match (score 100) or prefix match (score 70). String substring matches (like `1.25` matching query `25`) are explicitly excluded.
 - **Digit Query Strict Filtering**: When a query contains digits, results with `score <= 50` are filtered out across both Meilisearch and direct SQL search paths.
 - **Atomic Cache Invalidation ($O(1)$)**: Search cache keys incorporate the generation counter: `search:<gen>:<hash>`. Django increments `search_cache_gen` on die mutations, rendering all prior cached search pages obsolete without executing expensive Redis `KEYS` or `SCAN` operations.

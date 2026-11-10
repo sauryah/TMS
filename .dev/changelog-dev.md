@@ -1,5 +1,14 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-10 Die ID Search Prefix Matching Hardening
+*   **Die ID Strict Prefix Matching**:
+    *   Hardened PostgreSQL query builder in [`go-api/internal/database/database.go`](file:///D:/TMS/go-api/internal/database/database.go#L139-L225) (`buildWhereClauses`): switched `d.die_id` filtering from arbitrary wildcard `ILIKE '%query%'` to strict starts-with prefix matching `d.die_id ILIKE 'query%'`.
+    *   Preserved metadata attribute wildcard search (`d.casing`, `d.status`, `s.name`, `m.name`) using `%query%`.
+    *   Updated relevance scoring engine in [`go-api/internal/handlers/handlers.go`](file:///D:/TMS/go-api/internal/handlers/handlers.go#L580-L594) (`scoreDie`): removed substring matching on `die_id` from score 70 so only exact matches (score 90) and prefix matches (score 80) score for Die ID. Internal substrings (such as query `88001` matching `PREFIX-88001`) are excluded.
+    *   Added test cases in [`go-api/internal/database/database_test.go`](file:///D:/TMS/go-api/internal/database/database_test.go) and [`go-api/internal/handlers/handlers_test.go`](file:///D:/TMS/go-api/internal/handlers/handlers_test.go).
+    *   Verified full test suite passes (Go tests 100%, Django 93/93, Vitest 111/111).
+    *   Rebuilt and verified live `tms-go-api:latest` container with prefix matching.
+
 ### 2026-11-10 Cryptographic Server-Enforced Lock Boundary & Complete Documentation De-Rackification
 *   **Cryptographic Server-Side Lock Boundary (LLM Council Proposal B)**:
     *   Hardened `frontend/src/components/SessionTimeoutManager.tsx` with token eviction upon lock (`localStorage.removeItem('tms_token')` and `setToken(null)`). Any API request dispatched while locked returns `HTTP 401 Unauthorized` directly from Django and Go, preventing client DevTools bypass.

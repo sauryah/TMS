@@ -8,6 +8,15 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Die ID Search Prefix Matching Hardening ✅
+**Status:** Complete  
+**Date:** 2026-11-10  
+
+**Completed:**
+- **Strict Prefix Matching on Die ID**: Updated `buildWhereClauses` in `go-api/internal/database/database.go` and `scoreDie` in `go-api/internal/handlers/handlers.go` so that Die ID queries match only as exact (score 90) or prefix (`d.die_id ILIKE 'query%'`, score 80). Internal substring matches on Die ID (such as `88001` matching `PREFIX-88001`) are filtered out.
+- **Metadata Wildcard Preservation**: Wildcard substring matching remains active for textual metadata fields (`casing`, `status`, `set_name`, `machine_name`, score 70).
+- **Test Suite Verification**: Added unit tests in `handlers_test.go` and `database_test.go` covering numeric prefix matching and substring exclusion. All Go, Django (93/93), and Vitest (111/111) test suites pass. Rebuilt and verified against live Docker `go-api` service.
+
 ### Session Lifecycle, Network Resiliency & Ledger Maintenance ✅
 **Status:** Complete  
 **Date:** 2026-11-10  

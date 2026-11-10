@@ -687,6 +687,30 @@ func TestScoreDie(t *testing.T) {
 			expected: 80,
 		},
 		{
+			name: "die_id exact numeric match",
+			die: database.DieRepresentation{
+				DieID: "88001",
+			},
+			query:    "88001",
+			expected: 90,
+		},
+		{
+			name: "die_id prefix numeric match",
+			die: database.DieRepresentation{
+				DieID: "88001-A",
+			},
+			query:    "88001",
+			expected: 80,
+		},
+		{
+			name: "die_id substring-only match returns 50 baseline (prefix-only matching)",
+			die: database.DieRepresentation{
+				DieID: "PREFIX-88001",
+			},
+			query:    "88001",
+			expected: 50,
+		},
+		{
 			name: "Substring location match",
 			die: database.DieRepresentation{
 				DieID:    "R-101",

@@ -577,9 +577,9 @@ func scoreDie(die database.DieRepresentation, q string) int {
 		return false
 	}
 
-	// 4. Partial matches (substring in die_id, casing, location, etc., or dimension prefix match)
-	if strings.Contains(dieIDLower, qLower) ||
-		(die.DieType == "ROUND" && matchDimension(die.CurrentSize)) ||
+	// 4. Partial matches (substring in casing, location, etc., or dimension prefix match)
+	// Die ID matching is strictly prefix-only (scores 90/80) and does not match arbitrary internal substrings.
+	if (die.DieType == "ROUND" && matchDimension(die.CurrentSize)) ||
 		(die.DieType == "FLAT" && (matchDimension(die.CurrentWidth) || matchDimension(die.CurrentThickness))) ||
 		strings.Contains(strings.ToLower(die.Casing), qLower) ||
 		strings.Contains(strings.ToLower(die.Location), qLower) ||

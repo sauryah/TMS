@@ -7,26 +7,25 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Cryptographic Server-Enforced Lock Boundary & Complete Documentation De-Rackification
+**Task:** Die ID Search Matching Hardening (Strict Prefix Matching)
 **Status:** Complete
 **Started:** 2026-11-10
 **Target Completion:** 2026-11-10
 **Confidence:** 100%
 
 ## Task Description
-Implement the findings from the follow-up LLM Council Audit:
-- **Server-Enforced Lock Boundary:** Enforce cryptographic server-side protection during session lock by evicting `tms_token` from `localStorage` and React state (`setToken(null)`). Any API request attempted while locked returns HTTP 401 Unauthorized from Django and Go. Re-authentication via `/api/v1/auth/login/` (and MFA backup codes if enabled) mints a fresh token and restores it, keeping underlying form DOM state preserved.
-- **Protected Route Guard:** Update `ProtectedRoute` in `frontend/src/App.tsx` to keep active page components mounted when locked (`!token && !isLocked`), while instantly redirecting to `/login` if `tms_is_locked` is tampered with in DevTools.
-- **Cross-Tab Lock/Unlock Propagation:** Broadcast token eviction and token restoration across open browser tabs via `BroadcastChannel` and `storage` event fallbacks.
-- **Exhaustive Documentation De-Rackification:** Eliminate all legacy references to warehouse racks and shelves across `.dev/modules/`, `.dev/architecture/`, `.dev/business/`, `.dev/state/`, and root manifests (`CHANGELOG.md`, `PROJECT.md`), achieving 100% documentation-implementation parity.
+Enforce strict prefix matching on Die IDs across the Go API search engine and PostgreSQL fallback query builder:
+- When searching for a die number (e.g., `88001`), prevent arbitrary internal substring matches (such as `PREFIX-88001`) from matching the Die ID.
+- Die IDs match only as exact (`dieID == q`, score 90) or prefix (`d.die_id ILIKE 'query%'`, score 80).
+- Substring matching remains enabled for metadata attributes (`casing`, `status`, `set_name`, `machine_name`, score 70).
 
 ## Completed
-- Updated `frontend/src/components/SessionTimeoutManager.tsx` with token eviction on lock (`localStorage.removeItem('tms_token')`, `setToken(null)`), `displayUsername` fallback preservation, and fresh token restoration on unlock.
-- Updated `frontend/src/App.tsx` `ProtectedRoute` guard to preserve in-memory DOM form state under the lock overlay without kicking user to `/login`.
-- Updated cross-tab synchronization handlers (`channel.onmessage` and `handleStorage`) to evict tokens on remote lock and inject fresh tokens on remote unlock.
-- Purged all legacy rack and shelf references across `.dev/modules/backend.md`, `.dev/modules/frontend.md`, `.dev/architecture/api.md`, `.dev/modules/dies.md`, `.dev/architecture/database.md`, `.dev/architecture/coding-standards.md`, `.dev/business/project.md`, `.dev/business/roadmap.md`, `.dev/state/progress.md`, `PROJECT.md`, and `CHANGELOG.md`.
-- Added new unit test in `frontend/src/components/SessionTimeoutManager.test.tsx` testing token eviction, unlock restoration, and cross-tab lock/unlock synchronization (111/111 Vitest tests passing).
-- Verified production build and live Docker service containers (11/11 healthy).
+- Updated `buildWhereClauses` in `go-api/internal/database/database.go` to use parameterized prefix matching (`d.die_id ILIKE $1` with `query%`) for Die IDs while keeping wildcard matching for metadata text fields.
+- Updated `scoreDie` in `go-api/internal/handlers/handlers.go` to restrict Die ID matches to exact (90) and prefix (80), removing arbitrary substring matches on Die ID.
+- Added test cases in `go-api/internal/handlers/handlers_test.go` and `go-api/internal/database/database_test.go`.
+- Verified all Go test suites pass (100% passing).
+- Verified Django backend and Vitest frontend test suites pass (111/111 Vitest, 93/93 Django).
+- Rebuilt and restarted `tms-go-api:latest` container and verified live search query with prefix matching.
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

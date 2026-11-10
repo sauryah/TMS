@@ -21,27 +21,33 @@ func TestBuildQueryPostgresDirectly(t *testing.T) {
 	// Test filters
 	query, args = BuildQueryPostgresDirectly("die-101", "ROUND", "AVAILABLE", "Steel", "1.5", "5.0", "", "", "", "", "", "", "", "", 10, 0)
 
-	if !strings.Contains(query, "ILIKE $1") {
-		t.Errorf("expected search query parameter placeholder $1, got: %s", query)
+	if !strings.Contains(query, "d.die_id ILIKE $1") {
+		t.Errorf("expected die_id prefix search parameter placeholder $1, got: %s", query)
 	}
-	if !strings.Contains(query, "AND d.die_type = $2") {
-		t.Errorf("expected die_type filter placeholder $2, got: %s", query)
+	if args[0] != "die-101%" {
+		t.Errorf("expected die_id prefix arg 'die-101%%', got: %v", args[0])
 	}
-	if !strings.Contains(query, "AND d.status = $3") {
-		t.Errorf("expected status filter placeholder $3, got: %s", query)
+	if args[1] != "%die-101%" {
+		t.Errorf("expected metadata wildcard arg '%%die-101%%', got: %v", args[1])
 	}
-	if !strings.Contains(query, "AND d.casing = $4") {
-		t.Errorf("expected casing filter placeholder $4, got: %s", query)
+	if !strings.Contains(query, "AND d.die_type = $3") {
+		t.Errorf("expected die_type filter placeholder $3, got: %s", query)
 	}
-	if !strings.Contains(query, "AND r.current_size >= $5") {
-		t.Errorf("expected sizeMin filter placeholder $5, got: %s", query)
+	if !strings.Contains(query, "AND d.status = $4") {
+		t.Errorf("expected status filter placeholder $4, got: %s", query)
 	}
-	if !strings.Contains(query, "AND r.current_size <= $6") {
-		t.Errorf("expected sizeMax filter placeholder $6, got: %s", query)
+	if !strings.Contains(query, "AND d.casing = $5") {
+		t.Errorf("expected casing filter placeholder $5, got: %s", query)
+	}
+	if !strings.Contains(query, "AND r.current_size >= $6") {
+		t.Errorf("expected sizeMin filter placeholder $6, got: %s", query)
+	}
+	if !strings.Contains(query, "AND r.current_size <= $7") {
+		t.Errorf("expected sizeMax filter placeholder $7, got: %s", query)
 	}
 
-	if len(args) != 6 {
-		t.Errorf("expected 6 args, got %d", len(args))
+	if len(args) != 7 {
+		t.Errorf("expected 7 args, got %d", len(args))
 	}
 
 	// Test location filter
@@ -61,8 +67,14 @@ func TestBuildQueryPostgresDirectly(t *testing.T) {
 	if !strings.Contains(queryNum, "r.current_size >=") {
 		t.Errorf("expected indexed range on current_size for numeric query, got: %s", queryNum)
 	}
-	if len(argsNum) != 3 {
-		t.Errorf("expected 3 args for numeric query (likeVal, min, max), got %d: %v", len(argsNum), argsNum)
+	if len(argsNum) != 4 {
+		t.Errorf("expected 4 args for numeric query (prefix, likeVal, min, max), got %d: %v", len(argsNum), argsNum)
+	}
+	if argsNum[0] != "1.5%" {
+		t.Errorf("expected die_id prefix '1.5%%', got: %v", argsNum[0])
+	}
+	if argsNum[1] != "%1.5%" {
+		t.Errorf("expected metadata wildcard '%%1.5%%', got: %v", argsNum[1])
 	}
 
 	// Test non-numeric search query omits dimension CAST entirely
@@ -70,8 +82,20 @@ func TestBuildQueryPostgresDirectly(t *testing.T) {
 	if strings.Contains(queryText, "CAST(r.current_size AS TEXT)") {
 		t.Errorf("expected no CAST on current_size for non-numeric query, got: %s", queryText)
 	}
-	if len(argsText) != 1 || argsText[0] != "%steel%" {
-		t.Errorf("expected 1 arg %%steel%%, got: %v", argsText)
+	if len(argsText) != 2 || argsText[0] != "steel%" || argsText[1] != "%steel%" {
+		t.Errorf("expected 2 args (steel%%, %%steel%%), got: %v", argsText)
+	}
+
+	// Test prefix-only Die ID matching (e.g., query '88001' matches '88001%' but not '%88001%')
+	queryPrefix, argsPrefix := BuildQueryPostgresDirectly("88001", "", "", "", "", "", "", "", "", "", "", "", "", "", 10, 0)
+	if !strings.Contains(queryPrefix, "d.die_id ILIKE $1") {
+		t.Errorf("expected d.die_id ILIKE $1, got: %s", queryPrefix)
+	}
+	if argsPrefix[0] != "88001%" {
+		t.Errorf("expected die_id prefix '88001%%', got: %v", argsPrefix[0])
+	}
+	if argsPrefix[1] != "%88001%" {
+		t.Errorf("expected metadata likeVal '%%88001%%', got: %v", argsPrefix[1])
 	}
 }
 

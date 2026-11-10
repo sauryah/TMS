@@ -142,7 +142,8 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 	argCounter := 1
 
 	if q != "" {
-		cleanQ := strings.Trim(q, `"'`)
+		cleanQ := strings.TrimSpace(strings.Trim(q, `"'`))
+		dieIdPrefix := cleanQ + "%"
 		likeVal := "%" + cleanQ + "%"
 		qNumStr := cleanQ
 		if strings.HasSuffix(strings.ToLower(qNumStr), "mm") {
@@ -180,9 +181,9 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 						OR f.current_width = $%d
 						OR f.current_thickness = $%d
 					)
-				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+1, argCounter+1))
-				args = append(args, likeVal, fmt.Sprintf("%.3f", numMin))
-				argCounter += 2
+				`, argCounter, argCounter+1, argCounter+1, argCounter+1, argCounter+1, argCounter+2, argCounter+2, argCounter+2))
+				args = append(args, dieIdPrefix, likeVal, fmt.Sprintf("%.3f", numMin))
+				argCounter += 3
 			} else {
 				sqlParts = append(sqlParts, fmt.Sprintf(`
 					AND (
@@ -195,9 +196,9 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 						OR (f.current_width >= $%d AND f.current_width < $%d)
 						OR (f.current_thickness >= $%d AND f.current_thickness < $%d)
 					)
-				`, argCounter, argCounter, argCounter, argCounter, argCounter, argCounter+1, argCounter+2, argCounter+1, argCounter+2, argCounter+1, argCounter+2))
-				args = append(args, likeVal, fmt.Sprintf("%.3f", numMin), fmt.Sprintf("%.3f", numMax))
-				argCounter += 3
+				`, argCounter, argCounter+1, argCounter+1, argCounter+1, argCounter+1, argCounter+2, argCounter+3, argCounter+2, argCounter+3, argCounter+2, argCounter+3))
+				args = append(args, dieIdPrefix, likeVal, fmt.Sprintf("%.3f", numMin), fmt.Sprintf("%.3f", numMax))
+				argCounter += 4
 			}
 		} else {
 			sqlParts = append(sqlParts, fmt.Sprintf(`
@@ -208,9 +209,9 @@ func buildWhereClauses(q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin
 					OR s.name ILIKE $%d 
 					OR m.name ILIKE $%d
 				)
-			`, argCounter, argCounter, argCounter, argCounter, argCounter))
-			args = append(args, likeVal)
-			argCounter++
+			`, argCounter, argCounter+1, argCounter+1, argCounter+1, argCounter+1))
+			args = append(args, dieIdPrefix, likeVal)
+			argCounter += 2
 		}
 	}
 
