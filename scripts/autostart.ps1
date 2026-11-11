@@ -5,7 +5,7 @@
 # container stack in the background on Windows boot / user login.
 # =============================================================================
 
-$projectDir = "D:\tms"
+$projectDir = (Get-Item $PSScriptRoot).Parent.FullName
 $logDir = Join-Path $projectDir "logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 $logFile = Join-Path $logDir "autostart.log"
@@ -22,11 +22,11 @@ Log-Msg "=== TMS Autostart Initialized ==="
 $dockerProcess = Get-Process "com.docker.backend" -ErrorAction SilentlyContinue
 if (-not $dockerProcess) {
     Log-Msg "Docker Desktop process not found. Launching Docker Desktop..."
-    $dockerExe = "C:\Users\TOOL ROOM 1\AppData\Local\Programs\DockerDesktop\Docker Desktop.exe"
+    $dockerExe = Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe"
     if (Test-Path $dockerExe) {
         Start-Process $dockerExe
     } else {
-        $fallback = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+        $fallback = Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"
         if (Test-Path $fallback) { Start-Process $fallback }
     }
 } else {

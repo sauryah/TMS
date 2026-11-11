@@ -5,7 +5,7 @@
 # and verifies container health every time the computer/user starts up.
 # =============================================================================
 
-$projectDir = "D:\tms"
+$projectDir = (Get-Item $PSScriptRoot).Parent.FullName
 $scriptPath = Join-Path $projectDir "scripts\autostart.ps1"
 $startupFolder = [Environment]::GetFolderPath('Startup')
 $vbsPath = Join-Path $startupFolder "TMS-Autostart.vbs"
@@ -56,5 +56,5 @@ Write-Host ""
 Write-Host ">>> TMS is now configured to start automatically on Windows boot! <<<" -ForegroundColor Green
 Write-Host "    - Docker Desktop will be checked/started" -ForegroundColor Gray
 Write-Host "    - Containers will be brought up via 'docker compose up -d'" -ForegroundColor Gray
-Write-Host "    - Log file will be updated at D:\tms\logs\autostart.log" -ForegroundColor Gray
+Write-Host "    - Log file will be updated at $(Join-Path $projectDir 'logs\autostart.log')" -ForegroundColor Gray
 Write-Host ""

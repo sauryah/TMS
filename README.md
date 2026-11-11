@@ -553,7 +553,7 @@ graph LR
 
 The simplest way to connect another Windows computer:
 
-1. Copy the single standalone file **`TMS-Client-Setup.exe`** (12.5 KB) from your server (located at `D:\tms\TMS-Client-Setup.exe` or on the server desktop) to a USB drive or shared folder.
+1. Copy the single standalone file **`TMS-Client-Setup.exe`** (12.5 KB) from your server (located in the repository root or on the server desktop) to a USB drive or shared folder.
 2. Run `TMS-Client-Setup.exe` on the other computer.
 3. Click **Setup Workstation**:
    * Extracts and installs the embedded Root CA into the Windows Trusted Root store.

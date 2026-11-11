@@ -5,7 +5,7 @@
 # with the Root CA certificate embedded directly inside the binary.
 # =============================================================================
 
-$projectDir = "D:\tms"
+$projectDir = (Get-Item $PSScriptRoot).Parent.FullName
 $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path $csc)) {
     $csc = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
