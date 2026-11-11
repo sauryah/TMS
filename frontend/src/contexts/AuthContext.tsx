@@ -71,15 +71,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = React.useCallback(() => {
     refreshFailuresRef.current = 0
     const activeToken = localStorage.getItem('tms_token') || token
-    if (activeToken) {
-      fetch('/api/v1/auth/logout/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${activeToken}`,
-          'X-Requested-With': 'XMLHttpRequest',
-        }
-      }).catch(err => console.error('Failed to notify backend logout:', err))
+    const headers: Record<string, string> = {
+      'X-Requested-With': 'XMLHttpRequest',
     }
+    if (activeToken) {
+      headers['Authorization'] = `Bearer ${activeToken}`
+    }
+    fetch('/api/v1/auth/logout/', {
+      method: 'POST',
+      headers,
+      credentials: 'same-origin',
+    }).catch(err => console.error('Failed to notify backend logout:', err))
+
     clearAuthStorage()
     setToken(null)
     setRefreshToken(null)

@@ -206,6 +206,7 @@ SIMPLE_JWT = {
 # Session Settings
 SESSION_IDLE_TIMEOUT_MINUTES = config('SESSION_IDLE_TIMEOUT_MINUTES', default=30, cast=int)
 SESSION_ABSOLUTE_TIMEOUT_HOURS = config('SESSION_ABSOLUTE_TIMEOUT_HOURS', default=12, cast=int)
+SESSION_LOCK_GRACE_PERIOD_SECONDS = config('SESSION_LOCK_GRACE_PERIOD_SECONDS', default=900, cast=int)
 
 # Meilisearch configuration
 MEILI_HOST = config('MEILI_HOST', default='http://meilisearch:7700')

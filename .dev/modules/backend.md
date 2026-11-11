@@ -126,6 +126,7 @@ backend/
 
 ### Authentication & MFA
 - `POST /api/v1/auth/login/`: User login (sets HTTPOnly cookies + returns JWT; prompts for MFA if enabled)
+- `POST /api/v1/auth/lock/`: Lock active user session, revoke access cookies, invalidate Go token verification cache, and record `SESSION_LOCKED`
 - `POST /api/v1/auth/logout/`: User logout
 - `POST /api/v1/auth/refresh/`: Token refresh
 - `POST /api/v1/auth/keep-alive/`: Extend session

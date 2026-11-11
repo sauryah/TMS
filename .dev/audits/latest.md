@@ -9,11 +9,11 @@ This audit provides an engineering and security verification for the production 
 
 | Category | Checks | Status |
 | :--- | :--- | :--- |
-| **Authentication & RBAC** | Session eviction on role update, single-use MFA backup codes on login & lockscreen, and persistent lockscreen state | ✅ PASS |
+| **Authentication & RBAC** | Session eviction on role update, single-use MFA backup codes on login & lockscreen, server-enforced session lock with cookie revocation, and Go API cache busting | ✅ PASS |
 | **Search & Outbox** | HMAC-SHA256 signature verification, atomic outbox processing, and Go API Redis search caching (10s TTL) | ✅ PASS |
 | **Database & Caching** | PostgreSQL 18 schema, BRIN indexing on audit history, chunked batch pruning, and vendor-guarded BRIN summarization | ✅ PASS |
 | **SSE Real-Time Sync** | Continuous exponential backoff (capped at 30s with jitter) and comprehensive multi-domain query invalidation | ✅ PASS |
 | **Containerization** | Unprivileged non-root user (`USER tmsuser`, UID 1001) and Traefik reverse proxy HTTPS across 11 services | ✅ PASS |
-| **Type Safety & Testing** | 0 TypeScript errors, 29 Vitest test suites (110/110 passing), 48 Django unit tests passing | ✅ PASS |
+| **Type Safety & Testing** | 0 TypeScript errors, 29 Vitest test suites (111/111 passing), 237 Django unit tests passing (237/237), 8 Go API packages passing | ✅ PASS |
 
-**Status: ✅ ALL SYSTEMS VERIFIED FOR v1.1.0 RELEASE (2026-11-10)**
+**Status: ✅ ALL SYSTEMS VERIFIED FOR v1.1.0 RELEASE (2026-11-12)**

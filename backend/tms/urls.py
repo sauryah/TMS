@@ -11,7 +11,7 @@ from dies.views import (
     DieInventoryRecountViewSet, EnamelMachineViewSet
 )
 from users.views import (
-    LoginView, LogoutView, UserViewSet, UserActivityLogViewSet, UserSessionViewSet,
+    LoginView, LockView, LogoutView, UserViewSet, UserActivityLogViewSet, UserSessionViewSet,
     MeView, ChangePasswordView, KeepAliveView, SSETicketView, BackupViewSet,
     EventStreamView, HealthCheckView, DetailedHealthCheckView, LivenessCheckView, ReadinessCheckView,
     ServerInfoView, VerifyTokenView, TokenRefreshView,
@@ -54,6 +54,7 @@ urlpatterns = [
     
     # Authentication and Utility Endpoints (v1)
     path('api/v1/auth/login/', LoginView.as_view(), name='login'),
+    path('api/v1/auth/lock/', LockView.as_view(), name='lock'),
     path('api/v1/auth/logout/', LogoutView.as_view(), name='logout'),
     path('api/v1/auth/me/', MeView.as_view(), name='auth-me'),
     path('api/v1/auth/change-password/', ChangePasswordView.as_view(), name='change-password'),
@@ -88,6 +89,7 @@ urlpatterns = [
 
     # Legacy fallbacks (used by frontend and e2e tests)
     path('api/auth/login/', LoginView.as_view()),
+    path('api/auth/lock/', LockView.as_view()),
     path('api/auth/logout/', LogoutView.as_view()),
     path('api/auth/me/', MeView.as_view()),
     path('api/auth/change-password/', ChangePasswordView.as_view()),

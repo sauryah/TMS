@@ -8,6 +8,19 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Server-Enforced Session Lock & Cookie Revocation (LLM Council Implementation) ✅
+**Status:** Complete  
+**Date:** 2026-11-12  
+
+**Completed:**
+- **Server-Side Session Lock Enforcement**: Implemented `SessionService.lock_session(user, token_hash)` and `is_session_locked(user_id, token_hash)` backed by Redis caching (`locked_session:{user_id}:{token_hash}`).
+- **Dual-Engine Cache Invalidation**: Invalidated Go API's `verify_token:{token_hash}` Redis cache key upon locking, ensuring immediate query rejection across the Go search proxy.
+- **HTTP-Only Cookie Invalidation**: Added `LockView` (`POST /api/v1/auth/lock/` and legacy `/api/auth/lock/`) which drops `tms_access_token` and `tms_refresh_token` cookies with `max_age=0` upon lock.
+- **Authentication Guard**: Updated `CustomJWTAuthentication` in `backend/users/authentication.py` to reject locked sessions with 401 Unauthorized (`code: session_locked`) while permitting `/auth/lock` and `/auth/logout` routes.
+- **Activity Log & Schema Migration**: Added `SESSION_LOCKED` and `SESSION_UNLOCKED` actions to `UserActivityLog` choices and applied migration `0007_alter_useractivitylog_action.py`.
+- **Frontend Lifecycle & Multi-Tab Sync**: Enhanced `SessionTimeoutManager.tsx` to dispatch `POST /api/v1/auth/lock/` on idle timeout, updated `AuthContext.tsx` to clear cookies via `POST /api/v1/auth/logout/` even when client token is cleared, and allowlisted auth routes in `useApi.ts`.
+- **Full Test Suite Verification**: Added 5 integration tests in `users.tests.test_auth.SessionLockTests` and verified 100% pass across all 237 Django tests (237/237 in 61.8s), all 8 Go API packages, and all 29 Vitest frontend suites (111/111).
+
 ### README Hero Screenshot Update ✅
 **Status:** Complete  
 **Date:** 2026-11-11  

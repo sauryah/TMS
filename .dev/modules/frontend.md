@@ -51,6 +51,7 @@ The application supports three global visual modes managed via `ThemeContext.tsx
 
 ## Important Files
 - [App.tsx](file:///frontend/src/App.tsx): Application router and shell layout with provider hierarchy (`AuthProvider` ➔ `ThemeProvider` ➔ `ToastProvider` ➔ `NotificationProvider` ➔ `AnnouncementProvider`).
+- [SessionTimeoutManager.tsx](file:///frontend/src/components/SessionTimeoutManager.tsx): Session lifecycle manager enforcing idle timeouts, server-backed session lock (`/api/v1/auth/lock/`), multi-tab broadcast sync, and in-place re-authentication.
 - [ThemeContext.tsx](file:///frontend/src/contexts/ThemeContext.tsx): Triple-theme state (`terminal`, `classic`, `light`), persistence, and ROOT access control.
 - [index.css](file:///frontend/src/index.css): Theme design tokens, CSS variables, CAD blueprint filters, `@font-face` definitions, and print rules.
 - [WireDrawingPrintReport.tsx](file:///frontend/src/features/wire-drawing-calculator/components/WireDrawingPrintReport.tsx): Technical Data Sheet engineering report template for drafting pipeline and charts.

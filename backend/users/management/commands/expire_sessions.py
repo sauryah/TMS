@@ -33,6 +33,7 @@ class Command(BaseCommand):
         for session in expired_sessions:
             # Evict Django session cache
             cache.delete(f"user_session:{session.user_id}:{session.token_hash}")
+            cache.delete(f"locked_session:{session.user_id}:{session.token_hash}")
             # Evict Go API token verification cache
             if r is not None:
                 try:

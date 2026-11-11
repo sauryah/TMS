@@ -13,6 +13,7 @@ Complete catalog of all API endpoints across Django and Go services.
 | Method | Route | Access | Purpose / Details |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/auth/login/` | Public | Validates credentials, checks MFA requirement, sets HTTPOnly cookies, logs session |
+| `POST` | `/api/v1/auth/lock/` | Authenticated | Locks session in Redis, evicts Go token verification cache, clears HTTPOnly cookies, records SESSION_LOCKED |
 | `POST` | `/api/v1/auth/logout/` | Authenticated | Evicts session record, invalidates Redis cache, clears cookies |
 | `GET` | `/api/v1/auth/me/` | Authenticated | Retrieves current user profile, role, MFA status, and authorized tool permissions |
 | `POST` | `/api/v1/auth/change-password/` | Authenticated | Updates password with standard validation rules |
@@ -122,4 +123,5 @@ Complete catalog of all API endpoints across Django and Go services.
 3. Client includes cookies in subsequent requests (or Bearer token for API tools)
 4. Go API validates JWT access tokens via Redis cache or `/internal/verify-token/`
 5. Concurrent logins evict older active sessions and emit eviction events
+6. Inactive sessions trigger client and server session lock (`/api/v1/auth/lock/`), rejecting subsequent calls with 401 (`session_locked`) until re-authenticated in-place.
 

@@ -48,6 +48,12 @@ class CustomJWTAuthentication(JWTAuthentication):
 
         session_data = SessionService.get_session_data(user, token_hash)
         SessionService.check_timeouts(user, token_hash, session_data)
+
+        # Allow lock and logout endpoints when locked so state can be finalized or abandoned cleanly
+        path = request.path.rstrip('/')
+        if not (path.endswith('/auth/lock') or path.endswith('/auth/logout')):
+            SessionService.check_locked(user, token_hash)
+
         SessionService.update_last_seen(user, token_hash, session_data)
 
         _thread_locals.user = user

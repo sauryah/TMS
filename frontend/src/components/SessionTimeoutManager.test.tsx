@@ -152,6 +152,16 @@ describe('SessionTimeoutManager', () => {
     expect(localStorage.getItem('tms_is_locked')).toBe('true')
     expect(mockSetToken).toHaveBeenCalledWith(null)
     expect(localStorage.getItem('tms_token')).toBeNull()
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/v1/auth/lock/',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: expect.objectContaining({
+          'X-Requested-With': 'XMLHttpRequest'
+        })
+      })
+    )
     expect(mockLogout).not.toHaveBeenCalled()
 
     // 8. Advance past lock grace period (5 minutes unattended on lock screen) -> forced logout

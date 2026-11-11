@@ -1,5 +1,6 @@
 from users.views.auth import (
     LoginView,
+    LockView,
     ChangePasswordView,
     LogoutView,
     VerifyTokenView,
@@ -31,6 +32,7 @@ from users.views.backup import BackupViewSet
 
 __all__ = [
     'LoginView',
+    'LockView',
     'ChangePasswordView',
     'LogoutView',
     'VerifyTokenView',

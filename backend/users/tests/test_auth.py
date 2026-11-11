@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.core.management import call_command
 from django.conf import settings
 from users.models import User, UserSession
+from users.services.session_service import SessionService
 import hashlib
 
 class AuthTests(APITestCase):
@@ -872,6 +873,178 @@ class UserActivityLogTests(APITestCase):
         # 6. Untrusted client device IP header is ignored (prevents IP spoofing)
         req_dev = factory.get('/', HTTP_X_CLIENT_DEVICE_IP='192.168.1.105', REMOTE_ADDR='172.18.0.1')
         self.assertEqual(get_client_ip(req_dev), '127.0.0.1')
+
+
+class SessionLockTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='lock_test_user',
+            password='lock_password_123',
+            email='lock_test@tms.local',
+            role='ADMIN'
+        )
+        self.login_url = reverse('login')
+        self.lock_url = reverse('lock')
+        self.logout_url = reverse('logout')
+
+        from django.core.cache import cache
+        cache.clear()
+        import redis
+        try:
+            r = redis.Redis.from_url(settings.REDIS_CACHE_URL)
+            r.delete('login_attempts:lock_test_user')
+        except Exception:
+            pass
+
+    def test_session_lock_endpoint_marks_session_locked_and_clears_cookies(self):
+        login_res = self.client.post(self.login_url, {
+            'username': 'lock_test_user',
+            'password': 'lock_password_123'
+        })
+        self.assertEqual(login_res.status_code, status.HTTP_200_OK)
+        token = login_res.data['token']
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+        # Post to lock endpoint with token and X-Requested-With
+        lock_res = self.client.post(
+            self.lock_url,
+            HTTP_AUTHORIZATION=f'Bearer {token}',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(lock_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(lock_res.data['status'], 'locked')
+
+        # Assert cookies are revoked
+        access_cookie = lock_res.cookies.get('tms_access_token')
+        self.assertIsNotNone(access_cookie)
+        self.assertEqual(access_cookie.value, '')
+
+        # Assert session is recorded as locked in SessionService
+        self.assertTrue(SessionService.is_session_locked(self.user.id, token_hash))
+
+        # Assert UserActivityLog records SESSION_LOCKED
+        log = UserActivityLog.objects.filter(user=self.user, action='SESSION_LOCKED').last()
+        self.assertIsNotNone(log)
+
+    def test_locked_session_rejects_subsequent_api_calls_with_401_session_locked(self):
+        login_res = self.client.post(self.login_url, {
+            'username': 'lock_test_user',
+            'password': 'lock_password_123'
+        })
+        token = login_res.data['token']
+
+        # Lock session
+        self.client.post(
+            self.lock_url,
+            HTTP_AUTHORIZATION=f'Bearer {token}',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # 1. Test request with Bearer token is rejected
+        res = self.client.get('/api/v1/auth/me/', HTTP_AUTHORIZATION=f'Bearer {token}')
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('Session is locked', str(res.data))
+
+        # 2. Test request using cookie is also rejected
+        self.client.cookies['tms_access_token'] = token
+        res_cookie = self.client.get('/api/v1/auth/me/')
+        self.assertEqual(res_cookie.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('Session is locked', str(res_cookie.data))
+
+    def test_locked_session_allows_reauth_unlock_and_records_activity(self):
+        login_res = self.client.post(self.login_url, {
+            'username': 'lock_test_user',
+            'password': 'lock_password_123'
+        })
+        old_token = login_res.data['token']
+        old_token_hash = hashlib.sha256(old_token.encode('utf-8')).hexdigest()
+
+        # Lock session
+        self.client.post(
+            self.lock_url,
+            HTTP_AUTHORIZATION=f'Bearer {old_token}',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertTrue(SessionService.is_session_locked(self.user.id, old_token_hash))
+
+        # Unlock by authenticating via login endpoint
+        unlock_res = self.client.post(self.login_url, {
+            'username': 'lock_test_user',
+            'password': 'lock_password_123'
+        })
+        self.assertEqual(unlock_res.status_code, status.HTTP_200_OK)
+        new_token = unlock_res.data['token']
+
+        # Assert old locked session cache is removed
+        self.assertFalse(SessionService.is_session_locked(self.user.id, old_token_hash))
+
+        # Assert SESSION_UNLOCKED was logged
+        unlock_log = UserActivityLog.objects.filter(user=self.user, action='SESSION_UNLOCKED').last()
+        self.assertIsNotNone(unlock_log)
+
+        # Assert new token works normally
+        me_res = self.client.get('/api/v1/auth/me/', HTTP_AUTHORIZATION=f'Bearer {new_token}')
+        self.assertEqual(me_res.status_code, status.HTTP_200_OK)
+
+    def test_locked_session_allows_logout_endpoint(self):
+        login_res = self.client.post(self.login_url, {
+            'username': 'lock_test_user',
+            'password': 'lock_password_123'
+        })
+        token = login_res.data['token']
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+        # Lock session
+        self.client.post(
+            self.lock_url,
+            HTTP_AUTHORIZATION=f'Bearer {token}',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # Logout must be permitted even when session is locked
+        logout_res = self.client.post(
+            self.logout_url,
+            HTTP_AUTHORIZATION=f'Bearer {token}',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(logout_res.status_code, status.HTTP_200_OK)
+        self.assertFalse(SessionService.is_session_locked(self.user.id, token_hash))
+        self.assertFalse(UserSession.objects.filter(user=self.user, token_hash=token_hash).exists())
+
+    def test_lock_endpoint_invalidates_go_verify_token_redis_cache(self):
+        login_res = self.client.post(self.login_url, {
+            'username': 'lock_test_user',
+            'password': 'lock_password_123'
+        })
+        token = login_res.data['token']
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+        import redis
+        import json
+        r = redis.Redis.from_url(settings.REDIS_CACHE_URL)
+        verify_key = f"verify_token:{token_hash}"
+        r.set(verify_key, json.dumps({"user_id": self.user.id, "role": "ADMIN"}))
+        self.assertTrue(r.exists(verify_key))
+
+        # Lock session
+        self.client.post(
+            self.lock_url,
+            HTTP_AUTHORIZATION=f'Bearer {token}',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # verify_token Redis key must be deleted
+        self.assertFalse(r.exists(verify_key))
+
+        # Internal verify-token endpoint must reject with 401 when locked
+        verify_res = self.client.post(
+            '/internal/verify-token/',
+            HTTP_AUTHORIZATION=f'Bearer {token}',
+            HTTP_X_INTERNAL_KEY=settings.INTERNAL_API_SECRET
+        )
+        self.assertEqual(verify_res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 
 
 

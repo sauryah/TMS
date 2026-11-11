@@ -120,3 +120,62 @@ class SessionService:
                     cache.set(db_update_cache_key, now.isoformat(), timeout=settings.SESSION_ABSOLUTE_TIMEOUT_HOURS * 3600)
                 except Exception:
                     pass
+
+    @staticmethod
+    def lock_session(user, token_hash: str) -> None:
+        """
+        Record session as locked in cache and invalidate Go API token cache.
+        """
+        lock_key = f"locked_session:{user.id}:{token_hash}"
+        lock_ttl = getattr(settings, 'SESSION_LOCK_GRACE_PERIOD_SECONDS', 900)
+        cache.set(
+            lock_key,
+            {
+                "locked_at": timezone.now().isoformat(),
+            },
+            timeout=lock_ttl
+        )
+
+        # Invalidate Go API verification cache so read requests drop immediately
+        try:
+            import redis
+            r = redis.Redis.from_url(settings.REDIS_CACHE_URL)
+            r.delete(f"verify_token:{token_hash}")
+        except Exception:
+            pass
+
+    @staticmethod
+    def unlock_session(user, token_hash: str) -> None:
+        """
+        Remove locked state for session in cache.
+        """
+        lock_key = f"locked_session:{user.id}:{token_hash}"
+        cache.delete(lock_key)
+
+        try:
+            import redis
+            r = redis.Redis.from_url(settings.REDIS_CACHE_URL)
+            r.delete(f"verify_token:{token_hash}")
+        except Exception:
+            pass
+
+    @staticmethod
+    def is_session_locked(user_id: int, token_hash: str) -> bool:
+        """
+        Check if the session has been marked as locked.
+        """
+        lock_key = f"locked_session:{user_id}:{token_hash}"
+        return bool(cache.get(lock_key))
+
+    @staticmethod
+    def check_locked(user, token_hash: str) -> None:
+        """
+        Raise AuthenticationFailed if the session is locked.
+        """
+        if SessionService.is_session_locked(user.id, token_hash):
+            raise AuthenticationFailed(
+                detail={
+                    "detail": "Session is locked. Re-authentication required.",
+                    "code": "session_locked"
+                }
+            )

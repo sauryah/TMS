@@ -1,5 +1,22 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-12 Server-Enforced Session Lock & Cookie Revocation (LLM Council Implementation)
+*   **Server-Side Session Lock Enforcement**:
+    *   Implemented `SessionService.lock_session(user, token_hash)` and `is_session_locked(user_id, token_hash)` using Redis caching (`locked_session:{user_id}:{token_hash}`).
+    *   Added `CustomJWTAuthentication` enforcement in `backend/users/authentication.py`: any request attempting to use a locked session via Bearer token or HTTP-only cookie is rejected with 401 Unauthorized (`code: session_locked`), while allowlisting `/auth/lock` and `/auth/logout` endpoints.
+    *   Added `LockView` (`POST /api/v1/auth/lock/` and legacy `/api/auth/lock/`) which drops `tms_access_token` and `tms_refresh_token` cookies with `max_age=0` (`delete_cookie`) in the HTTP response.
+    *   Invalidated Go API's `verify_token:{token_hash}` Redis cache key upon locking, ensuring immediate query rejection across the Go search proxy.
+*   **Audit Logging & Schema Migration**:
+    *   Added `SESSION_LOCKED` and `SESSION_UNLOCKED` actions to `UserActivityLog.ACTION_CHOICES` and applied migration `backend/users/migrations/0007_alter_useractivitylog_action.py`.
+    *   Automatically logs `SESSION_UNLOCKED` when an operator re-authenticates in-place from the lock screen.
+*   **Client Synchronization & Edge Case Safeguards**:
+    *   Enhanced `SessionTimeoutManager.tsx` to dispatch `POST /api/v1/auth/lock/` upon idle timeout.
+    *   Updated `AuthContext.tsx` `logout()` to invoke `/api/v1/auth/logout/` with `credentials: 'same-origin'` even when client token is cleared in React state.
+    *   Allowlisted `/auth/lock` and `/auth/logout` in `useApi.ts` client-side request guard.
+*   **Verification**:
+    *   Added 5 integration tests in `users.tests.test_auth.SessionLockTests` and 1 frontend test in `SessionTimeoutManager.test.tsx`.
+    *   Verified 100% pass across all 237 Django tests (237/237), all 8 Go API packages, and all 29 Vitest frontend suites (111/111).
+
 ### 2026-11-11 README Hero Screenshot Update
 *   **Hero Image Refresh**:
     *   Replaced deprecated `docs/assets/tms.png` with new dashboard overview screenshot from Downloads (`docs/assets/die-tracking-dashboard-overview.png`).

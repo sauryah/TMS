@@ -97,6 +97,8 @@ export const useApi = () => {
       const isAuthEndpoint = url.includes('/auth/login') ||
                              url.includes('/backup-codes/verify') ||
                              url.includes('/auth/keep-alive') ||
+                             url.includes('/auth/lock') ||
+                             url.includes('/auth/logout') ||
                              url.includes('/server-info')
       if (!isAuthEndpoint) {
         throw new ApiError('Session is locked. Re-authentication required.', 'unauthorized', 401)

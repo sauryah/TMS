@@ -79,6 +79,23 @@ export function SessionTimeoutManager() {
     setShowWarning(false)
     setIsLocked(true)
     lockedAt.current = Date.now()
+
+    const activeToken = (typeof localStorage !== 'undefined' ? localStorage.getItem('tms_token') : null) || token
+    const headers: Record<string, string> = {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Content-Type': 'application/json'
+    }
+    if (activeToken) {
+      headers['Authorization'] = `Bearer ${activeToken}`
+    }
+
+    // Server-side session lock and cookie invalidation
+    fetch('/api/v1/auth/lock/', {
+      method: 'POST',
+      headers,
+      credentials: 'same-origin'
+    }).catch(() => {})
+
     try {
       localStorage.setItem('tms_is_locked', 'true')
       if (displayUsername) {
@@ -94,7 +111,7 @@ export function SessionTimeoutManager() {
     if (channelRef.current) {
       channelRef.current.postMessage({ type: 'LOCK_SESSION' })
     }
-  }, [displayUsername, setToken])
+  }, [displayUsername, setToken, token])
 
   const unlockSessionLocally = useCallback((newToken?: string) => {
     if (newToken) {

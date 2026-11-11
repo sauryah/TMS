@@ -56,6 +56,8 @@ class UserActivityLog(models.Model):
         ('LOGOUT', 'Logout'),
         ('FAILED_LOGIN', 'Failed Login'),
         ('SESSION_EXPIRED', 'Session Expired'),
+        ('SESSION_LOCKED', 'Session Locked'),
+        ('SESSION_UNLOCKED', 'Session Unlocked'),
         ('ADMIN_ACTION', 'Admin Action'),
         ('USER_CREATED', 'User Created'),
         ('USER_DELETED', 'User Deleted'),

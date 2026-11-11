@@ -25,6 +25,7 @@ import secrets
 import string
 
 from users.models import User, UserBackupCode, UserSession, UserActivityLog
+from users.services.session_service import SessionService
 from users.serializers import (
     LoginSerializer,
     ChangePasswordSerializer,
@@ -138,6 +139,21 @@ def issue_user_login_tokens(user, request):
     # Prune older sessions if count >= SESSION_MAX_CONCURRENT
     session_max = settings.SESSION_MAX_CONCURRENT
     existing_sessions = UserSession.objects.filter(user=user).order_by('last_seen')
+
+    # Clean up any previously locked sessions for this user upon new login/unlock
+    for s in existing_sessions:
+        if SessionService.is_session_locked(user.id, s.token_hash):
+            SessionService.unlock_session(user, s.token_hash)
+            UserActivityLog.objects.create(
+                user=user,
+                username=user.username,
+                action='SESSION_UNLOCKED',
+                ip_address=get_client_ip(request),
+                device=request.META.get('HTTP_USER_AGENT', '')[:255]
+            )
+            s.delete()
+
+    existing_sessions = UserSession.objects.filter(user=user).order_by('last_seen')
     existing_count = existing_sessions.count()
     if existing_count >= session_max:
         to_delete_count = existing_count - session_max + 1
@@ -158,6 +174,8 @@ def issue_user_login_tokens(user, request):
                 )
                 cache_key = f"user_session:{user.id}:{old_sess.token_hash}"
                 django_cache.delete(cache_key)
+                locked_key = f"locked_session:{user.id}:{old_sess.token_hash}"
+                django_cache.delete(locked_key)
             except Exception:
                 pass
             old_sess.delete()
@@ -893,6 +911,52 @@ class VerifyTokenView(APIView):
         return self.post(request, *args, **kwargs)
 
 
+class LockView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name='LockResponse',
+                fields={
+                    'detail': serializers.CharField(),
+                    'status': serializers.CharField(),
+                },
+            ),
+        },
+        description="Lock the active session and revoke authentication cookies."
+    )
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        token_str = None
+        header = request.META.get('HTTP_AUTHORIZATION')
+        if header and header.startswith('Bearer '):
+            token_str = header.split(' ')[1]
+        else:
+            token_str = request.COOKIES.get('tms_access_token')
+
+        if token_str:
+            token_hash = hashlib.sha256(token_str.encode('utf-8')).hexdigest()
+            SessionService.lock_session(user, token_hash)
+
+        UserActivityLog.objects.create(
+            user=user,
+            username=user.username,
+            action='SESSION_LOCKED',
+            ip_address=get_client_ip(request),
+            device=request.META.get('HTTP_USER_AGENT', '')[:255]
+        )
+
+        response = Response(
+            {"detail": "Session locked successfully", "status": "locked"},
+            status=status.HTTP_200_OK
+        )
+        response.delete_cookie('tms_access_token', path='/')
+        response.delete_cookie('tms_refresh_token', path='/')
+        return response
+
+
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -919,6 +983,8 @@ class LogoutView(APIView):
             # Invalidate Cache
             cache_key = f"user_session:{user.id}:{token_hash}"
             cache.delete(cache_key)
+            locked_key = f"locked_session:{user.id}:{token_hash}"
+            cache.delete(locked_key)
 
             # Direct Redis delete for Go verify_token cache key (to bypass Django prefix)
             try:
@@ -939,8 +1005,8 @@ class LogoutView(APIView):
         )
 
         response = Response({"detail": "Logged out successfully"}, status=status.HTTP_200_OK)
-        response.delete_cookie('tms_access_token')
-        response.delete_cookie('tms_refresh_token')
+        response.delete_cookie('tms_access_token', path='/')
+        response.delete_cookie('tms_refresh_token', path='/')
         return response
 
 
