@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsRootOnly, IsAdminOrRoot
 from dies.views import (
     DieViewSet, ImportDiesView, ImportTemplateView, ImportLogsView,
+    RenameDiesView, RenameTemplateView,
     DieToleranceViewSet, WearAlertViewSet, MachineDieStockViewSet,
     DieInventoryRecountViewSet, EnamelMachineViewSet
 )
@@ -69,6 +70,8 @@ urlpatterns = [
     path('api/v1/auth/mfa/verify/', MFAVerifyLoginView.as_view(), name='mfa-verify'),
     path('api/v1/import/', ImportDiesView.as_view(), name='import-dies'),
     path('api/v1/import/template/', ImportTemplateView.as_view(), name='import-template'),
+    path('api/v1/import/rename/', RenameDiesView.as_view(), name='rename-dies'),
+    path('api/v1/import/rename-template/', RenameTemplateView.as_view(), name='rename-template'),
     path('api/v1/import/logs/', ImportLogsView.as_view(), name='import-logs'),
     path('api/v1/events/', EventStreamView.as_view(), name='events'),
     path('api/v1/health/', HealthCheckView.as_view(), name='health'),
@@ -101,6 +104,8 @@ urlpatterns = [
     path('api/auth/mfa/verify/', MFAVerifyLoginView.as_view()),
     path('api/import/', ImportDiesView.as_view()),
     path('api/import/template/', ImportTemplateView.as_view()),
+    path('api/import/rename/', RenameDiesView.as_view()),
+    path('api/import/rename-template/', RenameTemplateView.as_view()),
     path('api/import/logs/', ImportLogsView.as_view()),
     path('api/events/', EventStreamView.as_view()),
     path('api/health/', HealthCheckView.as_view()),

@@ -1,5 +1,28 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-11 Dedicated Bulk Die Rename Tool (LLM Council Consensus)
+*   **Collision-Safe 2-Phase Renaming Engine**:
+    *   Created `RenameService` in [`backend/dies/services/rename_service.py`](file:///D:/TMS/backend/dies/services/rename_service.py) supporting CSV and XLSX 2-column mapping ingestion (`old_die_id` -> `new_die_id`).
+    *   Implemented 2-phase transactional renaming inside `transaction.atomic()`: Phase 1 assigns unique temporary identifiers (`__TMP_RN_{id}_{uuid}__`) to prevent PostgreSQL unique constraint violations during cyclical renames or swaps (`DIE_A <-> DIE_B`); Phase 2 applies final target IDs.
+    *   Pre-validates formatting (`ValidationService.validate_die_id`), maximum 50 character limits, file-internal duplicates, inventory existence, and target collision with unaffected dies.
+    *   Includes dry-run validation simulation (`dry_run=True`) reporting exact preview rows and error summaries without committing changes.
+*   **Cryptographic Audit Logging & Dual-Engine Sync**:
+    *   Generates `DieHistory` entries with `field_name='die_id'`, `old_value=old_id`, `new_value=new_id`, attributed to the authenticated user and client IP address, preserving `hash_version=2` SHA-256 cryptographic chain verification.
+    *   Enqueues HMAC-signed `OutboxTask`s (`SearchService.sync_dies_batch`) for Meilisearch index synchronization.
+    *   Increments Redis atomic 64-bit generation counter (`search_cache_gen`) to invalidate cached search queries in $O(1)$ time.
+    *   Broadcasts SSE `DIE_UPDATE_EVENT` notifying connected frontends to rebuild views.
+*   **API Endpoints & Background Celery Worker**:
+    *   Implemented `RenameDiesView` (`POST /api/v1/import/rename/` and `/api/import/rename/`) and `RenameTemplateView` (`GET /api/v1/import/rename-template/` and `/api/import/rename-template/`) in [`backend/dies/views.py`](file:///D:/TMS/backend/dies/views.py).
+    *   Implemented `rename_dies_task` Celery task in [`backend/dies/tasks.py`](file:///D:/TMS/backend/dies/tasks.py) tracking background progress in Redis `import_status` key for `/api/go/import-status` polling.
+    *   Restricted endpoints to `IsAdminOrRoot` permission classes with 10MB payload limit.
+*   **Unified UI Integration & Triple-Theme Compliance**:
+    *   Enhanced [`frontend/src/pages/ImportPage.tsx`](file:///D:/TMS/frontend/src/pages/ImportPage.tsx) with tabbed mode switching between "01 Master Catalog Ingestion" and "02 Bulk ID Rename".
+    *   Added dedicated template download (`tms_die_rename_template.xlsx`), dry-run preview modal with "TO RENAME" metrics, error report CSV downloads, and dynamic step guides.
+    *   Complied with monospace Dark Terminal, Classic Slate, and Precision Light tokens.
+*   **Verification**:
+    *   Added comprehensive test suite in [`backend/dies/tests/test_rename.py`](file:///D:/TMS/backend/dies/tests/test_rename.py) (8/8 tests pass).
+    *   Full test suites pass: Django (231/231 tests in 65.9s), Vitest frontend (111/111 tests in 24.5s), and Go API (100% pass). Production Vite build verified.
+
 ### 2026-11-11 CI Test Stability & Backup Restore Mock Isolation
 *   **Database Connection Termination Isolation**:
     *   Extracted `terminate_database_connections(db_name: str)` in [`backend/users/services/backup_service.py`](file:///D:/TMS/backend/users/services/backup_service.py) as an isolated static method on `BackupService`.

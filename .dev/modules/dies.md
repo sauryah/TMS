@@ -8,12 +8,14 @@ Manages die entities (`Die`, `RoundDie`, `FlatDie`), tolerance limits (`DieToler
 - [serializers.py](file:///backend/dies/serializers.py): API serializers including recount sheet items and validation.
 - [views.py](file:///backend/dies/views.py): REST API views and ViewSets for dies, recuts, enamel machine stocks, and recount submissions.
 - [import_service.py](file:///backend/dies/services/import_service.py): Bulk import parser with in-memory casing and machine pre-caching.
+- [rename_service.py](file:///backend/dies/services/rename_service.py): Bulk die ID renamer with 2-phase collision safety, cryptographic audit logging, and search sync.
 - [recut_service.py](file:///backend/dies/services/recut_service.py): Atomic die recut processor with dimension validation and history logging.
 - [search_service.py](file:///backend/dies/services/search_service.py): Meilisearch outbox sync queue dispatcher.
 - [validation_service.py](file:///backend/dies/services/validation_service.py): Die dimensional and casing validation.
 - [wear_alert_service.py](file:///backend/dies/services/wear_alert_service.py): Threshold wear alerting engine.
 
 ## Key Changes
+- **Dedicated Bulk Die Rename Tool (2026-11-11)**: Implemented collision-free 2-phase bulk die ID renames via 2-column spreadsheet upload (`old_die_id` -> `new_die_id`) with SHA-256 audit log chaining in `DieHistory`, batch outbox Meilisearch sync, Redis generation counter invalidation, and tabbed UI integration in `ImportPage.tsx`.
 - **Enamel Machine Stock & Physical Recount Audits (2026-09)**: Introduced `EnamelMachine` registry, live per-machine stock counters (`MachineDieStock`), and monthly physical audit reconciliation workflows (`DieInventoryRecount`, `DieInventoryRecountItem`) with atomic draft/submit states.
 - **Bulk Import Pre-Caching (2026-09)**: Optimized Excel/CSV die imports by caching casing records and machine identifiers prior to row iterations, eliminating N+1 database queries.
 - **Maintenance Status Extension (2026-08)**: Added `MAINTENANCE` status choice to `DIE_STATUSES` to distinguish dies undergoing workshop servicing from scrapped or damaged units.

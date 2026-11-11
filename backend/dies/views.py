@@ -368,6 +368,130 @@ class ImportTemplateView(APIView):
 
 
 @method_decorator(transaction.non_atomic_requests, name='dispatch')
+class RenameDiesView(APIView):
+    """
+    Bulk rename die IDs from a 2-column CSV or XLSX mapping file.
+    
+    Permissions: ADMIN or ROOT user only.
+    """
+    permission_classes = [IsAdminOrRoot]
+    parser_classes = [MultiPartParser]
+
+    @extend_schema(
+        request={
+            'multipart/form-data': inline_serializer(
+                name='RenameDiesRequest',
+                fields={'file': serializers.FileField()},
+            )
+        },
+        responses={
+            202: OpenApiResponse(description='Rename task started in background'),
+            400: OpenApiResponse(description='Invalid file upload'),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+        if file_obj.size > MAX_FILE_SIZE:
+            return Response({"error": "File size exceeds the 10MB limit."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        name, ext = os.path.splitext(file_obj.name)
+        if ext.lower() not in ['.csv', '.xlsx']:
+            return Response({"error": "Unsupported file format. Only CSV and XLSX are supported."}, status=status.HTTP_400_BAD_REQUEST)
+
+        dry_run = request.query_params.get('dry_run', '').lower() == 'true'
+
+        from django.conf import settings
+        tmp_dir = os.path.join(settings.BASE_DIR, 'tmp')
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False, dir=tmp_dir) as temp_file:
+            for chunk in file_obj.chunks():
+                temp_file.write(chunk)
+            temp_path = temp_file.name
+
+        try:
+            import json
+            from django.core.cache import cache
+            from dies.tasks import rename_dies_task
+            from users.context import get_current_ip
+
+            initial_status = {
+                "status": "importing",
+                "progress": 0,
+                "total": 100,
+                "filename": file_obj.name,
+                "dry_run": dry_run,
+                "operation": "rename"
+            }
+            cache.set('import_status', json.dumps(initial_status), timeout=3600)
+
+            rename_dies_task.delay(
+                temp_path, ext, request.user.username, file_obj.name,
+                dry_run=dry_run, ip_address=get_current_ip()
+            )
+            
+            return Response({
+                "detail": "Rename started in background",
+                "status": "importing",
+                "operation": "rename"
+            }, status=status.HTTP_202_ACCEPTED)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            return Response({"error": f"Failed to start rename task: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
+class RenameTemplateView(APIView):
+    """
+    Download Excel bulk rename mapping template.
+    """
+    permission_classes = [IsAdminOrRoot]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description="Excel spreadsheet binary template file")},
+        description="Download an Excel template containing columns for old_die_id and new_die_id mapping."
+    )
+    def get(self, request, *args, **kwargs):
+        wb = openpyxl.Workbook()
+        ws1 = wb.active
+        ws1.title = "Die Renames"
+        headers = ["old_die_id", "new_die_id"]
+        ws1.append(headers)
+        ws1.append(["CY251202154", "CY251202999"])
+        ws1.append(["R-1001", "R-2001"])
+
+        ws2 = wb.create_sheet(title="Instructions")
+        ws2.append(["Column Name", "Required", "Description"])
+        ws2.append(["old_die_id", "Yes", "The current Die ID existing in the TMS inventory"])
+        ws2.append(["new_die_id", "Yes", "The target Die ID to rename to (must be unique, max 50 chars)"])
+        ws2.append([])
+        ws2.append(["Notes:", "", "All die attributes, measurements, history, and maintenance logs are preserved."])
+        ws2.append(["Rules:", "", "Alphanumeric, hyphens, underscores, dots, and slashes allowed."])
+
+        for sheet in [ws1, ws2]:
+            for col in sheet.columns:
+                max_len = max(len(str(cell.value or '')) for cell in col)
+                col_letter = openpyxl.utils.get_column_letter(col[0].column)
+                sheet.column_dimensions[col_letter].width = max(max_len + 4, 14)
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="tms_die_rename_template.xlsx"'
+        return response
+
+
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
 class ImportLogsView(APIView):
     """
     Get paginated history of imports.

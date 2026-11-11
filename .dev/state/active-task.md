@@ -7,26 +7,38 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Resolve CI Django Test Hang & OOM in Backup Restore Connection Termination
+**Task:** Implement Dedicated Bulk Die Rename Tool (2-column mapping: old_die_id -> new_die_id)
 **Status:** Complete
 **Started:** 2026-11-11
 **Target Completion:** 2026-11-11
 **Confidence:** 100%
 
 ## Task Description
-Fix CI pipeline failure in `Backend Tests (Django)` job (failed after 4m 29s run):
-- In `backend/users/tests/test_backups.py`, `test_restore_backup_terminates_connections_and_flushes_redis_sessions` patched `django.db.connection.cursor` at the function level.
-- When `BackupService.restore_backup` executed ORM queries (`Session.objects.all().delete()`, `UserSession.objects.all().delete()`), Django's query compiler iterated on the mock cursor (`while rows = cursor.fetchmany()`). Since `bool(MagicMock())` evaluates to `True`, it entered an infinite loop allocating mock objects until process SIGKILL (OOM).
-- Isolate connection termination into `BackupService.terminate_database_connections` and mock termination separately from ORM execution.
+Implement a production-grade, collision-safe Bulk Die Rename tool:
+- Backend:
+  - Create `RenameService` (`backend/dies/services/rename_service.py`) handling CSV/XLSX parsing, format validation, 2-phase collision-free renaming, cryptographic audit logging in `DieHistory`, batch outbox Meilisearch syncing, and dry-run preview.
+  - Add API endpoints in `backend/dies/views.py`:
+    - `POST /api/v1/import/rename/` (with dry-run support)
+    - `GET /api/v1/import/rename-template/` (Excel template download)
+  - Add Celery background task `rename_dies_task` in `backend/dies/tasks.py`.
+  - Add route mappings in `backend/tms/urls.py`.
+- Frontend:
+  - Add mode toggle in `frontend/src/pages/ImportPage.tsx` supporting "01 Master Catalog Ingestion" and "02 Bulk ID Rename".
+  - Wire template download, file upload, dry-run modal, and error reporting for renames.
+  - Comply with triple-theme tokens (Terminal, Classic Slate, Precision Light).
+- Testing & Verification:
+  - Unit and integration tests in `backend/dies/tests/test_rename.py` (8/8 pass).
+  - Full suite verification: Django (231/231 passing in 65.9s), Vitest frontend (111/111 passing in 24.5s), Go API (100% passing), Vite build (15.58s, 0 errors).
 
 ## Completed
-- Extracted `BackupService.terminate_database_connections` in `backend/users/services/backup_service.py`.
-- Updated `backend/users/tests/test_backups.py`:
-  - Added isolated unit test `test_terminate_database_connections` mocking `connection.cursor` and `connection.close`.
-  - Refactored `test_restore_backup_terminates_connections_and_flushes_redis_sessions` to patch `BackupService.terminate_database_connections` without polluting the Django ORM connection.
-- Verified test suite: `users.tests.test_backups` executes 6/6 tests in 1.1s (was killed previously).
-- Verified full Django test suite: all 223 tests pass cleanly in 66s (`Ran 223 tests: OK`).
-- Verified Vitest frontend suite (111/111 passing) and Go API suite (100% passing).
+- Completed LLM Council deliberation artifact (`llm-council-bulk-die-rename.md`).
+- Implemented `RenameService` in `backend/dies/services/rename_service.py`.
+- Implemented `RenameDiesView` and `RenameTemplateView` in `backend/dies/views.py`.
+- Implemented `rename_dies_task` in `backend/dies/tasks.py`.
+- Added URL endpoints in `backend/tms/urls.py`.
+- Integrated mode switcher, rename template download, and dry-run preview in `frontend/src/pages/ImportPage.tsx`.
+- Added unit tests in `backend/dies/tests/test_rename.py`.
+- Verified all test suites (Django, Go, Vitest) and Vite production build pass cleanly.
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

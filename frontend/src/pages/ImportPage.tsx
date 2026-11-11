@@ -26,6 +26,7 @@ export interface ImportStatusResponse {
   total: number
   filename: string
   dry_run: boolean
+  operation?: 'import' | 'rename'
   message?: string
   result?: ImportResultData
 }
@@ -34,6 +35,7 @@ export function ImportPage() {
   const navigate = useNavigate()
   const { request } = useApi()
   const { token } = useAuth()
+  const [importMode, setImportMode] = useState<'catalog' | 'rename'>('catalog')
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [statusMsg, setStatusMsg] = useState<{
@@ -54,12 +56,13 @@ export function ImportPage() {
 
   const checkStatus = useCallback(async (onMount = false) => {
     try {
-      const status = await request('/api/go/import-status')
+      const status: ImportStatusResponse = await request('/api/go/import-status')
       if (status.status === 'importing') {
         setImportStatus(status)
       } else if (status.status === 'ready') {
         if (!onMount) {
           const result = status.result
+          const isRename = status.operation === 'rename' || importMode === 'rename'
           if (status.dry_run) {
             setDryRunResult({
               created: result?.created || 0,
@@ -75,9 +78,12 @@ export function ImportPage() {
               skipped: result?.skipped || 0,
               errors: result?.errors || []
             })
+            const successText = isRename
+              ? `Bulk rename complete: ${result?.updated || 0} dies renamed, ${result?.skipped || 0} skipped.`
+              : `Import complete: ${result?.created || 0} created, ${result?.updated || 0} updated, ${result?.skipped || 0} skipped.`
             setStatusMsg({
               type: 'success',
-              text: `Import complete: ${result?.created || 0} created, ${result?.updated || 0} updated, ${result?.skipped || 0} skipped.`
+              text: successText
             })
           }
         }
@@ -86,7 +92,7 @@ export function ImportPage() {
         if (!onMount) {
           setStatusMsg({
             type: 'error',
-            text: status.message || 'Import failed.'
+            text: status.message || (importMode === 'rename' ? 'Rename failed.' : 'Import failed.')
           })
         }
         setImportStatus(null)
@@ -96,7 +102,7 @@ export function ImportPage() {
     } catch (err) {
       console.error('Failed to fetch import status', err)
     }
-  }, [request])
+  }, [request, importMode])
 
   useEffect(() => {
     checkStatus(true)
@@ -128,7 +134,9 @@ export function ImportPage() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`
       }
-      const res = await fetch('/api/v1/import/template/', {
+      const endpoint = importMode === 'rename' ? '/api/v1/import/rename-template/' : '/api/v1/import/template/'
+      const defaultFilename = importMode === 'rename' ? 'tms_die_rename_template.xlsx' : 'tms_import_template.xlsx'
+      const res = await fetch(endpoint, {
         method: 'GET',
         headers
       })
@@ -139,7 +147,7 @@ export function ImportPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.setAttribute("href", url)
-      link.setAttribute("download", "tms_import_template.xlsx")
+      link.setAttribute("download", defaultFilename)
       link.style.visibility = 'hidden'
       document.body.appendChild(link)
       link.click()
@@ -204,7 +212,8 @@ export function ImportPage() {
     const formData = new FormData()
     formData.append('file', file)
 
-    const url = `/api/import/${dryRun ? '?dry_run=true' : ''}`
+    const basePath = importMode === 'rename' ? '/api/import/rename/' : '/api/import/'
+    const url = `${basePath}${dryRun ? '?dry_run=true' : ''}`
 
     try {
       setImportStatus({
@@ -212,7 +221,8 @@ export function ImportPage() {
         progress: 0,
         total: 100,
         filename: file.name,
-        dry_run: dryRun
+        dry_run: dryRun,
+        operation: importMode === 'rename' ? 'rename' : 'import'
       })
 
       await request(url, {
@@ -220,7 +230,7 @@ export function ImportPage() {
         body: formData
       })
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Import failed.'
+      const msg = err instanceof Error ? err.message : (importMode === 'rename' ? 'Rename failed.' : 'Import failed.')
       setStatusMsg({
         type: 'error',
         text: msg
@@ -245,7 +255,8 @@ export function ImportPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
-    link.setAttribute("download", `tms_import_error_report_${Date.now()}.csv`)
+    const reportName = importMode === 'rename' ? `tms_rename_error_report_${Date.now()}.csv` : `tms_import_error_report_${Date.now()}.csv`
+    link.setAttribute("download", reportName)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -254,7 +265,7 @@ export function ImportPage() {
 
   const breadcrumbs = [
     { label: 'Inventory', href: '/inventory' },
-    { label: 'Bulk Import' }
+    { label: importMode === 'rename' ? 'Bulk Rename' : 'Bulk Import' }
   ]
 
   const errorColumns = [
@@ -271,7 +282,7 @@ export function ImportPage() {
       className="flex items-center space-x-1.5 bg-[#141414] hover:bg-[#1f1f1f] text-[#6b7280] hover:text-[#e4e4e4] border border-[#2a2a2a] px-3.5 py-1.5 rounded-sm text-xs font-mono uppercase transition cursor-pointer"
     >
       <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
-      <span>Template (.xlsx)</span>
+      <span>{importMode === 'rename' ? 'Rename Template (.xlsx)' : 'Import Template (.xlsx)'}</span>
     </button>
   )
 
@@ -289,15 +300,61 @@ export function ImportPage() {
       </div>
 
       <PageHeader 
-        title="Bulk Import Dies" 
+        title={importMode === 'rename' ? 'Bulk Rename Dies' : 'Bulk Import Dies'} 
         breadcrumbs={breadcrumbs}
         actions={headerActions}
       />
 
+      {/* Mode Selector Tabs */}
+      <div className="flex border-b border-[#2a2a2a] space-x-1">
+        <button
+          type="button"
+          onClick={() => {
+            if (progress) return
+            setImportMode('catalog')
+            setFile(null)
+            setStatusMsg(null)
+            setImportResult(null)
+            setDryRunResult(null)
+          }}
+          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
+            importMode === 'catalog'
+              ? 'border-blue-500 text-blue-400 font-bold bg-[#141414]'
+              : 'border-transparent text-[#6b7280] hover:text-[#e4e4e4]'
+          }`}
+        >
+          01 Master Catalog Ingestion
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (progress) return
+            setImportMode('rename')
+            setFile(null)
+            setStatusMsg(null)
+            setImportResult(null)
+            setDryRunResult(null)
+          }}
+          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
+            importMode === 'rename'
+              ? 'border-blue-500 text-blue-400 font-bold bg-[#141414]'
+              : 'border-transparent text-[#6b7280] hover:text-[#e4e4e4]'
+          }`}
+        >
+          02 Bulk ID Rename
+        </button>
+      </div>
+
       <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm p-6 space-y-4 font-mono">
         <div className="border-b border-[#1a1a1a] pb-2">
-          <h2 className="text-xs font-medium text-[#e4e4e4] uppercase tracking-[0.05em]">01 SPREADSHEET FILE INGESTION</h2>
-          <p className="text-[#6b7280] text-xs mt-0.5">Upload CSV or Excel file containing batch die master records.</p>
+          <h2 className="text-xs font-medium text-[#e4e4e4] uppercase tracking-[0.05em]">
+            {importMode === 'rename' ? '01 BULK ID RENAME MAPPING' : '01 SPREADSHEET FILE INGESTION'}
+          </h2>
+          <p className="text-[#6b7280] text-xs mt-0.5">
+            {importMode === 'rename'
+              ? 'Upload 2-column CSV or Excel mapping file (old_die_id -> new_die_id) to update primary identifiers.'
+              : 'Upload CSV or Excel file containing batch die master records.'}
+          </p>
         </div>
 
         <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
@@ -329,7 +386,11 @@ export function ImportPage() {
                 <span className="text-[#e4e4e4] text-xs font-mono font-bold uppercase mb-0.5">
                   {file ? file.name : 'Click or drop spreadsheet file here'}
                 </span>
-                <span className="text-[#6b7280] text-[10px] uppercase">Accepts .CSV and .XLSX datasets</span>
+                <span className="text-[#6b7280] text-[10px] uppercase">
+                  {importMode === 'rename'
+                    ? 'Accepts 2-column .CSV and .XLSX datasets (old_die_id, new_die_id)'
+                    : 'Accepts .CSV and .XLSX datasets'}
+                </span>
               </div>
             </label>
           </div>
@@ -351,10 +412,10 @@ export function ImportPage() {
               {progress ? (
                 <div className="flex items-center space-x-1.5">
                   <div className="animate-spin h-3.5 w-3.5 border border-white border-t-transparent rounded-none" />
-                  <span>Processing Ingestion...</span>
+                  <span>{importMode === 'rename' ? 'Processing Renames...' : 'Processing Ingestion...'}</span>
                 </div>
               ) : (
-                <span>Execute Import</span>
+                <span>{importMode === 'rename' ? 'Execute Rename' : 'Execute Import'}</span>
               )}
             </button>
           </div>
@@ -363,7 +424,9 @@ export function ImportPage() {
         {importStatus && importStatus.status === 'importing' && (
           <div className="mt-4 p-4 bg-[#0a0a0a] border border-[#2a2a2a] rounded-sm space-y-2 font-mono animate-fadeIn">
             <div className="flex justify-between items-center text-xs text-[#6b7280] uppercase">
-              <span className="truncate max-w-xs">INGESTING: {importStatus.filename}</span>
+              <span className="truncate max-w-xs">
+                {importStatus.operation === 'rename' || importMode === 'rename' ? 'RENAMING:' : 'INGESTING:'} {importStatus.filename}
+              </span>
               <span className="font-mono text-blue-400 font-bold tabular-nums">
                 {importStatus.total > 0 ? `${Math.round((importStatus.progress / importStatus.total) * 100)}%` : '0%'}
               </span>
@@ -395,20 +458,34 @@ export function ImportPage() {
         {importResult && (
           <div className="mt-4 space-y-4 font-mono animate-fadeIn">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm">
-              <div className="flex flex-wrap items-center gap-4 text-xs">
-                <span className="text-emerald-400 font-mono font-bold">
-                  ▲ {importResult.created} CREATED
-                </span>
-                <span className="text-blue-400 font-mono font-bold">
-                  ● {importResult.updated} UPDATED
-                </span>
-                <span className="text-[#6b7280] font-mono">
-                  — {importResult.skipped} SKIPPED
-                </span>
-                <span className="text-red-400 font-mono font-bold">
-                  ▼ {importResult.errors.length} ERRORS
-                </span>
-              </div>
+              {importMode === 'rename' ? (
+                <div className="flex flex-wrap items-center gap-4 text-xs">
+                  <span className="text-blue-400 font-mono font-bold">
+                    ● {importResult.updated} RENAMED
+                  </span>
+                  <span className="text-[#6b7280] font-mono">
+                    — {importResult.skipped} SKIPPED
+                  </span>
+                  <span className="text-red-400 font-mono font-bold">
+                    ▼ {importResult.errors.length} ERRORS
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-4 text-xs">
+                  <span className="text-emerald-400 font-mono font-bold">
+                    ▲ {importResult.created} CREATED
+                  </span>
+                  <span className="text-blue-400 font-mono font-bold">
+                    ● {importResult.updated} UPDATED
+                  </span>
+                  <span className="text-[#6b7280] font-mono">
+                    — {importResult.skipped} SKIPPED
+                  </span>
+                  <span className="text-red-400 font-mono font-bold">
+                    ▼ {importResult.errors.length} ERRORS
+                  </span>
+                </div>
+              )}
               
               {importResult.errors.length > 0 && (
                 <button
@@ -424,7 +501,9 @@ export function ImportPage() {
             {importResult.errors.length > 0 && (
               <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm overflow-hidden font-mono">
                 <div className="p-3 border-b border-[#1a1a1a] bg-[#0a0a0a]">
-                  <h3 className="text-xs font-medium text-red-400 uppercase tracking-wider">02 IMPORT ROW ERRORS</h3>
+                  <h3 className="text-xs font-medium text-red-400 uppercase tracking-wider">
+                    {importMode === 'rename' ? '02 RENAME ROW ERRORS' : '02 IMPORT ROW ERRORS'}
+                  </h3>
                 </div>
                 <DataTable columns={errorColumns} rows={importResult.errors} />
               </div>
@@ -446,29 +525,52 @@ export function ImportPage() {
           >
             <div className="border-b border-[#1a1a1a] pb-2">
               <h2 id="dry-run-title" className="text-xs font-medium text-[#e4e4e4] uppercase tracking-[0.05em]">01 SIMULATION PREVIEW (DRY RUN)</h2>
-              <p className="text-[#6b7280] text-xs mt-0.5">Dry-run validation results prior to database write commit.</p>
+              <p className="text-[#6b7280] text-xs mt-0.5">
+                {importMode === 'rename'
+                  ? 'Dry-run validation results prior to committing die identifier renames.'
+                  : 'Dry-run validation results prior to database write commit.'}
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
-                <span className="text-[10px] text-[#6b7280] uppercase block">TO CREATE</span>
-                <span className="text-lg font-mono font-bold text-emerald-400 mt-0.5 block tabular-nums">{dryRunResult.created}</span>
+            {importMode === 'rename' ? (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
+                  <span className="text-[10px] text-[#6b7280] uppercase block">TO RENAME</span>
+                  <span className="text-lg font-mono font-bold text-blue-400 mt-0.5 block tabular-nums">{dryRunResult.updated}</span>
+                </div>
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
+                  <span className="text-[10px] text-[#6b7280] uppercase block">TO SKIP</span>
+                  <span className="text-lg font-mono font-bold text-[#6b7280] mt-0.5 block tabular-nums">{dryRunResult.skipped}</span>
+                </div>
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
+                  <span className="text-[10px] text-[#6b7280] uppercase block">ERRORS</span>
+                  <span className={`text-lg font-mono font-bold mt-0.5 block tabular-nums ${dryRunResult.errors.length > 0 ? 'text-red-400' : 'text-[#6b7280]'}`}>
+                    {dryRunResult.errors.length}
+                  </span>
+                </div>
               </div>
-              <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
-                <span className="text-[10px] text-[#6b7280] uppercase block">TO UPDATE</span>
-                <span className="text-lg font-mono font-bold text-blue-400 mt-0.5 block tabular-nums">{dryRunResult.updated}</span>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
+                  <span className="text-[10px] text-[#6b7280] uppercase block">TO CREATE</span>
+                  <span className="text-lg font-mono font-bold text-emerald-400 mt-0.5 block tabular-nums">{dryRunResult.created}</span>
+                </div>
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
+                  <span className="text-[10px] text-[#6b7280] uppercase block">TO UPDATE</span>
+                  <span className="text-lg font-mono font-bold text-blue-400 mt-0.5 block tabular-nums">{dryRunResult.updated}</span>
+                </div>
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
+                  <span className="text-[10px] text-[#6b7280] uppercase block">TO SKIP</span>
+                  <span className="text-lg font-mono font-bold text-[#6b7280] mt-0.5 block tabular-nums">{dryRunResult.skipped}</span>
+                </div>
+                <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
+                  <span className="text-[10px] text-[#6b7280] uppercase block">ERRORS</span>
+                  <span className={`text-lg font-mono font-bold mt-0.5 block tabular-nums ${dryRunResult.errors.length > 0 ? 'text-red-400' : 'text-[#6b7280]'}`}>
+                    {dryRunResult.errors.length}
+                  </span>
+                </div>
               </div>
-              <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
-                <span className="text-[10px] text-[#6b7280] uppercase block">TO SKIP</span>
-                <span className="text-lg font-mono font-bold text-[#6b7280] mt-0.5 block tabular-nums">{dryRunResult.skipped}</span>
-              </div>
-              <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
-                <span className="text-[10px] text-[#6b7280] uppercase block">ERRORS</span>
-                <span className={`text-lg font-mono font-bold mt-0.5 block tabular-nums ${dryRunResult.errors.length > 0 ? 'text-red-400' : 'text-[#6b7280]'}`}>
-                  {dryRunResult.errors.length}
-                </span>
-              </div>
-            </div>
+            )}
 
             {dryRunResult.errors.length > 0 && (
               <div className="bg-[#0a0a0a] border border-red-500/30 p-3 rounded-sm">
@@ -497,7 +599,7 @@ export function ImportPage() {
                 onClick={(e) => handleSubmit(e, false)}
                 className="px-5 py-1.5 bg-[#141414] hover:bg-[#1f1f1f] border border-blue-500/50 text-blue-400 hover:text-blue-300 rounded-sm text-xs font-mono uppercase transition cursor-pointer"
               >
-                Confirm Ingestion
+                {importMode === 'rename' ? 'Confirm Rename' : 'Confirm Ingestion'}
               </button>
             </div>
           </div>

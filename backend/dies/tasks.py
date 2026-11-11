@@ -67,6 +67,68 @@ def import_dies_task(file_path, file_ext, username, filename, dry_run=False):
 
 
 @shared_task
+def rename_dies_task(file_path, file_ext, username, filename, dry_run=False, ip_address=None):
+    from dies.services.rename_service import RenameService
+    User = get_user_model()
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        user = None
+
+    redis_url = settings.CACHES['default']['LOCATION']
+    r = redis.Redis.from_url(redis_url)
+
+    def update_status(status, progress, total, message=None, result=None):
+        payload = {
+            "status": status,
+            "progress": progress,
+            "total": total,
+            "filename": filename,
+            "dry_run": dry_run,
+            "operation": "rename"
+        }
+        if message:
+            payload["message"] = message
+        if result:
+            payload["result"] = result
+        try:
+            r.set('import_status', json.dumps(payload))
+        except Exception as e:
+            logger.error(f"Failed to write rename progress to Redis: {e}")
+
+    try:
+        update_status("importing", 0, 100)
+
+        def progress_callback(current, total):
+            update_status("importing", current, total)
+
+        result = RenameService.rename_dies(
+            file_path, file_ext, user=user, dry_run=dry_run,
+            progress_callback=progress_callback, ip_address=ip_address
+        )
+
+        if not dry_run and user:
+            ImportLog.objects.create(
+                imported_by=user,
+                filename=f"{filename} [RENAME]",
+                created_count=0,
+                updated_count=result.get('updated', 0),
+                skipped_count=result.get('skipped', 0),
+                error_count=len(result.get('errors', [])),
+                errors_json=result.get('errors', [])
+            )
+
+        processed = result.get('updated', 0) + result.get('skipped', 0)
+        update_status("ready", processed, processed, result=result)
+    except Exception as e:
+        logger.exception("Async rename dies task failed")
+        update_status("error", 0, 100, message=str(e))
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+
+@shared_task
 def check_all_wear_alerts_task():
     """
     Daily cron task to evaluate wear alerts for all active dies in the system,

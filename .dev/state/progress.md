@@ -8,6 +8,17 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Dedicated Bulk Die Rename Tool (2-Column Mapping old_die_id -> new_die_id) ✅
+**Status:** Complete  
+**Date:** 2026-11-11  
+
+**Completed:**
+- **2-Phase Collision-Free Renaming Service**: Created `RenameService` in `backend/dies/services/rename_service.py` to handle 2-phase transactional die ID updates inside `transaction.atomic()`, preventing PostgreSQL unique constraint collisions during cyclical or swap renames (`A <-> B`).
+- **Cryptographic Audit Log & Dual-Engine Consistency**: Preserved `hash_version=2` SHA-256 chain verification in `DieHistory`, enqueued HMAC-signed `OutboxTask`s for Meilisearch index synchronization, incremented Redis `search_cache_gen` for $O(1)$ search cache busting, and broadcast SSE `DIE_UPDATE_EVENT`.
+- **API Endpoints & Celery Task Worker**: Created `RenameDiesView` (`POST /api/v1/import/rename/`), `RenameTemplateView` (`GET /api/v1/import/rename-template/`), and `rename_dies_task` background Celery worker with `IsAdminOrRoot` access control and Redis `import_status` tracking.
+- **Frontend Mode Selector & UI Integration**: Enhanced `frontend/src/pages/ImportPage.tsx` with tabbed mode switching ("01 Master Catalog Ingestion" vs "02 Bulk ID Rename"), dedicated Excel template download, dry-run simulation preview, and error report downloads.
+- **Full Suite Verification**: Verified with 8 unit tests in `dies.tests.test_rename` (8/8 pass), full Django test suite (231/231 pass in 65.9s), Vitest frontend suite (111/111 pass in 24.5s), Vite production build (0 errors), and Go API suite (100% pass).
+
 ### CI Test Stability & Backup Restore Mock Isolation ✅
 **Status:** Complete  
 **Date:** 2026-11-11  
