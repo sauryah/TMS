@@ -23,12 +23,12 @@ Track implementation status across all phases.
 
 ### README Hero Screenshot Update ✅
 **Status:** Complete  
-**Date:** 2026-11-11  
+**Date:** 2026-11-12  
 
 **Completed:**
-- **Updated Dashboard Hero Image**: Imported `Die Tracking Dashboard Overview.png` from Downloads to `docs/assets/die-tracking-dashboard-overview.png`.
-- **Cleaned Deprecated Media**: Removed legacy `docs/assets/tms.png`.
-- **Synchronized Documentation**: Updated [`README.md`](file:///D:/TMS/README.md) preview image source and alt text.
+- **Updated Dashboard Hero Image**: Imported `Futuristic TMS Die Tracking Dashboard.png` from Downloads to `docs/assets/futuristic-tms-die-tracking-dashboard.png`.
+- **Cleaned Deprecated Media**: Removed legacy `docs/assets/tms.png` and `docs/assets/die-tracking-dashboard-overview.png`.
+- **Synchronized Documentation**: Updated `README.md` preview image source and alt text.
 
 ### Frontend CI ESLint & Static Analysis Hygiene ✅
 **Status:** Complete  
@@ -46,7 +46,7 @@ Track implementation status across all phases.
 **Date:** 2026-11-11  
 
 **Completed:**
-- **CI Test Runner Environment Isolation**: Updated `test_celery_broker_uses_dedicated_redis_broker` in [`backend/users/tests/test_settings.py`](file:///D:/TMS/backend/users/tests/test_settings.py) to explicitly clear test-runner overrides (`CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `REDIS_CACHE_URL`) before reloading `tms.settings`.
+- **CI Test Runner Environment Isolation**: Updated `test_celery_broker_uses_dedicated_redis_broker` in `backend/users/tests/test_settings.py` to explicitly clear test-runner overrides (`CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `REDIS_CACHE_URL`) before reloading `tms.settings`.
 - **Eliminated CI False-Positive Assertion Failure**: Resolved GitHub Actions failure where CI runner's `CELERY_BROKER_URL: 'redis://localhost:6379/1'` contaminated the default architectural verification asserting `redis-broker`.
 - **Full Test Suite Verification**: Verified that all 232 Django tests pass cleanly (232/232 in 69.8s).
 

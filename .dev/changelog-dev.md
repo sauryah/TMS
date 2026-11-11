@@ -20,32 +20,32 @@
 ### 2026-11-11 README Hero Screenshot Update
 *   **Hero Image Refresh**:
     *   Replaced deprecated `docs/assets/tms.png` with new dashboard overview screenshot from Downloads (`docs/assets/die-tracking-dashboard-overview.png`).
-    *   Updated [`README.md`](file:///D:/TMS/README.md) hero image link and alt tag.
+    *   Updated [`README.md`](README.md) hero image link and alt tag.
 
 ### 2026-11-11 Frontend CI ESLint & Static Analysis Hygiene
 *   **Static Analysis & Linting Pass**:
     *   Resolved all 22 ESLint violations (5 errors, 17 warnings) failing CI's `Frontend Tests (Vitest + tsc + lint)` gate.
-    *   **Empty Blocks (`no-empty`)**: Added explanatory non-fatal storage comments to empty catch blocks in [`frontend/src/components/SessionTimeoutManager.tsx`](file:///D:/TMS/frontend/src/components/SessionTimeoutManager.tsx).
-    *   **Hook Exhaustive Dependencies (`react-hooks/exhaustive-deps`)**: Added `setToken` to dependency array in `SessionTimeoutManager.tsx` and `queryClient` in [`frontend/src/hooks/useRealtimeSync.ts`](file:///D:/TMS/frontend/src/hooks/useRealtimeSync.ts).
-    *   **Unused Variables (`@typescript-eslint/no-unused-vars`)**: Removed unused imports and unreferenced parameters in [`frontend/src/features/inventory/components/CreateDieModal.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/CreateDieModal.tsx), [`frontend/src/features/inventory/components/DieDetailPage.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/DieDetailPage.tsx), [`frontend/src/features/inventory/components/InventoryPage.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/InventoryPage.tsx), [`frontend/src/features/inventory/components/InventorySubViews.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/InventorySubViews.tsx), [`frontend/src/features/inventory/components/RackLayoutGrid.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/RackLayoutGrid.tsx), and [`frontend/src/pages/SettingsPage.tsx`](file:///D:/TMS/frontend/src/pages/SettingsPage.tsx).
+    *   **Empty Blocks (`no-empty`)**: Added explanatory non-fatal storage comments to empty catch blocks in [`frontend/src/components/SessionTimeoutManager.tsx`](frontend/src/components/SessionTimeoutManager.tsx).
+    *   **Hook Exhaustive Dependencies (`react-hooks/exhaustive-deps`)**: Added `setToken` to dependency array in `SessionTimeoutManager.tsx` and `queryClient` in [`frontend/src/hooks/useRealtimeSync.ts`](frontend/src/hooks/useRealtimeSync.ts).
+    *   **Unused Variables (`@typescript-eslint/no-unused-vars`)**: Removed unused imports and unreferenced parameters in [`frontend/src/features/inventory/components/CreateDieModal.tsx`](frontend/src/features/inventory/components/CreateDieModal.tsx), [`frontend/src/features/inventory/components/DieDetailPage.tsx`](frontend/src/features/inventory/components/DieDetailPage.tsx), [`frontend/src/features/inventory/components/InventoryPage.tsx`](frontend/src/features/inventory/components/InventoryPage.tsx), [`frontend/src/features/inventory/components/InventorySubViews.tsx`](frontend/src/features/inventory/components/InventorySubViews.tsx), [`frontend/src/features/inventory/components/RackLayoutGrid.tsx`](frontend/src/features/inventory/components/RackLayoutGrid.tsx), and [`frontend/src/pages/SettingsPage.tsx`](frontend/src/pages/SettingsPage.tsx).
     *   **Verification**: `npm run lint` (0 errors, 0 warnings), `tsc --noEmit` (0 errors), Vitest (111/111 passing), Vite build (0 errors).
 
 ### 2026-11-11 CI Settings Startup Validation Isolation
 *   **Test Runner Environment Contamination Fix**:
-    *   Updated `test_celery_broker_uses_dedicated_redis_broker` in [`backend/users/tests/test_settings.py`](file:///D:/TMS/backend/users/tests/test_settings.py) to remove test runner environment overrides (`CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `REDIS_CACHE_URL`) from `os.environ` prior to reloading `tms.settings`.
+    *   Updated `test_celery_broker_uses_dedicated_redis_broker` in [`backend/users/tests/test_settings.py`](backend/users/tests/test_settings.py) to remove test runner environment overrides (`CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `REDIS_CACHE_URL`) from `os.environ` prior to reloading `tms.settings`.
     *   Eliminated GitHub Actions failure (`AssertionError: 'redis-broker' not found in 'redis://localhost:6379/1'`) occurring because the CI runner explicitly set `CELERY_BROKER_URL: 'redis://localhost:6379/1'` in the job environment, which overrode the default architectural setting (`redis-broker:6379/0`).
     *   Verified full Django test suite passes: 232/232 tests passing cleanly in 69.8s.
 
 ### 2026-11-11 Bulk Die Rename Smart Idempotency & Audit Recovery
 *   **Smart Idempotency Engine in RenameService**:
-    *   Enhanced [`backend/dies/services/rename_service.py`](file:///D:/TMS/backend/dies/services/rename_service.py) with historical rename awareness. When a row's `old_die_id` is missing from inventory and `new_die_id` exists, the service performs a bulk query against [`DieHistory`](file:///D:/TMS/backend/history/models.py) to check if the target die was already renamed from `old_die_id` historically.
+    *   Enhanced [`backend/dies/services/rename_service.py`](backend/dies/services/rename_service.py) with historical rename awareness. When a row's `old_die_id` is missing from inventory and `new_die_id` exists, the service performs a bulk query against [`DieHistory`](backend/history/models.py) to check if the target die was already renamed from `old_die_id` historically.
     *   Rows already renamed are marked as `ALREADY_COMPLETED` / `already_up_to_date` with 0 validation errors, preventing completed dies from blocking remaining pending renames.
-    *   Enhanced [`frontend/src/pages/ImportPage.tsx`](file:///D:/TMS/frontend/src/pages/ImportPage.tsx) to display **ALREADY UP-TO-DATE** indicators in both the dry-run simulation modal and final results banner.
-    *   Added regression test `test_rename_already_completed_dies_skipped_gracefully` in [`backend/dies/tests/test_rename.py`](file:///D:/TMS/backend/dies/tests/test_rename.py) (9/9 tests pass).
+    *   Enhanced [`frontend/src/pages/ImportPage.tsx`](frontend/src/pages/ImportPage.tsx) to display **ALREADY UP-TO-DATE** indicators in both the dry-run simulation modal and final results banner.
+    *   Added regression test `test_rename_already_completed_dies_skipped_gracefully` in [`backend/dies/tests/test_rename.py`](backend/dies/tests/test_rename.py) (9/9 tests pass).
 
 ### 2026-11-11 Dedicated Bulk Die Rename Tool (LLM Council Consensus)
 *   **Collision-Safe 2-Phase Renaming Engine**:
-    *   Created `RenameService` in [`backend/dies/services/rename_service.py`](file:///D:/TMS/backend/dies/services/rename_service.py) supporting CSV and XLSX 2-column mapping ingestion (`old_die_id` -> `new_die_id`).
+    *   Created `RenameService` in [`backend/dies/services/rename_service.py`](backend/dies/services/rename_service.py) supporting CSV and XLSX 2-column mapping ingestion (`old_die_id` -> `new_die_id`).
     *   Implemented 2-phase transactional renaming inside `transaction.atomic()`: Phase 1 assigns unique temporary identifiers (`__TMP_RN_{id}_{uuid}__`) to prevent PostgreSQL unique constraint violations during cyclical renames or swaps (`DIE_A <-> DIE_B`); Phase 2 applies final target IDs.
     *   Pre-validates formatting (`ValidationService.validate_die_id`), maximum 50 character limits, file-internal duplicates, inventory existence, and target collision with unaffected dies.
     *   Includes dry-run validation simulation (`dry_run=True`) reporting exact preview rows and error summaries without committing changes.
@@ -55,32 +55,32 @@
     *   Increments Redis atomic 64-bit generation counter (`search_cache_gen`) to invalidate cached search queries in $O(1)$ time.
     *   Broadcasts SSE `DIE_UPDATE_EVENT` notifying connected frontends to rebuild views.
 *   **API Endpoints & Background Celery Worker**:
-    *   Implemented `RenameDiesView` (`POST /api/v1/import/rename/` and `/api/import/rename/`) and `RenameTemplateView` (`GET /api/v1/import/rename-template/` and `/api/import/rename-template/`) in [`backend/dies/views.py`](file:///D:/TMS/backend/dies/views.py).
-    *   Implemented `rename_dies_task` Celery task in [`backend/dies/tasks.py`](file:///D:/TMS/backend/dies/tasks.py) tracking background progress in Redis `import_status` key for `/api/go/import-status` polling.
+    *   Implemented `RenameDiesView` (`POST /api/v1/import/rename/` and `/api/import/rename/`) and `RenameTemplateView` (`GET /api/v1/import/rename-template/` and `/api/import/rename-template/`) in [`backend/dies/views.py`](backend/dies/views.py).
+    *   Implemented `rename_dies_task` Celery task in [`backend/dies/tasks.py`](backend/dies/tasks.py) tracking background progress in Redis `import_status` key for `/api/go/import-status` polling.
     *   Restricted endpoints to `IsAdminOrRoot` permission classes with 10MB payload limit.
 *   **Unified UI Integration & Triple-Theme Compliance**:
-    *   Enhanced [`frontend/src/pages/ImportPage.tsx`](file:///D:/TMS/frontend/src/pages/ImportPage.tsx) with tabbed mode switching between "01 Master Catalog Ingestion" and "02 Bulk ID Rename".
+    *   Enhanced [`frontend/src/pages/ImportPage.tsx`](frontend/src/pages/ImportPage.tsx) with tabbed mode switching between "01 Master Catalog Ingestion" and "02 Bulk ID Rename".
     *   Added dedicated template download (`tms_die_rename_template.xlsx`), dry-run preview modal with "TO RENAME" metrics, error report CSV downloads, and dynamic step guides.
     *   Complied with monospace Dark Terminal, Classic Slate, and Precision Light tokens.
 *   **Verification**:
-    *   Added comprehensive test suite in [`backend/dies/tests/test_rename.py`](file:///D:/TMS/backend/dies/tests/test_rename.py) (8/8 tests pass).
+    *   Added comprehensive test suite in [`backend/dies/tests/test_rename.py`](backend/dies/tests/test_rename.py) (8/8 tests pass).
     *   Full test suites pass: Django (231/231 tests in 65.9s), Vitest frontend (111/111 tests in 24.5s), and Go API (100% pass). Production Vite build verified.
 
 ### 2026-11-11 CI Test Stability & Backup Restore Mock Isolation
 *   **Database Connection Termination Isolation**:
-    *   Extracted `terminate_database_connections(db_name: str)` in [`backend/users/services/backup_service.py`](file:///D:/TMS/backend/users/services/backup_service.py) as an isolated static method on `BackupService`.
-    *   Resolved infinite `fetchmany` loop in [`backend/users/tests/test_backups.py`](file:///D:/TMS/backend/users/tests/test_backups.py) where patching `django.db.connection.cursor` poisoned subsequent Django ORM calls (`Session.objects.all().delete()`, `UserSession.objects.all().delete()`), causing a memory exhaustion process SIGKILL in CI (`Backend Tests (Django)` failed after 4m 29s).
+    *   Extracted `terminate_database_connections(db_name: str)` in [`backend/users/services/backup_service.py`](backend/users/services/backup_service.py) as an isolated static method on `BackupService`.
+    *   Resolved infinite `fetchmany` loop in [`backend/users/tests/test_backups.py`](backend/users/tests/test_backups.py) where patching `django.db.connection.cursor` poisoned subsequent Django ORM calls (`Session.objects.all().delete()`, `UserSession.objects.all().delete()`), causing a memory exhaustion process SIGKILL in CI (`Backend Tests (Django)` failed after 4m 29s).
     *   Separated testing: `test_terminate_database_connections` tests the SQL cursor and connection closure directly, while `test_restore_backup_terminates_connections_and_flushes_redis_sessions` mocks `BackupService.terminate_database_connections` without interfering with Django's test runner database connection.
     *   Verified full Django test suite passes: 223/223 tests passing (`Ran 223 tests in 66.853s: OK`).
 
 ### 2026-11-10 Die ID Search Relevance Defense-in-Depth & Meilisearch Typo Disabling (LLM Council)
 *   **Meilisearch Typo Disabling on Die ID**:
-    *   Configured `'disableOnAttributes': ['die_id']` inside `typoTolerance` settings across [`backend/search/meili.py`](file:///D:/TMS/backend/search/meili.py), [`backend/search/tasks.py`](file:///D:/TMS/backend/search/tasks.py), and [`backend/dies/management/commands/sync_search.py`](file:///D:/TMS/backend/dies/management/commands/sync_search.py). Prevents sequential tooling serial numbers from matching unrelated dies within 1-2 edit distances (resolving queries with sequential serial numbers matching tens of unrelated serials).
-    *   Updated test harness index setup in [`backend/dies/tests/test_search.py`](file:///D:/TMS/backend/dies/tests/test_search.py) and [`backend/dies/tests/test_import.py`](file:///D:/TMS/backend/dies/tests/test_import.py) to match production settings.
+    *   Configured `'disableOnAttributes': ['die_id']` inside `typoTolerance` settings across [`backend/search/meili.py`](backend/search/meili.py), [`backend/search/tasks.py`](backend/search/tasks.py), and [`backend/dies/management/commands/sync_search.py`](backend/dies/management/commands/sync_search.py). Prevents sequential tooling serial numbers from matching unrelated dies within 1-2 edit distances (resolving queries with sequential serial numbers matching tens of unrelated serials).
+    *   Updated test harness index setup in [`backend/dies/tests/test_search.py`](backend/dies/tests/test_search.py) and [`backend/dies/tests/test_import.py`](backend/dies/tests/test_import.py) to match production settings.
 *   **Go Search API Digit Query Relevance Pruning**:
-    *   Restored strict digit-containing query filtering in [`go-api/internal/handlers/handlers.go`](file:///D:/TMS/go-api/internal/handlers/handlers.go) (`QueryMeilisearchAndPostgres`): when `hasDigits == true`, candidates scoring `<= 50` (baseline fuzzy hits) are dropped from the result set.
+    *   Restored strict digit-containing query filtering in [`go-api/internal/handlers/handlers.go`](go-api/internal/handlers/handlers.go) (`QueryMeilisearchAndPostgres`): when `hasDigits == true`, candidates scoring `<= 50` (baseline fuzzy hits) are dropped from the result set.
     *   Updated pagination `totalCount` to report `len(filtered)` when digit filtering is active, preventing mismatched total counters in search result banners.
-    *   Updated [`go-api/internal/handlers/handlers_test.go`](file:///D:/TMS/go-api/internal/handlers/handlers_test.go) with explicit regression tests asserting that specific serial query returns 1 match and discards adjacent serial numbers.
+    *   Updated [`go-api/internal/handlers/handlers_test.go`](go-api/internal/handlers/handlers_test.go) with explicit regression tests asserting that specific serial query returns 1 match and discards adjacent serial numbers.
 *   **Cache & Verification**:
     *   Incremented `search_cache_gen` to 3 in Redis via Django shell.
     *   Rebuilt and restarted `tms-go-api:latest` container.
@@ -89,10 +89,10 @@
 
 ### 2026-11-10 Die ID Search Prefix Matching Hardening
 *   **Die ID Strict Prefix Matching**:
-    *   Hardened PostgreSQL query builder in [`go-api/internal/database/database.go`](file:///D:/TMS/go-api/internal/database/database.go#L139-L225) (`buildWhereClauses`): switched `d.die_id` filtering from arbitrary wildcard `ILIKE '%query%'` to strict starts-with prefix matching `d.die_id ILIKE 'query%'`.
+    *   Hardened PostgreSQL query builder in [`go-api/internal/database/database.go`](go-api/internal/database/database.go#L139-L225) (`buildWhereClauses`): switched `d.die_id` filtering from arbitrary wildcard `ILIKE '%query%'` to strict starts-with prefix matching `d.die_id ILIKE 'query%'`.
     *   Preserved metadata attribute wildcard search (`d.casing`, `d.status`, `s.name`, `m.name`) using `%query%`.
-    *   Updated relevance scoring engine in [`go-api/internal/handlers/handlers.go`](file:///D:/TMS/go-api/internal/handlers/handlers.go#L580-L594) (`scoreDie`): removed substring matching on `die_id` from score 70 so only exact matches (score 90) and prefix matches (score 80) score for Die ID. Internal substrings (such as query `88001` matching `PREFIX-88001`) are excluded.
-    *   Added test cases in [`go-api/internal/database/database_test.go`](file:///D:/TMS/go-api/internal/database/database_test.go) and [`go-api/internal/handlers/handlers_test.go`](file:///D:/TMS/go-api/internal/handlers/handlers_test.go).
+    *   Updated relevance scoring engine in [`go-api/internal/handlers/handlers.go`](go-api/internal/handlers/handlers.go#L580-L594) (`scoreDie`): removed substring matching on `die_id` from score 70 so only exact matches (score 90) and prefix matches (score 80) score for Die ID. Internal substrings (such as query `88001` matching `PREFIX-88001`) are excluded.
+    *   Added test cases in [`go-api/internal/database/database_test.go`](go-api/internal/database/database_test.go) and [`go-api/internal/handlers/handlers_test.go`](go-api/internal/handlers/handlers_test.go).
     *   Verified full test suite passes (Go tests 100%, Django 93/93, Vitest 111/111).
     *   Rebuilt and verified live `tms-go-api:latest` container with prefix matching.
 
