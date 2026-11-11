@@ -1,5 +1,11 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-11 CI Settings Startup Validation Isolation
+*   **Test Runner Environment Contamination Fix**:
+    *   Updated `test_celery_broker_uses_dedicated_redis_broker` in [`backend/users/tests/test_settings.py`](file:///D:/TMS/backend/users/tests/test_settings.py) to remove test runner environment overrides (`CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `REDIS_CACHE_URL`) from `os.environ` prior to reloading `tms.settings`.
+    *   Eliminated GitHub Actions failure (`AssertionError: 'redis-broker' not found in 'redis://localhost:6379/1'`) occurring because the CI runner explicitly set `CELERY_BROKER_URL: 'redis://localhost:6379/1'` in the job environment, which overrode the default architectural setting (`redis-broker:6379/0`).
+    *   Verified full Django test suite passes: 232/232 tests passing cleanly in 69.8s.
+
 ### 2026-11-11 Bulk Die Rename Smart Idempotency & Audit Recovery
 *   **Smart Idempotency Engine in RenameService**:
     *   Enhanced [`backend/dies/services/rename_service.py`](file:///D:/TMS/backend/dies/services/rename_service.py) with historical rename awareness. When a row's `old_die_id` is missing from inventory and `new_die_id` exists, the service performs a bulk query against [`DieHistory`](file:///D:/TMS/backend/history/models.py) to check if the target die was already renamed from `old_die_id` historically.

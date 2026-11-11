@@ -7,25 +7,22 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Implement Bulk Die Rename Smart Idempotency & Audit Recovery
+**Task:** Resolve CI Test Runner Environment Contamination in Settings Startup Validation
 **Status:** Complete
 **Started:** 2026-11-11
 **Target Completion:** 2026-11-11
 **Confidence:** 100%
 
 ## Task Description
-Enable smart idempotency in the Bulk Die Rename engine:
-- When a user uploads a spreadsheet where some dies were already renamed (e.g. manually in the UI or in a prior run), query `DieHistory` to verify historical renames.
-- Safely mark already-renamed rows as `ALREADY_COMPLETED` with 0 errors instead of generating false-positive missing die and target collision errors.
-- Display `ALREADY UP-TO-DATE` badges in the frontend preview modal and results banner.
-- Process remaining unrenamed dies in the batch without blocking.
+Isolate `test_celery_broker_uses_dedicated_redis_broker` in `backend/users/tests/test_settings.py` from CI runner environment variables:
+- In GitHub Actions CI, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` are set to `redis://localhost:6379/1`.
+- When `test_celery_broker_uses_dedicated_redis_broker` reloads `tms.settings` to verify default architectural separation (`redis-broker`), the CI environment variable overrode the default, causing an assertion failure (`AssertionError: 'redis-broker' not found in 'redis://localhost:6379/1'`).
+- Pop test-runner overrides from `os.environ` prior to reloading `settings` so default architecture is verified cleanly across local Docker and CI runners.
 
 ## Completed
-- Implemented historical rename lookup in `RenameService` (`backend/dies/services/rename_service.py`).
-- Added `ALREADY UP-TO-DATE` tracking in `ImportPage.tsx`.
-- Added regression test `test_rename_already_completed_dies_skipped_gracefully` in `backend/dies/tests/test_rename.py` (9/9 tests pass).
-- Sanitized all test fixtures, example Excel download templates, and internal dev logs to use synthetic generic mock IDs (e.g., `TEST-DIE-ROUND-01`, `SAMPLE-R-01`, `MOCK-SERIAL-99881`), ensuring zero real production tooling identifiers exist in the repository.
-- Verified full Django test suite (231/231 pass in 65s), Vitest frontend tests (111/111 pass in 14.7s), Vite production build (0 errors), and Go API suite (100% pass).
+- Isolated `test_celery_broker_uses_dedicated_redis_broker` in [`backend/users/tests/test_settings.py`](file:///D:/TMS/backend/users/tests/test_settings.py).
+- Verified full Django test suite passes: 232/232 tests passing cleanly in 69.8s.
+- Verified test passes when `CELERY_BROKER_URL` is set in the runner environment.
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

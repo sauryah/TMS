@@ -69,6 +69,9 @@ class SettingsStartupValidationTest(SimpleTestCase):
         self.assertIn("POSTGRES_PASSWORD", str(ctx.exception))
 
     def test_celery_broker_uses_dedicated_redis_broker(self):
+        os.environ.pop('CELERY_BROKER_URL', None)
+        os.environ.pop('CELERY_RESULT_BACKEND', None)
+        os.environ.pop('REDIS_CACHE_URL', None)
         importlib.reload(tms.settings)
         self.assertIn("redis-broker", tms.settings.CELERY_BROKER_URL)
         self.assertIn("redis-broker", tms.settings.CELERY_RESULT_BACKEND)
