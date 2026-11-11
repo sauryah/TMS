@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { useApi } from '../../../hooks/useApi'
 import { useAuth } from '../../../contexts/AuthContext'
 import { validateDieCreate } from '../../../types/validation'
 import { SearchableSelect } from '../../../components/SearchableSelect'
@@ -39,8 +37,6 @@ export function CreateDieModal({
   const [remarks, setRemarks] = useState('')
   const [currentSet, setCurrentSet] = useState('')
   const [currentStep, setCurrentStep] = useState(0)
-
-  const { request } = useApi()
   
   // Round subfields
   const [originalSize, setOriginalSize] = useState('')

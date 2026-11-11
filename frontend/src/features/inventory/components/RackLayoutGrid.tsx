@@ -2,7 +2,6 @@
  * @deprecated Rack storage system has been removed from TMS.
  * Kept as an inert component to prevent breaking any legacy references.
  */
-import React from 'react'
 import type { Die } from '../../../types'
 
 export interface RackRecord {

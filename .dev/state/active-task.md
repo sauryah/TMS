@@ -7,22 +7,26 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Resolve CI Test Runner Environment Contamination in Settings Startup Validation
+**Task:** Resolve Frontend CI ESLint Violations (Empty Blocks, Unused Variables & Hook Dependencies)
 **Status:** Complete
 **Started:** 2026-11-11
 **Target Completion:** 2026-11-11
 **Confidence:** 100%
 
 ## Task Description
-Isolate `test_celery_broker_uses_dedicated_redis_broker` in `backend/users/tests/test_settings.py` from CI runner environment variables:
-- In GitHub Actions CI, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` are set to `redis://localhost:6379/1`.
-- When `test_celery_broker_uses_dedicated_redis_broker` reloads `tms.settings` to verify default architectural separation (`redis-broker`), the CI environment variable overrode the default, causing an assertion failure (`AssertionError: 'redis-broker' not found in 'redis://localhost:6379/1'`).
-- Pop test-runner overrides from `os.environ` prior to reloading `settings` so default architecture is verified cleanly across local Docker and CI runners.
+Eliminate all 22 ESLint violations (5 errors, 17 warnings) failing the frontend CI gate (`Frontend Tests (Vitest + tsc + lint)`):
+- Empty block statements (`no-empty`) in `SessionTimeoutManager.tsx` catch blocks.
+- Missing hook dependencies (`react-hooks/exhaustive-deps`) in `SessionTimeoutManager.tsx` (`setToken`) and `useRealtimeSync.ts` (`queryClient`).
+- Unused variables and imports (`@typescript-eslint/no-unused-vars`) in `CreateDieModal.tsx`, `DieDetailPage.tsx`, `InventoryPage.tsx`, `InventorySubViews.tsx`, `RackLayoutGrid.tsx`, and `SettingsPage.tsx`.
 
 ## Completed
-- Isolated `test_celery_broker_uses_dedicated_redis_broker` in [`backend/users/tests/test_settings.py`](file:///D:/TMS/backend/users/tests/test_settings.py).
-- Verified full Django test suite passes: 232/232 tests passing cleanly in 69.8s.
-- Verified test passes when `CELERY_BROKER_URL` is set in the runner environment.
+- Fixed all `no-empty` violations with descriptive comments in catch statements.
+- Added missing dependencies `setToken` and `queryClient` to hook dependency arrays.
+- Removed unused imports and parameters across all flagged components.
+- Verified `npm run lint` passes with 0 errors and 0 warnings.
+- Verified `npx tsc --noEmit` passes with 0 type errors.
+- Verified Vitest suite: 29 test files, 111/111 tests passing.
+- Verified production build: `npm run build` completed successfully.
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

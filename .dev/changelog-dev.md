@@ -1,5 +1,13 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-11 Frontend CI ESLint & Static Analysis Hygiene
+*   **Static Analysis & Linting Pass**:
+    *   Resolved all 22 ESLint violations (5 errors, 17 warnings) failing CI's `Frontend Tests (Vitest + tsc + lint)` gate.
+    *   **Empty Blocks (`no-empty`)**: Added explanatory non-fatal storage comments to empty catch blocks in [`frontend/src/components/SessionTimeoutManager.tsx`](file:///D:/TMS/frontend/src/components/SessionTimeoutManager.tsx).
+    *   **Hook Exhaustive Dependencies (`react-hooks/exhaustive-deps`)**: Added `setToken` to dependency array in `SessionTimeoutManager.tsx` and `queryClient` in [`frontend/src/hooks/useRealtimeSync.ts`](file:///D:/TMS/frontend/src/hooks/useRealtimeSync.ts).
+    *   **Unused Variables (`@typescript-eslint/no-unused-vars`)**: Removed unused imports and unreferenced parameters in [`frontend/src/features/inventory/components/CreateDieModal.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/CreateDieModal.tsx), [`frontend/src/features/inventory/components/DieDetailPage.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/DieDetailPage.tsx), [`frontend/src/features/inventory/components/InventoryPage.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/InventoryPage.tsx), [`frontend/src/features/inventory/components/InventorySubViews.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/InventorySubViews.tsx), [`frontend/src/features/inventory/components/RackLayoutGrid.tsx`](file:///D:/TMS/frontend/src/features/inventory/components/RackLayoutGrid.tsx), and [`frontend/src/pages/SettingsPage.tsx`](file:///D:/TMS/frontend/src/pages/SettingsPage.tsx).
+    *   **Verification**: `npm run lint` (0 errors, 0 warnings), `tsc --noEmit` (0 errors), Vitest (111/111 passing), Vite build (0 errors).
+
 ### 2026-11-11 CI Settings Startup Validation Isolation
 *   **Test Runner Environment Contamination Fix**:
     *   Updated `test_celery_broker_uses_dedicated_redis_broker` in [`backend/users/tests/test_settings.py`](file:///D:/TMS/backend/users/tests/test_settings.py) to remove test runner environment overrides (`CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `REDIS_CACHE_URL`) from `os.environ` prior to reloading `tms.settings`.

@@ -7,7 +7,6 @@ import {
   SlidersHorizontal,
   Table2,
   LayoutGrid,
-  Map,
   Compass
 } from 'lucide-react'
 import { MachineSidebarTree, SetTreeItem } from './MachineSidebarTree'
@@ -21,7 +20,7 @@ import { Skeleton } from '../../../components/ui/Skeleton'
 import { useInventoryState } from '../hooks/useInventoryState'
 import { SearchView, MachineView, SetView, UnassignedView } from './InventorySubViews'
 import { useApi } from '../../../hooks/useApi'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '../../../contexts/ToastContext'
 import { Die } from '../../../types'
 

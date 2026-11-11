@@ -100,7 +100,9 @@ export function SessionTimeoutManager() {
     if (newToken) {
       try {
         localStorage.setItem('tms_token', newToken)
-      } catch {}
+      } catch {
+        // localStorage write non-fatal
+      }
       if (setToken) {
         setToken(newToken)
       }
@@ -149,7 +151,9 @@ export function SessionTimeoutManager() {
             lockedAt.current = Date.now()
             try {
               localStorage.removeItem('tms_token')
-            } catch {}
+            } catch {
+              // localStorage write non-fatal
+            }
             if (setToken) {
               setToken(null)
             }
@@ -184,7 +188,9 @@ export function SessionTimeoutManager() {
           lockedAt.current = Date.now()
           try {
             localStorage.removeItem('tms_token')
-          } catch {}
+          } catch {
+            // localStorage write non-fatal
+          }
           if (setToken) {
             setToken(null)
           }
@@ -210,13 +216,15 @@ export function SessionTimeoutManager() {
       }
       window.removeEventListener('storage', handleStorage)
     }
-  }, [])
+  }, [setToken])
 
   const handleForcedLogout = useCallback(() => {
     try {
       localStorage.removeItem('tms_is_locked')
       localStorage.removeItem('tms_locked_username')
-    } catch {}
+    } catch {
+      // localStorage write non-fatal
+    }
     setIsLocked(false)
     lockedAt.current = null
     setShowWarning(false)
@@ -233,7 +241,9 @@ export function SessionTimeoutManager() {
       try {
         localStorage.removeItem('tms_is_locked')
         localStorage.removeItem('tms_locked_username')
-      } catch {}
+      } catch {
+        // localStorage write non-fatal
+      }
       return
     }
 

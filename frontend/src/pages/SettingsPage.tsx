@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { KeyRound, ArrowLeft, Check, Eye, EyeOff, Sliders, Database, Shield, Palette, Terminal, Lock, Sun, RefreshCw, Copy, Download, ShieldAlert } from 'lucide-react'
+import { KeyRound, ArrowLeft, Check, Eye, EyeOff, Sliders, Database, Shield, Palette, Terminal, Sun, RefreshCw, Copy, Download, ShieldAlert } from 'lucide-react'
 import { useAuth, useTheme, useToast } from '../contexts'
 import { useApi } from '../hooks/useApi'
 import { BackupManager } from './users/BackupManager'

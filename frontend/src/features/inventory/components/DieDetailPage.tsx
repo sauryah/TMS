@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query'
-import { Trash2, Printer, Download, MapPin, Wrench } from 'lucide-react'
+import { Trash2, Printer, Download, Wrench } from 'lucide-react'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { useApi } from '../../../hooks/useApi'

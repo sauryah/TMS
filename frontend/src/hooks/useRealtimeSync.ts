@@ -214,5 +214,5 @@ export function useRealtimeSync(options: {
         eventSource.close()
       }
     }
-  }, [token, request, invalidateRelevantQueries, options])
+  }, [token, request, invalidateRelevantQueries, options, queryClient])
 }
