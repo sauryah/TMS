@@ -30,7 +30,7 @@
 ---
 
 <p align="center">
-  <img src="docs/assets/tms.png" alt="TMS Modern Dashboard" width="100%">
+  <img src="docs/assets/die-tracking-dashboard-overview.png" alt="Die Tracking Dashboard Overview" width="100%">
 </p>
 
 <p align="center">

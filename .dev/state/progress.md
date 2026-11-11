@@ -8,6 +8,15 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### README Hero Screenshot Update ✅
+**Status:** Complete  
+**Date:** 2026-11-11  
+
+**Completed:**
+- **Updated Dashboard Hero Image**: Imported `Die Tracking Dashboard Overview.png` from Downloads to `docs/assets/die-tracking-dashboard-overview.png`.
+- **Cleaned Deprecated Media**: Removed legacy `docs/assets/tms.png`.
+- **Synchronized Documentation**: Updated [`README.md`](file:///D:/TMS/README.md) preview image source and alt text.
+
 ### Frontend CI ESLint & Static Analysis Hygiene ✅
 **Status:** Complete  
 **Date:** 2026-11-11  

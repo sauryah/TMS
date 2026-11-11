@@ -7,26 +7,22 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Resolve Frontend CI ESLint Violations (Empty Blocks, Unused Variables & Hook Dependencies)
+**Task:** Update README Hero Screenshot with Die Tracking Dashboard Overview
 **Status:** Complete
 **Started:** 2026-11-11
 **Target Completion:** 2026-11-11
 **Confidence:** 100%
 
 ## Task Description
-Eliminate all 22 ESLint violations (5 errors, 17 warnings) failing the frontend CI gate (`Frontend Tests (Vitest + tsc + lint)`):
-- Empty block statements (`no-empty`) in `SessionTimeoutManager.tsx` catch blocks.
-- Missing hook dependencies (`react-hooks/exhaustive-deps`) in `SessionTimeoutManager.tsx` (`setToken`) and `useRealtimeSync.ts` (`queryClient`).
-- Unused variables and imports (`@typescript-eslint/no-unused-vars`) in `CreateDieModal.tsx`, `DieDetailPage.tsx`, `InventoryPage.tsx`, `InventorySubViews.tsx`, `RackLayoutGrid.tsx`, and `SettingsPage.tsx`.
+Replace the hero dashboard preview image in `README.md` with the newly provided screenshot:
+- Copied `Die Tracking Dashboard Overview.png` from Downloads to `docs/assets/die-tracking-dashboard-overview.png`.
+- Replaced the previous `docs/assets/tms.png` image.
+- Updated `README.md` image tag and alt attribute to reference `docs/assets/die-tracking-dashboard-overview.png`.
 
 ## Completed
-- Fixed all `no-empty` violations with descriptive comments in catch statements.
-- Added missing dependencies `setToken` and `queryClient` to hook dependency arrays.
-- Removed unused imports and parameters across all flagged components.
-- Verified `npm run lint` passes with 0 errors and 0 warnings.
-- Verified `npx tsc --noEmit` passes with 0 type errors.
-- Verified Vitest suite: 29 test files, 111/111 tests passing.
-- Verified production build: `npm run build` completed successfully.
+- Imported `Die Tracking Dashboard Overview.png` to `docs/assets/die-tracking-dashboard-overview.png`.
+- Removed deprecated `docs/assets/tms.png`.
+- Updated [`README.md`](file:///D:/TMS/README.md) hero image link.
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

@@ -1,5 +1,10 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-11 README Hero Screenshot Update
+*   **Hero Image Refresh**:
+    *   Replaced deprecated `docs/assets/tms.png` with new dashboard overview screenshot from Downloads (`docs/assets/die-tracking-dashboard-overview.png`).
+    *   Updated [`README.md`](file:///D:/TMS/README.md) hero image link and alt tag.
+
 ### 2026-11-11 Frontend CI ESLint & Static Analysis Hygiene
 *   **Static Analysis & Linting Pass**:
     *   Resolved all 22 ESLint violations (5 errors, 17 warnings) failing CI's `Frontend Tests (Vitest + tsc + lint)` gate.
