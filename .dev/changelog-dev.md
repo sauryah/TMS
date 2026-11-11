@@ -1,5 +1,12 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-11 CI Test Stability & Backup Restore Mock Isolation
+*   **Database Connection Termination Isolation**:
+    *   Extracted `terminate_database_connections(db_name: str)` in [`backend/users/services/backup_service.py`](file:///D:/TMS/backend/users/services/backup_service.py) as an isolated static method on `BackupService`.
+    *   Resolved infinite `fetchmany` loop in [`backend/users/tests/test_backups.py`](file:///D:/TMS/backend/users/tests/test_backups.py) where patching `django.db.connection.cursor` poisoned subsequent Django ORM calls (`Session.objects.all().delete()`, `UserSession.objects.all().delete()`), causing a memory exhaustion process SIGKILL in CI (`Backend Tests (Django)` failed after 4m 29s).
+    *   Separated testing: `test_terminate_database_connections` tests the SQL cursor and connection closure directly, while `test_restore_backup_terminates_connections_and_flushes_redis_sessions` mocks `BackupService.terminate_database_connections` without interfering with Django's test runner database connection.
+    *   Verified full Django test suite passes: 223/223 tests passing (`Ran 223 tests in 66.853s: OK`).
+
 ### 2026-11-10 Die ID Search Relevance Defense-in-Depth & Meilisearch Typo Disabling (LLM Council)
 *   **Meilisearch Typo Disabling on Die ID**:
     *   Configured `'disableOnAttributes': ['die_id']` inside `typoTolerance` settings across [`backend/search/meili.py`](file:///D:/TMS/backend/search/meili.py), [`backend/search/tasks.py`](file:///D:/TMS/backend/search/tasks.py), and [`backend/dies/management/commands/sync_search.py`](file:///D:/TMS/backend/dies/management/commands/sync_search.py). Prevents sequential tooling serial numbers from matching unrelated dies within 1-2 edit distances (resolving query `cy251202154` matching 78 unrelated serials).

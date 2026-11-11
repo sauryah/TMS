@@ -150,6 +150,21 @@ class BackupService:
         return filename
 
     @staticmethod
+    def terminate_database_connections(db_name: str) -> None:
+        """Terminate other active database connections before restore to prevent lock blocks."""
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT pg_terminate_backend(pid)
+                    FROM pg_stat_activity
+                    WHERE datname = %s AND pid <> pg_backend_pid();
+                """, [db_name])
+            connection.close()
+        except Exception as e:
+            logger.warning("Terminating connections before restore failed: %s", e)
+
+    @staticmethod
     def restore_backup(filepath: str, filename: str, request_user, session_data: dict = None) -> None:
         db_name = settings.DATABASES['default']['NAME']
         db_user = settings.DATABASES['default']['USER']
@@ -195,17 +210,7 @@ class BackupService:
             pass
 
         # Terminate other active database connections before restore to prevent conflicts and lock blocks
-        try:
-            from django.db import connection
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT pg_terminate_backend(pid)
-                    FROM pg_stat_activity
-                    WHERE datname = %s AND pid <> pg_backend_pid();
-                """, [db_name])
-            connection.close()
-        except Exception as e:
-            logger.warning("Terminating connections before restore failed: %s", e)
+        BackupService.terminate_database_connections(db_name)
 
         try:
             subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)

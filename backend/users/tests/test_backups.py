@@ -96,19 +96,29 @@ class BackupTests(APITestCase):
         self.assertEqual(result['status'], 'success')
         self.assertEqual(result['filename'], 'tms_backup_test.dump')
 
+    @patch('django.db.connection.close')
+    @patch('django.db.connection.cursor')
+    def test_terminate_database_connections(self, mock_cursor, mock_close):
+        from users.services.backup_service import BackupService
+        cursor_instance = MagicMock()
+        mock_cursor.return_value.__enter__.return_value = cursor_instance
+
+        BackupService.terminate_database_connections('test_tms')
+        cursor_instance.execute.assert_called_once()
+        call_sql = cursor_instance.execute.call_args[0][0]
+        self.assertIn("pg_terminate_backend", call_sql)
+        mock_close.assert_called_once()
+
     @patch('subprocess.run')
     @patch('django.core.management.call_command')
     @patch('users.services.backup_service.rebuild_search_index_task.delay')
     @patch('redis.Redis.from_url')
-    @patch('django.db.connection.cursor')
+    @patch('users.services.backup_service.BackupService.terminate_database_connections')
     def test_restore_backup_terminates_connections_and_flushes_redis_sessions(
-        self, mock_cursor, mock_redis_from_url, mock_rebuild_task, mock_migrate, mock_run
+        self, mock_terminate, mock_redis_from_url, mock_rebuild_task, mock_migrate, mock_run
     ):
         from users.services.backup_service import BackupService
-
-        # Setup mock cursor to record SQL statements
-        cursor_instance = MagicMock()
-        mock_cursor.return_value.__enter__.return_value = cursor_instance
+        from django.conf import settings
 
         # Setup mock redis to record scanned and deleted keys
         redis_mock = MagicMock()
@@ -134,10 +144,8 @@ class BackupTests(APITestCase):
             session_data=session_payload
         )
 
-        # 1. Verify connection termination SQL was called
-        cursor_instance.execute.assert_called()
-        call_sql = cursor_instance.execute.call_args[0][0]
-        self.assertIn("pg_terminate_backend", call_sql)
+        # 1. Verify connection termination was called with DB name
+        mock_terminate.assert_called_once_with(settings.DATABASES['default']['NAME'])
 
         # 2. Verify pg_restore subprocess was called
         mock_run.assert_called_once()

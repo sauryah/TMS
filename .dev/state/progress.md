@@ -8,6 +8,15 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### CI Test Stability & Backup Restore Mock Isolation ✅
+**Status:** Complete  
+**Date:** 2026-11-11  
+
+**Completed:**
+- **Database Connection Termination Isolation**: Refactored `BackupService.terminate_database_connections` in `backend/users/services/backup_service.py` into a discrete static method.
+- **Elimination of Test Memory Leak / SIGKILL**: Fixed `backend/users/tests/test_backups.py` where patching `django.db.connection.cursor` caused Django's query compiler to enter an infinite `fetchmany` loop during ORM session cleanup, triggering a Linux OOM SIGKILL after 4m 29s in CI.
+- **Full Suite Verification**: Verified that all 223 Django tests pass cleanly in 66s (`Ran 223 tests: OK`), Go API tests pass 100%, and Vitest frontend tests pass (111/111).
+
 ### Die ID Search Relevance Defense-in-Depth & Meilisearch Typo Disabling ✅
 **Status:** Complete  
 **Date:** 2026-11-10  

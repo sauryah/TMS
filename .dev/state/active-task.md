@@ -7,28 +7,26 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Die ID Search Relevance Defense-in-Depth & Meilisearch Typo Disabling
+**Task:** Resolve CI Django Test Hang & OOM in Backup Restore Connection Termination
 **Status:** Complete
-**Started:** 2026-11-10
-**Target Completion:** 2026-11-10
+**Started:** 2026-11-11
+**Target Completion:** 2026-11-11
 **Confidence:** 100%
 
 ## Task Description
-Eliminate false-positive search results on die serial numbers across all search tiers (resolving the issue where querying `cy251202154` returned 79 dies):
-- **Meilisearch Layer**: Configure `typoTolerance.disableOnAttributes = ["die_id"]` across initialization (`backend/search/meili.py`), task worker (`backend/search/tasks.py`), and management commands (`backend/dies/management/commands/sync_search.py`).
-- **Go API Middleware Layer**: Restore strict digit-query filtering in `go-api/internal/handlers/handlers.go` (`QueryMeilisearchAndPostgres`): when `hasDigits == true`, candidates scoring `<= 50` (unmatched baseline hits) are excluded.
-- **Accurate Result Count**: Report `totalCount = len(filtered)` when digit filtering is applied, aligning response counts with visible records.
-- **Cache Invalidation**: Invalidate Redis search cache generation (`search_cache_gen`).
+Fix CI pipeline failure in `Backend Tests (Django)` job (failed after 4m 29s run):
+- In `backend/users/tests/test_backups.py`, `test_restore_backup_terminates_connections_and_flushes_redis_sessions` patched `django.db.connection.cursor` at the function level.
+- When `BackupService.restore_backup` executed ORM queries (`Session.objects.all().delete()`, `UserSession.objects.all().delete()`), Django's query compiler iterated on the mock cursor (`while rows = cursor.fetchmany()`). Since `bool(MagicMock())` evaluates to `True`, it entered an infinite loop allocating mock objects until process SIGKILL (OOM).
+- Isolate connection termination into `BackupService.terminate_database_connections` and mock termination separately from ORM execution.
 
 ## Completed
-- Updated `backend/search/meili.py`, `backend/search/tasks.py`, and `backend/dies/management/commands/sync_search.py` with `'disableOnAttributes': ['die_id']`.
-- Updated test setups in `backend/dies/tests/test_search.py` and `backend/dies/tests/test_import.py`.
-- Updated `go-api/internal/handlers/handlers.go` to enforce `hasDigits` score cutoff (`score <= 50`) and accurate `totalCount` calculation.
-- Updated `go-api/internal/handlers/handlers_test.go` with explicit test cases for `cy251202154` false-positive pruning and `TC-20` digit filtering.
-- Incremented `search_cache_gen` to 3 in Redis.
-- Verified live Go API endpoint: query for `cy251202154` returns exactly 1 hit (`CY251202154`, `total: 1`).
-- Rebuilt and restarted `tms-go-api:latest` container.
-- Executed Go test suite (100% pass), Django test suite (93/93 pass), and Vitest test suite (111/111 pass).
+- Extracted `BackupService.terminate_database_connections` in `backend/users/services/backup_service.py`.
+- Updated `backend/users/tests/test_backups.py`:
+  - Added isolated unit test `test_terminate_database_connections` mocking `connection.cursor` and `connection.close`.
+  - Refactored `test_restore_backup_terminates_connections_and_flushes_redis_sessions` to patch `BackupService.terminate_database_connections` without polluting the Django ORM connection.
+- Verified test suite: `users.tests.test_backups` executes 6/6 tests in 1.1s (was killed previously).
+- Verified full Django test suite: all 223 tests pass cleanly in 66s (`Ran 223 tests: OK`).
+- Verified Vitest frontend suite (111/111 passing) and Go API suite (100% passing).
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.
