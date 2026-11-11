@@ -565,12 +565,12 @@ func TestRelevanceSorting(t *testing.T) {
 		t.Errorf("expected totalCount == 0 for filtered digit query, got %d", totalCount)
 	}
 
-	// Test Case 7: Strict ID search filtering (e.g., "cy251202154") drops false positives
-	dieSpecificID := "CY251202154"
-	dieSimilarID := "CY251202054"
+	// Test Case 7: Strict ID search filtering (e.g., "MOCK-SERIAL-99881") drops false positives
+	dieSpecificID := "MOCK-SERIAL-99881"
+	dieSimilarID := "MOCK-SERIAL-99882"
 	specificCandidates := []database.DieRepresentation{
-		{ID: 10, DieID: dieSpecificID, DieType: "ROUND", CurrentSize: &size1600, Casing: "25X10", MachineName: "MAG-CU"},
-		{ID: 11, DieID: dieSimilarID, DieType: "ROUND", CurrentSize: &size2500, Casing: "25X10", MachineName: "MAG-CU"},
+		{ID: 10, DieID: dieSpecificID, DieType: "ROUND", CurrentSize: &size1600, Casing: "CASE-01", MachineName: "LINE-A"},
+		{ID: 11, DieID: dieSimilarID, DieType: "ROUND", CurrentSize: &size2500, Casing: "CASE-01", MachineName: "LINE-A"},
 	}
 	mockSpecificDb := &MockDatabase{
 		QueryPostgresByIDsFn: func(ctx context.Context, hitIDs []int64, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, machineID, setID, unassigned, location string) ([]database.DieRepresentation, error) {
@@ -589,12 +589,12 @@ func TestRelevanceSorting(t *testing.T) {
 		},
 	}
 	hSpecific := NewHandler(cfg, mockSpecificDb, &MockCache{}, mockSpecificSearch, nil)
-	resultsSpecific, totalSpecific, err := hSpecific.QueryMeilisearchAndPostgres(context.Background(), &SearchParams{Q: "cy251202154", Limit: 10})
+	resultsSpecific, totalSpecific, err := hSpecific.QueryMeilisearchAndPostgres(context.Background(), &SearchParams{Q: "mock-serial-99881", Limit: 10})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(resultsSpecific) != 1 || resultsSpecific[0].DieID != "CY251202154" {
-		t.Fatalf("expected exactly 1 result matching CY251202154, got: %+v", resultsSpecific)
+	if len(resultsSpecific) != 1 || resultsSpecific[0].DieID != "MOCK-SERIAL-99881" {
+		t.Fatalf("expected exactly 1 result matching MOCK-SERIAL-99881, got: %+v", resultsSpecific)
 	}
 	if totalSpecific != 1 {
 		t.Errorf("expected totalSpecific == 1, got %d", totalSpecific)

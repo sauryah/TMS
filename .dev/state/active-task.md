@@ -24,7 +24,8 @@ Enable smart idempotency in the Bulk Die Rename engine:
 - Implemented historical rename lookup in `RenameService` (`backend/dies/services/rename_service.py`).
 - Added `ALREADY UP-TO-DATE` tracking in `ImportPage.tsx`.
 - Added regression test `test_rename_already_completed_dies_skipped_gracefully` in `backend/dies/tests/test_rename.py` (9/9 tests pass).
-- Verified full Django test suite (231/231 pass in 65s), Vitest frontend tests (111/111 pass in 14.7s), and Vite production build (0 errors).
+- Sanitized all test fixtures, example Excel download templates, and internal dev logs to use synthetic generic mock IDs (e.g., `TEST-DIE-ROUND-01`, `SAMPLE-R-01`, `MOCK-SERIAL-99881`), ensuring zero real production tooling identifiers exist in the repository.
+- Verified full Django test suite (231/231 pass in 65s), Vitest frontend tests (111/111 pass in 14.7s), Vite production build (0 errors), and Go API suite (100% pass).
 
 ## Next Steps
 - Await user instructions. Never `git push` autonomously.

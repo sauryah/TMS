@@ -29,7 +29,7 @@ class BulkDieRenameTests(TestCase):
 
         # Create sample dies
         self.die_round = Die.objects.create(
-            die_id='CY251202154',
+            die_id='TEST-DIE-ROUND-01',
             die_type='ROUND',
             casing='25x10',
             status='AVAILABLE',
@@ -42,7 +42,7 @@ class BulkDieRenameTests(TestCase):
         )
 
         self.die_flat = Die.objects.create(
-            die_id='CY251202155',
+            die_id='TEST-DIE-FLAT-01',
             die_type='FLAT',
             casing='30x15',
             status='AVAILABLE',
@@ -85,7 +85,7 @@ class BulkDieRenameTests(TestCase):
         self.assertIn("Instructions", wb.sheetnames)
 
     def test_rename_dies_success(self):
-        csv_data = "old_die_id,new_die_id\nCY251202154,CY251202999\nCY251202155,CY251202888\n"
+        csv_data = "old_die_id,new_die_id\nTEST-DIE-ROUND-01,TEST-DIE-ROUND-RENAMED\nTEST-DIE-FLAT-01,TEST-DIE-FLAT-RENAMED\n"
         csv_file = self._create_csv_file(csv_data)
         csv_file.name = "rename.csv"
 
@@ -97,14 +97,14 @@ class BulkDieRenameTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
 
         # In test mode, celery task ran eagerly. Verify DB state:
-        self.assertFalse(Die.objects.filter(die_id='CY251202154').exists())
-        self.assertFalse(Die.objects.filter(die_id='CY251202155').exists())
+        self.assertFalse(Die.objects.filter(die_id='TEST-DIE-ROUND-01').exists())
+        self.assertFalse(Die.objects.filter(die_id='TEST-DIE-FLAT-01').exists())
 
-        die_r = Die.objects.get(die_id='CY251202999')
+        die_r = Die.objects.get(die_id='TEST-DIE-ROUND-RENAMED')
         self.assertEqual(die_r.id, self.die_round.id)
         self.assertEqual(die_r.rounddie.punched_size, Decimal('1.013'))
 
-        die_f = Die.objects.get(die_id='CY251202888')
+        die_f = Die.objects.get(die_id='TEST-DIE-FLAT-RENAMED')
         self.assertEqual(die_f.id, self.die_flat.id)
         self.assertEqual(die_f.flatdie.punched_width, Decimal('12.500'))
 
@@ -112,8 +112,8 @@ class BulkDieRenameTests(TestCase):
         histories = list(DieHistory.objects.filter(die=die_r, field_name='die_id'))
         self.assertEqual(len(histories), 1)
         h = histories[0]
-        self.assertEqual(h.old_value, 'CY251202154')
-        self.assertEqual(h.new_value, 'CY251202999')
+        self.assertEqual(h.old_value, 'TEST-DIE-ROUND-01')
+        self.assertEqual(h.new_value, 'TEST-DIE-ROUND-RENAMED')
         self.assertEqual(h.changed_by, self.admin)
         self.assertTrue(h.verify_hash())
 
@@ -121,7 +121,7 @@ class BulkDieRenameTests(TestCase):
         self.assertTrue(OutboxTask.objects.filter(task_type='SYNC_DIE').exists())
 
     def test_rename_dies_dry_run_does_not_commit(self):
-        csv_data = "old_die_id,new_die_id\nCY251202154,CY251202999\n"
+        csv_data = "old_die_id,new_die_id\nTEST-DIE-ROUND-01,TEST-DIE-ROUND-RENAMED\n"
         import tempfile, os
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
             f.write(csv_data.encode('utf-8'))
@@ -134,8 +134,8 @@ class BulkDieRenameTests(TestCase):
             self.assertEqual(len(result['errors']), 0)
 
             # Verify database was NOT changed
-            self.assertTrue(Die.objects.filter(die_id='CY251202154').exists())
-            self.assertFalse(Die.objects.filter(die_id='CY251202999').exists())
+            self.assertTrue(Die.objects.filter(die_id='TEST-DIE-ROUND-01').exists())
+            self.assertFalse(Die.objects.filter(die_id='TEST-DIE-ROUND-RENAMED').exists())
             self.assertEqual(DieHistory.objects.count(), 0)
         finally:
             if os.path.exists(temp_path):
@@ -176,7 +176,7 @@ class BulkDieRenameTests(TestCase):
         """Tests that attempting to rename to an existing die that is not being renamed is rejected."""
         Die.objects.create(die_id='DIE_EXISTING_OCCUPIED', die_type='ROUND', casing='25x10')
 
-        csv_data = "old_die_id,new_die_id\nCY251202154,DIE_EXISTING_OCCUPIED\n"
+        csv_data = "old_die_id,new_die_id\nTEST-DIE-ROUND-01,DIE_EXISTING_OCCUPIED\n"
         import tempfile, os
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
             f.write(csv_data.encode('utf-8'))
@@ -189,7 +189,7 @@ class BulkDieRenameTests(TestCase):
             self.assertIn("already exists in inventory", result['errors'][0]['error'])
 
             # Die untouched
-            self.assertTrue(Die.objects.filter(die_id='CY251202154').exists())
+            self.assertTrue(Die.objects.filter(die_id='TEST-DIE-ROUND-01').exists())
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
@@ -211,7 +211,7 @@ class BulkDieRenameTests(TestCase):
                 os.remove(temp_path)
 
     def test_rename_duplicate_ids_in_sheet_rejected(self):
-        csv_data = "old_die_id,new_die_id\nCY251202154,TARGET_1\nCY251202154,TARGET_2\n"
+        csv_data = "old_die_id,new_die_id\nTEST-DIE-ROUND-01,TARGET_1\nTEST-DIE-ROUND-01,TARGET_2\n"
         import tempfile, os
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
             f.write(csv_data.encode('utf-8'))
@@ -231,22 +231,22 @@ class BulkDieRenameTests(TestCase):
         they are safely recognized as ALREADY UP-TO-DATE (skipped) with zero errors,
         allowing remaining unrenamed dies in the batch to proceed.
         """
-        # Set up die that was already renamed historically from FWD-Al-3/1-A01 to A01
-        die_already = Die.objects.create(die_id='A01', die_type='ROUND', casing='25x10')
+        # Set up die that was already renamed historically from LEGACY-SERIES-A01 to POSITION-A01
+        die_already = Die.objects.create(die_id='POSITION-A01', die_type='ROUND', casing='25x10')
         RoundDie.objects.create(die=die_already, punched_size=Decimal('1.000'), current_size=Decimal('1.000'))
         DieHistory.objects.create(
             die=die_already,
             field_name='die_id',
-            old_value='FWD-Al-3/1-A01',
-            new_value='A01',
+            old_value='LEGACY-SERIES-A01',
+            new_value='POSITION-A01',
             changed_by=self.admin
         )
 
         # Set up die that still needs to be renamed
-        die_pending = Die.objects.create(die_id='FWD-Al-3/1-A19', die_type='ROUND', casing='25x10')
+        die_pending = Die.objects.create(die_id='LEGACY-SERIES-A19', die_type='ROUND', casing='25x10')
         RoundDie.objects.create(die=die_pending, punched_size=Decimal('1.500'), current_size=Decimal('1.500'))
 
-        csv_data = "old_die_id,new_die_id\nFWD-Al-3/1-A01,A01\nFWD-Al-3/1-A19,A19\n"
+        csv_data = "old_die_id,new_die_id\nLEGACY-SERIES-A01,POSITION-A01\nLEGACY-SERIES-A19,POSITION-A19\n"
         import tempfile, os
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
             f.write(csv_data.encode('utf-8'))
@@ -268,16 +268,16 @@ class BulkDieRenameTests(TestCase):
             self.assertEqual(exec_result['updated'], 1)
 
             # Assert database state
-            self.assertTrue(Die.objects.filter(die_id='A01').exists())
-            self.assertTrue(Die.objects.filter(die_id='A19').exists())
-            self.assertFalse(Die.objects.filter(die_id='FWD-Al-3/1-A19').exists())
+            self.assertTrue(Die.objects.filter(die_id='POSITION-A01').exists())
+            self.assertTrue(Die.objects.filter(die_id='POSITION-A19').exists())
+            self.assertFalse(Die.objects.filter(die_id='LEGACY-SERIES-A19').exists())
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
     def test_rename_permissions(self):
         self.client.force_authenticate(user=self.operator)
-        csv_data = "old_die_id,new_die_id\nCY251202154,CY251202999\n"
+        csv_data = "old_die_id,new_die_id\nTEST-DIE-ROUND-01,TEST-DIE-ROUND-RENAMED\n"
         csv_file = self._create_csv_file(csv_data)
         csv_file.name = "rename.csv"
 

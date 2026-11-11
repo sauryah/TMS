@@ -462,8 +462,8 @@ class RenameTemplateView(APIView):
         ws1.title = "Die Renames"
         headers = ["old_die_id", "new_die_id"]
         ws1.append(headers)
-        ws1.append(["CY251202154", "CY251202999"])
-        ws1.append(["R-1001", "R-2001"])
+        ws1.append(["SAMPLE-R-01", "SAMPLE-R-01-A"])
+        ws1.append(["SAMPLE-F-01", "SAMPLE-F-01-A"])
 
         ws2 = wb.create_sheet(title="Instructions")
         ws2.append(["Column Name", "Required", "Description"])

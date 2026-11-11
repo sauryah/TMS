@@ -13,7 +13,7 @@ Track implementation status across all phases.
 **Date:** 2026-11-11  
 
 **Completed:**
-- **Smart Idempotency in RenameService**: Enabled historical audit checking in `RenameService` (`backend/dies/services/rename_service.py`). When spreadsheet rows contain dies that were already renamed historically (e.g. `FWD-Al-3/1-A01` -> `A01`), the engine automatically recognizes them as `ALREADY_COMPLETED` with zero errors.
+- **Smart Idempotency in RenameService**: Enabled historical audit checking in `RenameService` (`backend/dies/services/rename_service.py`). When spreadsheet rows contain dies that were already renamed historically (e.g. `LEGACY-SERIES-A01` -> `POSITION-A01`), the engine automatically recognizes them as `ALREADY_COMPLETED` with zero errors.
 - **Graceful Partial Batch Processing**: Allows batches with mixed already-renamed and unrenamed dies to safely process the remaining dies without manual spreadsheet pruning.
 - **Frontend Up-to-Date Visualization**: Updated `ImportPage.tsx` with `ALREADY UP-TO-DATE` badges in the dry-run simulation modal and completion toasts.
 - **Test Suite Verification**: Added unit test in `test_rename.py` (9/9 passing), full Django suite (231/231 passing in 65s), Vitest frontend suite (111/111 passing), and Vite production build verified.
@@ -47,7 +47,7 @@ Track implementation status across all phases.
 - **Go API Digit Query Relevance Pruning**: Restored strict digit-containing query filtering in `go-api/internal/handlers/handlers.go` (`QueryMeilisearchAndPostgres`), pruning low-relevance baseline candidates (`score <= 50`).
 - **Accurate Result Pagination**: Synchronized total match reporting to return `len(filtered)` for digit queries, preventing mismatched search result headers.
 - **Cache Refresh**: Incremented `search_cache_gen` to 3 in Redis to invalidate stale search entries.
-- **Test Verification**: Added regression tests in `handlers_test.go` and verified 100% pass across Go (100%), Django (93/93), and Vitest (111/111). Live query for `cy251202154` verified to return exactly 1 record (`CY251202154`, `total: 1`).
+- **Test Verification**: Added regression tests in `handlers_test.go` and verified 100% pass across Go (100%), Django (93/93), and Vitest (111/111). Live query for specific tooling serial verified to return exactly 1 record (`total: 1`).
 
 ### Die ID Search Prefix Matching Hardening ✅
 **Status:** Complete  
