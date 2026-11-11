@@ -17,6 +17,7 @@ export interface ImportResultData {
   created: number
   updated: number
   skipped: number
+  already_up_to_date?: number
   errors: ImportErrorItem[]
 }
 
@@ -63,11 +64,13 @@ export function ImportPage() {
         if (!onMount) {
           const result = status.result
           const isRename = status.operation === 'rename' || importMode === 'rename'
+          const alreadyUpToDate = result?.already_up_to_date ?? 0
           if (status.dry_run) {
             setDryRunResult({
               created: result?.created || 0,
               updated: result?.updated || 0,
               skipped: result?.skipped || 0,
+              already_up_to_date: alreadyUpToDate,
               errors: result?.errors || []
             })
             setShowPreviewModal(true)
@@ -76,11 +79,21 @@ export function ImportPage() {
               created: result?.created || 0,
               updated: result?.updated || 0,
               skipped: result?.skipped || 0,
+              already_up_to_date: alreadyUpToDate,
               errors: result?.errors || []
             })
-            const successText = isRename
-              ? `Bulk rename complete: ${result?.updated || 0} dies renamed, ${result?.skipped || 0} skipped.`
-              : `Import complete: ${result?.created || 0} created, ${result?.updated || 0} updated, ${result?.skipped || 0} skipped.`
+            let successText = ""
+            if (isRename) {
+              if (result?.updated === 0 && alreadyUpToDate > 0) {
+                successText = `All ${alreadyUpToDate} dies are already up-to-date! No renames needed.`
+              } else if (alreadyUpToDate > 0) {
+                successText = `Bulk rename complete: ${result?.updated || 0} dies renamed (${alreadyUpToDate} already up-to-date).`
+              } else {
+                successText = `Bulk rename complete: ${result?.updated || 0} dies renamed, ${result?.skipped || 0} skipped.`
+              }
+            } else {
+              successText = `Import complete: ${result?.created || 0} created, ${result?.updated || 0} updated, ${result?.skipped || 0} skipped.`
+            }
             setStatusMsg({
               type: 'success',
               text: successText
@@ -463,6 +476,11 @@ export function ImportPage() {
                   <span className="text-blue-400 font-mono font-bold">
                     ● {importResult.updated} RENAMED
                   </span>
+                  {importResult.already_up_to_date !== undefined && importResult.already_up_to_date > 0 && (
+                    <span className="text-emerald-400 font-mono font-bold">
+                      ✓ {importResult.already_up_to_date} ALREADY UP-TO-DATE
+                    </span>
+                  )}
                   <span className="text-[#6b7280] font-mono">
                     — {importResult.skipped} SKIPPED
                   </span>
@@ -539,8 +557,8 @@ export function ImportPage() {
                   <span className="text-lg font-mono font-bold text-blue-400 mt-0.5 block tabular-nums">{dryRunResult.updated}</span>
                 </div>
                 <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
-                  <span className="text-[10px] text-[#6b7280] uppercase block">TO SKIP</span>
-                  <span className="text-lg font-mono font-bold text-[#6b7280] mt-0.5 block tabular-nums">{dryRunResult.skipped}</span>
+                  <span className="text-[10px] text-[#6b7280] uppercase block">ALREADY UP-TO-DATE</span>
+                  <span className="text-lg font-mono font-bold text-emerald-400 mt-0.5 block tabular-nums">{dryRunResult.already_up_to_date ?? dryRunResult.skipped}</span>
                 </div>
                 <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-3 rounded-sm text-center">
                   <span className="text-[10px] text-[#6b7280] uppercase block">ERRORS</span>

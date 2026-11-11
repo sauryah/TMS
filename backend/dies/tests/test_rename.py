@@ -225,6 +225,56 @@ class BulkDieRenameTests(TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_rename_already_completed_dies_skipped_gracefully(self):
+        """
+        Tests Smart Idempotency: When dies in the spreadsheet were already renamed historically,
+        they are safely recognized as ALREADY UP-TO-DATE (skipped) with zero errors,
+        allowing remaining unrenamed dies in the batch to proceed.
+        """
+        # Set up die that was already renamed historically from FWD-Al-3/1-A01 to A01
+        die_already = Die.objects.create(die_id='A01', die_type='ROUND', casing='25x10')
+        RoundDie.objects.create(die=die_already, punched_size=Decimal('1.000'), current_size=Decimal('1.000'))
+        DieHistory.objects.create(
+            die=die_already,
+            field_name='die_id',
+            old_value='FWD-Al-3/1-A01',
+            new_value='A01',
+            changed_by=self.admin
+        )
+
+        # Set up die that still needs to be renamed
+        die_pending = Die.objects.create(die_id='FWD-Al-3/1-A19', die_type='ROUND', casing='25x10')
+        RoundDie.objects.create(die=die_pending, punched_size=Decimal('1.500'), current_size=Decimal('1.500'))
+
+        csv_data = "old_die_id,new_die_id\nFWD-Al-3/1-A01,A01\nFWD-Al-3/1-A19,A19\n"
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
+            f.write(csv_data.encode('utf-8'))
+            temp_path = f.name
+
+        try:
+            # 1. Verify dry run recognizes already-completed dies
+            dry_result = RenameService.rename_dies(temp_path, '.csv', user=self.admin, dry_run=True)
+            self.assertEqual(len(dry_result['errors']), 0)
+            self.assertEqual(dry_result['already_up_to_date'], 1)
+            self.assertEqual(dry_result['updated'], 1)
+            self.assertEqual(dry_result['preview'][0]['status'], 'ALREADY_COMPLETED')
+            self.assertEqual(dry_result['preview'][1]['status'], 'READY')
+
+            # 2. Verify commit executes rename on pending die while skipping already-done die
+            exec_result = RenameService.rename_dies(temp_path, '.csv', user=self.admin, dry_run=False)
+            self.assertEqual(len(exec_result['errors']), 0)
+            self.assertEqual(exec_result['already_up_to_date'], 1)
+            self.assertEqual(exec_result['updated'], 1)
+
+            # Assert database state
+            self.assertTrue(Die.objects.filter(die_id='A01').exists())
+            self.assertTrue(Die.objects.filter(die_id='A19').exists())
+            self.assertFalse(Die.objects.filter(die_id='FWD-Al-3/1-A19').exists())
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
     def test_rename_permissions(self):
         self.client.force_authenticate(user=self.operator)
         csv_data = "old_die_id,new_die_id\nCY251202154,CY251202999\n"

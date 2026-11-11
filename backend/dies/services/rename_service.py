@@ -204,7 +204,7 @@ class RenameService:
                     'new_id': new_id
                 })
 
-            # Phase 2: Database existence and collision verification
+            # Phase 2: Database existence, collision, and smart idempotency verification
             all_old_ids = [p['old_id'] for p in parsed_pairs]
             all_new_ids = [p['new_id'] for p in parsed_pairs]
 
@@ -216,9 +216,41 @@ class RenameService:
                 for d in Die.objects.filter(die_id__in=missing_old_ids):
                     existing_old[d.die_id] = d
 
+            # Pre-fetch target collision candidates
+            existing_new = {d.die_id: d for d in Die.objects.filter(die_id__in=all_new_ids)}
+
+            # Smart Idempotency: Detect dies that were ALREADY renamed from old_id to new_id
+            potential_already_renamed = [
+                existing_new[p['new_id']].id
+                for p in parsed_pairs
+                if p['old_id'] not in existing_old and p['new_id'] in existing_new
+            ]
+            already_renamed_set = set()
+            if potential_already_renamed:
+                history_qs = DieHistory.objects.filter(
+                    die_id__in=potential_already_renamed,
+                    field_name='die_id'
+                ).values_list('die_id', 'old_value', 'new_value')
+                # Store (die_id, old_value_lower, new_value_lower)
+                for did, old_val, new_val in history_qs:
+                    if old_val and new_val:
+                        already_renamed_set.add((did, str(old_val).strip().lower(), str(new_val).strip().lower()))
+
+            already_up_to_date_rows = set()
             for p in parsed_pairs:
-                if p['old_id'] not in existing_old:
-                    # Try case-insensitive single lookup
+                is_missing_old = p['old_id'] not in existing_old
+                is_existing_new = p['new_id'] in existing_new
+
+                # Check if this row was already renamed historically (idempotent skip)
+                if is_missing_old and is_existing_new:
+                    target_die = existing_new[p['new_id']]
+                    key = (target_die.id, p['old_id'].strip().lower(), p['new_id'].strip().lower())
+                    if key in already_renamed_set:
+                        already_up_to_date_rows.add(p['row'])
+                        continue
+
+                # If missing old die
+                if is_missing_old:
                     matched = Die.objects.filter(die_id__iexact=p['old_id']).first()
                     if matched:
                         existing_old[p['old_id']] = matched
@@ -230,11 +262,8 @@ class RenameService:
                             'error': f"Die with ID '{p['old_id']}' does not exist in inventory."
                         })
 
-            # Pre-fetch target collision candidates
-            existing_new = {d.die_id: d for d in Die.objects.filter(die_id__in=all_new_ids)}
-
-            for p in parsed_pairs:
-                if p['new_id'] in existing_new:
+                # If target ID collides with an existing die
+                if is_existing_new:
                     colliding_die = existing_new[p['new_id']]
                     # If the colliding die is not part of this batch's old_ids being renamed, it's a conflict
                     if colliding_die.die_id not in seen_old_ids:
@@ -247,24 +276,48 @@ class RenameService:
 
             preview_list = []
             for p in parsed_pairs:
-                has_row_err = any(e['row'] == p['row'] for e in errors)
-                preview_list.append({
-                    'row': p['row'],
-                    'old_die_id': p['old_id'],
-                    'new_die_id': p['new_id'],
-                    'status': 'ERROR' if has_row_err else 'READY'
-                })
+                if p['row'] in already_up_to_date_rows:
+                    preview_list.append({
+                        'row': p['row'],
+                        'old_die_id': p['old_id'],
+                        'new_die_id': p['new_id'],
+                        'status': 'ALREADY_COMPLETED'
+                    })
+                else:
+                    has_row_err = any(e['row'] == p['row'] for e in errors)
+                    preview_list.append({
+                        'row': p['row'],
+                        'old_die_id': p['old_id'],
+                        'new_die_id': p['new_id'],
+                        'status': 'ERROR' if has_row_err else 'READY'
+                    })
+
+            active_pairs = [p for p in parsed_pairs if p['row'] not in already_up_to_date_rows]
 
             # If dry run or errors exist, return validation summary without committing
             if dry_run or len(errors) > 0:
                 return {
                     'created': 0,
-                    'updated': len(parsed_pairs) - len(errors) if len(errors) == 0 else 0,
-                    'skipped': len(errors),
+                    'updated': len(active_pairs) if len(errors) == 0 else 0,
+                    'skipped': len(errors) + len(already_up_to_date_rows),
+                    'already_up_to_date': len(already_up_to_date_rows),
                     'errors': sorted(errors, key=lambda x: x['row']),
                     'dry_run': dry_run,
                     'preview': preview_list,
-                    'renamed': len(parsed_pairs) if len(errors) == 0 else 0
+                    'renamed': len(active_pairs) if len(errors) == 0 else 0
+                }
+
+            # If all rows were already up to date, finish cleanly
+            if not active_pairs:
+                return {
+                    'created': 0,
+                    'updated': 0,
+                    'skipped': len(already_up_to_date_rows),
+                    'already_up_to_date': len(already_up_to_date_rows),
+                    'errors': [],
+                    'dry_run': False,
+                    'preview': preview_list,
+                    'renamed': 0
                 }
 
             # Phase 3: Atomic execution (2-phase swap to prevent unique constraint collisions)
@@ -275,7 +328,7 @@ class RenameService:
                     'new_id': p['new_id'],
                     'row': p['row']
                 }
-                for p in parsed_pairs
+                for p in active_pairs
             ]
 
             with transaction.atomic():
@@ -327,7 +380,8 @@ class RenameService:
             return {
                 'created': 0,
                 'updated': len(items_to_rename),
-                'skipped': 0,
+                'skipped': len(already_up_to_date_rows),
+                'already_up_to_date': len(already_up_to_date_rows),
                 'errors': [],
                 'dry_run': False,
                 'preview': preview_list,

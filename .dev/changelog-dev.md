@@ -1,5 +1,12 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-11 Bulk Die Rename Smart Idempotency & Audit Recovery
+*   **Smart Idempotency Engine in RenameService**:
+    *   Enhanced [`backend/dies/services/rename_service.py`](file:///D:/TMS/backend/dies/services/rename_service.py) with historical rename awareness. When a row's `old_die_id` is missing from inventory and `new_die_id` exists, the service performs a bulk query against [`DieHistory`](file:///D:/TMS/backend/history/models.py) to check if the target die was already renamed from `old_die_id` historically.
+    *   Rows already renamed are marked as `ALREADY_COMPLETED` / `already_up_to_date` with 0 validation errors, preventing completed dies from blocking remaining pending renames.
+    *   Enhanced [`frontend/src/pages/ImportPage.tsx`](file:///D:/TMS/frontend/src/pages/ImportPage.tsx) to display **ALREADY UP-TO-DATE** indicators in both the dry-run simulation modal and final results banner.
+    *   Added regression test `test_rename_already_completed_dies_skipped_gracefully` in [`backend/dies/tests/test_rename.py`](file:///D:/TMS/backend/dies/tests/test_rename.py) (9/9 tests pass).
+
 ### 2026-11-11 Dedicated Bulk Die Rename Tool (LLM Council Consensus)
 *   **Collision-Safe 2-Phase Renaming Engine**:
     *   Created `RenameService` in [`backend/dies/services/rename_service.py`](file:///D:/TMS/backend/dies/services/rename_service.py) supporting CSV and XLSX 2-column mapping ingestion (`old_die_id` -> `new_die_id`).
