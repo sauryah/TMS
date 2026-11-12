@@ -32,33 +32,54 @@ export function useFocusTrap<T extends HTMLElement>(
     returnFocus = true,
   } = options
 
+  const onEscapeRef = useRef(onEscape)
+  onEscapeRef.current = onEscape
+
+  const returnFocusRef = useRef(returnFocus)
+  returnFocusRef.current = returnFocus
+
   const previousActiveElementRef = useRef<HTMLElement | null>(null)
+  const isTrapActiveRef = useRef(false)
 
   useEffect(() => {
-    if (!enabled) return
-
-    // Save previously focused element to return focus later
-    previousActiveElementRef.current = document.activeElement as HTMLElement
+    if (!enabled) {
+      if (isTrapActiveRef.current) {
+        isTrapActiveRef.current = false
+        if (returnFocusRef.current && previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
+          previousActiveElementRef.current.focus()
+          previousActiveElementRef.current = null
+        }
+      }
+      return
+    }
 
     const container = containerRef.current
     if (!container) return
 
-    // Determine initial element to focus
-    if (initialFocusRef?.current) {
-      initialFocusRef.current.focus()
-    } else {
-      const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      if (focusable.length > 0) {
-        focusable[0].focus()
-      } else {
-        container.focus()
+    // Activate trap on transition to enabled
+    if (!isTrapActiveRef.current) {
+      isTrapActiveRef.current = true
+      previousActiveElementRef.current = document.activeElement as HTMLElement
+
+      // Only move initial focus if focus is not already inside the container
+      if (!container.contains(document.activeElement)) {
+        if (initialFocusRef?.current) {
+          initialFocusRef.current.focus()
+        } else {
+          const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+          if (focusable.length > 0) {
+            focusable[0].focus()
+          } else {
+            container.focus()
+          }
+        }
       }
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onEscape) {
+      if (e.key === 'Escape' && onEscapeRef.current) {
         e.preventDefault()
-        onEscape()
+        onEscapeRef.current()
         return
       }
 
@@ -67,8 +88,6 @@ export function useFocusTrap<T extends HTMLElement>(
       const focusables = Array.from(
         container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
       ).filter(el => {
-        // In real browser environments offsetParent handles display: none.
-        // In jsdom offsetParent is always null, so check computed styles.
         if (el.offsetParent !== null) return true
         const style = window.getComputedStyle(el)
         return style.display !== 'none' && style.visibility !== 'hidden'
@@ -99,9 +118,15 @@ export function useFocusTrap<T extends HTMLElement>(
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true)
-      if (returnFocus && previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
+    }
+  }, [containerRef, enabled, initialFocusRef])
+
+  // Restore focus on unmount if trap was active
+  useEffect(() => {
+    return () => {
+      if (isTrapActiveRef.current && returnFocusRef.current && previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
         previousActiveElementRef.current.focus()
       }
     }
-  }, [containerRef, enabled, onEscape, initialFocusRef, returnFocus])
+  }, [])
 }

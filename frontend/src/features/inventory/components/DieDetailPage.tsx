@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query'
 import { Trash2, Printer, Download, Wrench } from 'lucide-react'
@@ -275,13 +275,13 @@ export function DieDetailPage() {
     )
   }, [die, casingVal, statusVal, remarks, currentSetId, manufacturerVal, currentSize, currentWidth, currentThickness, punchedSize, punchedWidth, punchedThickness, radiusVal])
 
-  const handleCloseEditDrawer = () => {
+  const handleCloseEditDrawer = useCallback(() => {
     if (isDirty) {
       setShowDiscardConfirm(true)
     } else {
       setIsEditing(false)
     }
-  }
+  }, [isDirty])
 
   const handleConfirmDiscard = () => {
     if (die) {

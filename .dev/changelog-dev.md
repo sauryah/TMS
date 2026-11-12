@@ -1,5 +1,20 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-12 Fix Focus Loss on Form Keystrokes in Edit Asset Drawer
+*   **Focus Trap Stability & Ref-Based Callbacks**:
+    *   Refactored [`frontend/src/hooks/useFocusTrap.ts`](frontend/src/hooks/useFocusTrap.ts) to store `onEscape` and `returnFocus` callbacks in mutable refs (`onEscapeRef`, `returnFocusRef`), eliminating unnecessary effect re-executions caused by parent re-renders.
+    *   Added `isTrapActiveRef` state tracking so initial focus is only placed on the initial transition from disabled to enabled.
+    *   Added active element guard `!container.contains(document.activeElement)`: if the user already has focus inside an input field within the container, focus is preserved rather than hijacked to `focusable[0]`.
+    *   Bound `returnFocus` execution to unmount and `enabled: false` cleanup cycles, ensuring keystrokes never trigger return-focus logic.
+*   **Drawer & Die Detail Page Memoization**:
+    *   Memoized `handleEscape` using `useRef` and `useCallback` in [`frontend/src/components/ui/Drawer.tsx`](frontend/src/components/ui/Drawer.tsx).
+    *   Wrapped `handleCloseEditDrawer` with `useCallback([isDirty])` in [`frontend/src/features/inventory/components/DieDetailPage.tsx`](frontend/src/features/inventory/components/DieDetailPage.tsx).
+*   **Verification**:
+    *   Vitest: 111/111 passing across 29 test suites.
+    *   ESLint: 0 errors, 0 warnings.
+    *   TypeScript: `tsc --noEmit` 0 errors.
+    *   Vite: production bundle built cleanly.
+
 ### 2026-11-12 Dedicated Relational Manufacturer Entity Across Dual-Engine Architecture
 *   **Normalized Relational Schema & Migration**:
     *   Created `Manufacturer` model in [`backend/dies/models.py`](backend/dies/models.py) with fields `name` (unique, indexed), `contact_person`, `email`, `phone`, `notes`, and `created_at`.

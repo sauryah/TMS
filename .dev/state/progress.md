@@ -8,6 +8,16 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Fix Focus Loss on Form Keystrokes in Edit Asset Drawer ✅
+**Status:** Complete  
+**Date:** 2026-11-12  
+
+**Completed:**
+- **Focus Trap Invariant Hardening**: Refactored `useFocusTrap` to store `onEscape` and `returnFocus` in refs, preventing re-render callback churn from restarting the effect.
+- **Active Focus Preservation**: Added `isTrapActiveRef` and guarded initial focus with `!container.contains(document.activeElement)` so typing into inputs never loses focus.
+- **Component Memoization**: Memoized escape handling in `Drawer` and close handlers in `DieDetailPage`.
+- **Quality Gates**: 111/111 Vitest tests passing, 0 ESLint errors/warnings, 0 TypeScript errors, clean Vite build.
+
 ### Dedicated Relational Manufacturer Entity Across Dual-Engine Architecture ✅
 **Status:** Complete  
 **Date:** 2026-11-12  

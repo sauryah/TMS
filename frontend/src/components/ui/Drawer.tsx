@@ -1,4 +1,4 @@
-import React, { useRef, useId } from 'react'
+import React, { useRef, useId, useCallback } from 'react'
 import { X } from 'lucide-react'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
@@ -13,9 +13,16 @@ export function Drawer({ open, onClose, title, children }: DrawerProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
 
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  const handleEscape = useCallback(() => {
+    onCloseRef.current()
+  }, [])
+
   useFocusTrap(dialogRef, {
     enabled: open,
-    onEscape: onClose,
+    onEscape: handleEscape,
     returnFocus: true,
   })
 
