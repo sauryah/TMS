@@ -1,5 +1,20 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-12 High-Contrast Multi-Theme Text Selection
+*   **Eliminated Low-Contrast Hardcoded Selection**:
+    *   Removed `selection:bg-[#1f1f1f] selection:text-[#e4e4e4]` from the root wrapper div in [`frontend/src/App.tsx`](frontend/src/App.tsx) which previously caused cursor text selection to blend identically with dark cards, tables, and modal backgrounds (`#1f1f1f`).
+*   **Multi-Theme Selection Design Tokens & Overrides**:
+    *   Added `--color-selection-bg` and `--color-selection-text` tokens in [`frontend/src/index.css`](frontend/src/index.css) for `:root`, `html[data-theme="classic"]`, and `html[data-theme="light"]`.
+    *   **Terminal Theme**: Cobalt Blue `#2563EB` with `#FFFFFF` text, offering high contrast against dark terminal `#0a0a0a` / `#141414` / `#1f1f1f`.
+    *   **Classic Slate Theme**: Electric Sky Blue `#0077E6` with `#FFFFFF` text, standing out against navy slate `#070B14` and `#111C33`.
+    *   **Precision Light Theme**: Vivid Cobalt `#2563EB` with `#FFFFFF` text, replacing washed-out `#DBEAFE` that blended with white `#FFFFFF` / `#F8FAFC`.
+    *   Added universal coverage across inputs, textareas, tables, and Firefox `::-moz-selection`.
+*   **Verification**:
+    *   Vitest: 111/111 passing across 29 test suites.
+    *   ESLint: 0 errors, 0 warnings.
+    *   TypeScript: `tsc --noEmit` 0 errors.
+    *   Vite: production bundle built cleanly in 7.95s.
+
 ### 2026-11-12 Fix Focus Loss on Form Keystrokes in Edit Asset Drawer
 *   **Focus Trap Stability & Ref-Based Callbacks**:
     *   Refactored [`frontend/src/hooks/useFocusTrap.ts`](frontend/src/hooks/useFocusTrap.ts) to store `onEscape` and `returnFocus` callbacks in mutable refs (`onEscapeRef`, `returnFocusRef`), eliminating unnecessary effect re-executions caused by parent re-renders.

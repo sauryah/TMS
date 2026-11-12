@@ -8,6 +8,16 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### High-Contrast Multi-Theme Text Selection Across App ✅
+**Status:** Complete  
+**Date:** 2026-11-12  
+
+**Completed:**
+- **Eliminated Low-Contrast Selection Utility**: Removed `selection:bg-[#1f1f1f] selection:text-[#e4e4e4]` from root layout in `App.tsx`.
+- **Dedicated Multi-Theme Tokens**: Introduced `--color-selection-bg` and `--color-selection-text` across Terminal, Classic, and Light theme root scopes.
+- **Universal Selection Selectors**: Added explicit rules for `::selection`, `*::selection`, `input::selection`, `textarea::selection`, and Firefox `::-moz-selection`.
+- **Quality Gates**: 111/111 Vitest tests passing, 0 ESLint errors/warnings, 0 TypeScript errors, clean production build.
+
 ### Fix Focus Loss on Form Keystrokes in Edit Asset Drawer ✅
 **Status:** Complete  
 **Date:** 2026-11-12  
