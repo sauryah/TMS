@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { KeyRound, ArrowLeft, Check, Eye, EyeOff, Sliders, Database, Shield, Palette, Terminal, Sun, RefreshCw, Copy, Download, ShieldAlert } from 'lucide-react'
+import { KeyRound, ArrowLeft, Check, Eye, EyeOff, Sliders, Database, Shield, Palette, Terminal, Sun, RefreshCw, Copy, Download, ShieldAlert, Factory } from 'lucide-react'
 import { useAuth, useTheme, useToast } from '../contexts'
 import { useApi } from '../hooks/useApi'
 import { BackupManager } from './users/BackupManager'
+import { ManufacturerSettings } from './settings/ManufacturerSettings'
 
 interface ToleranceConfig {
   id?: number | string
@@ -21,7 +22,7 @@ export function SettingsPage() {
   const { showToast } = useToast()
   const navigate = useNavigate()
 
-  const [activeTab, setActiveTab] = useState<'account' | 'appearance' | 'tolerances' | 'backups'>('account')
+  const [activeTab, setActiveTab] = useState<'account' | 'appearance' | 'manufacturers' | 'tolerances' | 'backups'>('account')
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -388,6 +389,24 @@ export function SettingsPage() {
             <div>
               <span className="text-xs block font-bold uppercase">System Appearance</span>
               <span className="text-[10px] text-[#6b7280] block font-normal mt-0.5">Terminal, Classic & Light themes</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('manufacturers')}
+            role="tab"
+            aria-selected={activeTab === 'manufacturers'}
+            aria-controls="panel-manufacturers"
+            className={`w-full text-left p-3 rounded-sm border flex items-center gap-3 transition cursor-pointer ${
+              activeTab === 'manufacturers'
+                ? 'bg-[#0f0f0f] border-blue-500/50 text-blue-400 font-bold'
+                : 'bg-[#0f0f0f] border-[#1a1a1a] text-[#6b7280] hover:text-[#e4e4e4]'
+            }`}
+          >
+            <Factory className="h-4 w-4 shrink-0 text-cyan-400" />
+            <div>
+              <span className="text-xs block font-bold uppercase">Die Manufacturers</span>
+              <span className="text-[10px] text-[#6b7280] block font-normal mt-0.5">Vendors & tooling partners</span>
             </div>
           </button>
 
@@ -970,6 +989,12 @@ export function SettingsPage() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'manufacturers' && (
+            <div id="panel-manufacturers" role="tabpanel" className="animate-fadeIn">
+              <ManufacturerSettings />
             </div>
           )}
 

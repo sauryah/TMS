@@ -220,6 +220,10 @@ export function DieDetailPage() {
   const [remarks, setRemarks] = useState('')
   const [currentSetId, setCurrentSetId] = useState('')
   const [manufacturerVal, setManufacturerVal] = useState('')
+  const [showAddManuf, setShowAddManuf] = useState(false)
+  const [newManufName, setNewManufName] = useState('')
+  const [manufSubmitting, setManufSubmitting] = useState(false)
+  const [manufError, setManufError] = useState<string | null>(null)
   
   const [dieIdVal, setDieIdVal] = useState('')
   const [casingVal, setCasingVal] = useState('')
@@ -367,6 +371,47 @@ export function DieDetailPage() {
     queryKey: ['manufacturersDropdownDetail'],
     queryFn: () => request('/api/v1/manufacturers/')
   })
+
+  const handleCreateManufacturerFromSelect = async (name: string): Promise<string | number | void> => {
+    try {
+      const res = await request('/api/v1/manufacturers/', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+      })
+      await queryClient.invalidateQueries({ queryKey: ['manufacturersDropdownDetail'] })
+      showToast(`Manufacturer "${name}" registered.`, 'success')
+      return res.id
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to register manufacturer'
+      showToast(msg, 'error')
+    }
+  }
+
+  const handleQuickAddManufacturer = async () => {
+    const trimmed = newManufName.trim()
+    if (!trimmed) {
+      setManufError('Manufacturer name is required.')
+      return
+    }
+    setManufSubmitting(true)
+    setManufError(null)
+    try {
+      const res = await request('/api/v1/manufacturers/', {
+        method: 'POST',
+        body: JSON.stringify({ name: trimmed })
+      })
+      await queryClient.invalidateQueries({ queryKey: ['manufacturersDropdownDetail'] })
+      setManufacturerVal(String(res.id))
+      setShowAddManuf(false)
+      setNewManufName('')
+      showToast(`Manufacturer "${trimmed}" added.`, 'success')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create manufacturer'
+      setManufError(msg)
+    } finally {
+      setManufSubmitting(false)
+    }
+  }
 
   // Mutation for updating die
   const updateMutation = useMutation<DieDetailRecord, Error, Record<string, unknown>, DieUpdateContext>({
@@ -615,9 +660,19 @@ export function DieDetailPage() {
                   <span className="text-[#6b7280]">CASING PROFILE</span>
                   <span className="font-mono text-[#e4e4e4]">{die.casing || '—'}</span>
                 </div>
-                <div className="flex justify-between py-1">
+                <div className="flex justify-between items-center py-1">
                   <span className="text-[#6b7280]">MANUFACTURER</span>
-                  <span className="font-mono text-[#e4e4e4]">{die.manufacturer_name || 'Unspecified'}</span>
+                  {die.manufacturer_name ? (
+                    <span className="font-mono text-[#e4e4e4]">{die.manufacturer_name}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(true)}
+                      className="text-xs text-blue-400 hover:text-blue-300 font-mono transition cursor-pointer"
+                    >
+                      + Assign Vendor
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -863,7 +918,57 @@ export function DieDetailPage() {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider mb-1">MANUFACTURER</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider">MANUFACTURER</label>
+              {!showAddManuf && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddManuf(true)}
+                  className="text-[10px] text-blue-400 hover:text-blue-300 uppercase tracking-wider transition cursor-pointer"
+                >
+                  + Quick Add Vendor
+                </button>
+              )}
+            </div>
+
+            {showAddManuf ? (
+              <div className="space-y-1.5 p-2 bg-[#121212] border border-[#2a2a2a] rounded-sm mb-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newManufName}
+                    onChange={(e) => setNewManufName(e.target.value)}
+                    placeholder="Enter vendor name..."
+                    className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-sm py-1 px-2 text-xs text-[#e4e4e4] focus:border-blue-500 focus:outline-none font-mono"
+                    disabled={manufSubmitting}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleQuickAddManufacturer}
+                    disabled={manufSubmitting}
+                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-sm text-xs font-mono uppercase cursor-pointer"
+                  >
+                    {manufSubmitting ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddManuf(false)
+                      setNewManufName('')
+                      setManufError(null)
+                    }}
+                    disabled={manufSubmitting}
+                    className="px-2.5 py-1 bg-[#1a1a1a] hover:bg-[#252525] text-[#888] rounded-sm text-xs font-mono uppercase cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {manufError && (
+                  <p className="text-[10px] text-red-400">{manufError}</p>
+                )}
+              </div>
+            ) : null}
+
             <SearchableSelect
               value={manufacturerVal}
               onChange={(val) => setManufacturerVal(String(val))}
@@ -873,6 +978,8 @@ export function DieDetailPage() {
               })) || []}
               placeholder="Select manufacturer..."
               emptyLabel="— Unspecified —"
+              emptyMessage="No manufacturers registered yet. Type above to add one."
+              onCreateOption={handleCreateManufacturerFromSelect}
               className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-sm py-1.5 px-2.5 text-[#e4e4e4] focus:border-blue-500 focus:outline-none text-xs font-mono"
             />
           </div>

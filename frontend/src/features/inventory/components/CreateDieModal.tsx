@@ -677,8 +677,26 @@ export function CreateDieModal({
                   value: m.id,
                   label: m.name
                 }))}
+                onCreateOption={async (name: string) => {
+                  const res = await fetch('/api/v1/manufacturers/', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify({ name })
+                  })
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}))
+                    throw new Error(err.name?.[0] || 'Failed to create manufacturer')
+                  }
+                  const created = await res.json()
+                  setManufacturersList((prev) => [...prev, created])
+                  return created.id
+                }}
                 placeholder="Select die manufacturer (optional)..."
                 emptyLabel="— None / Unspecified —"
+                emptyMessage="No manufacturers registered yet. Type above to add one."
                 className="bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-1.5 px-2 text-xs text-[#e4e4e4] font-mono"
               />
             )}

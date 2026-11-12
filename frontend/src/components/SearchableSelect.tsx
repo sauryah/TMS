@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { ChevronDown, Search, X } from 'lucide-react'
+import { ChevronDown, Search, X, Plus } from 'lucide-react'
 
 interface Option {
   value: string | number
@@ -11,6 +11,7 @@ interface SearchableSelectProps {
   options: Option[]
   value: string | number
   onChange: (value: string | number) => void
+  onCreateOption?: (name: string) => Promise<string | number | void> | string | number | void
   placeholder?: string
   emptyLabel?: string
   emptyMessage?: string
@@ -23,6 +24,7 @@ export function SearchableSelect({
   options,
   value,
   onChange,
+  onCreateOption,
   placeholder = 'Select option...',
   emptyLabel = '— None / Unassigned —',
   emptyMessage = 'No matching items found',
@@ -47,6 +49,12 @@ export function SearchableSelect({
     const query = searchQuery.trim().toLowerCase()
     if (!query) return options
     return options.filter(opt => opt.label.toLowerCase().includes(query))
+  }, [options, searchQuery])
+
+  const hasExactMatch = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return false
+    return options.some(opt => opt.label.toLowerCase() === query)
   }, [options, searchQuery])
 
   // Close dropdown on click outside
@@ -258,8 +266,30 @@ export function SearchableSelect({
               })
             ) : (
               <div className="px-3 py-2 text-[10px] text-center text-[#6b7280]">
-                {emptyMessage}
+                {options.length === 0 && onCreateOption ? 'No items registered yet. Type above to add one.' : emptyMessage}
               </div>
+            )}
+
+            {onCreateOption && searchQuery.trim() && !hasExactMatch && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await onCreateOption(searchQuery.trim())
+                    if (res !== undefined && res !== null) {
+                      handleSelect(res)
+                    }
+                  } catch {
+                    // Handled by callback
+                  }
+                  setIsOpen(false)
+                  setSearchQuery('')
+                }}
+                className="w-full text-left px-3 py-2 text-xs font-mono text-blue-400 hover:bg-[#1a1a1a] border-t border-[#2a2a2a] flex items-center gap-1.5 cursor-pointer font-medium"
+              >
+                <Plus className="w-3.5 h-3.5 shrink-0" />
+                <span>+ Add "{searchQuery.trim()}"</span>
+              </button>
             )}
           </div>
         </div>
