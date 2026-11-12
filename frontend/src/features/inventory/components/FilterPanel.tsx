@@ -1,6 +1,6 @@
 import React from 'react'
 import { RangeFilter } from '../../../components/ui/RangeFilter'
-import { Layers, Activity, Box, MapPin } from 'lucide-react'
+import { Layers, Activity, Box, MapPin, Factory } from 'lucide-react'
 
 export interface FilterPanelProps {
   dieType: string
@@ -13,6 +13,7 @@ export interface FilterPanelProps {
   thickMin: string
   thickMax: string
   locationQuery: string
+  manufacturer?: string
   onDieTypeChange: (value: string) => void
   onStatusChange: (value: string) => void
   onCasingChange: (value: string) => void
@@ -23,6 +24,7 @@ export interface FilterPanelProps {
   onThickMinChange: (value: string) => void
   onThickMaxChange: (value: string) => void
   onLocationChange: (value: string) => void
+  onManufacturerChange?: (value: string) => void
 }
 
 export function FilterPanel({
@@ -36,6 +38,7 @@ export function FilterPanel({
   thickMin,
   thickMax,
   locationQuery,
+  manufacturer,
   onDieTypeChange,
   onStatusChange,
   onCasingChange,
@@ -46,6 +49,7 @@ export function FilterPanel({
   onThickMinChange,
   onThickMaxChange,
   onLocationChange,
+  onManufacturerChange,
 }: FilterPanelProps) {
   
   const handleDieTypeChange = (newType: string) => {
@@ -224,6 +228,24 @@ export function FilterPanel({
             placeholder="e.g. Machine 1"
             value={locationQuery}
             onChange={(e) => onLocationChange(e.target.value)}
+            className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-1.5 px-2 text-xs text-[#e4e4e4] placeholder-[#404040] focus:outline-none transition-colors font-mono uppercase"
+          />
+        </div>
+      </div>
+
+      {/* 6. Manufacturer Filter */}
+      <div className="space-y-1.5">
+        <label htmlFor="filter-manufacturer" className="text-[10px] font-medium uppercase tracking-wider text-[#6b7280] font-mono flex items-center">
+          <Factory className="h-3 w-3 mr-1 text-cyan-400" />
+          <span>05 MANUFACTURER</span>
+        </label>
+        <div className="relative">
+          <input
+            id="filter-manufacturer"
+            type="text"
+            placeholder="e.g. Apex, Precision"
+            value={manufacturer || ''}
+            onChange={(e) => onManufacturerChange?.(e.target.value)}
             className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-1.5 px-2 text-xs text-[#e4e4e4] placeholder-[#404040] focus:outline-none transition-colors font-mono uppercase"
           />
         </div>

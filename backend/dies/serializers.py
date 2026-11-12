@@ -2,8 +2,19 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from django.db import transaction
 from dies.contracts import DIE_STATUSES
-from dies.models import Die, RoundDie, FlatDie, ImportLog, MaintenanceLog, WearAlert, DieTolerance, MachineDieStock, DieInventoryRecount, DieInventoryRecountItem, EnamelMachine
+from dies.models import (
+    Die, RoundDie, FlatDie, ImportLog, MaintenanceLog, WearAlert,
+    DieTolerance, MachineDieStock, DieInventoryRecount, DieInventoryRecountItem,
+    EnamelMachine, Manufacturer
+)
 from history.models import DieHistory
+
+class ManufacturerSerializer(serializers.ModelSerializer):
+    die_count = serializers.IntegerField(read_only=True, required=False)
+
+    class Meta:
+        model = Manufacturer
+        fields = ['id', 'name', 'contact_person', 'email', 'phone', 'notes', 'created_at', 'die_count']
 
 class DieHistorySerializer(serializers.ModelSerializer):
     changed_by_username = serializers.SerializerMethodField()
@@ -30,10 +41,11 @@ class DieListSerializer(serializers.ModelSerializer):
     set_name = serializers.SerializerMethodField()
     machine_name = serializers.SerializerMethodField()
     active_alerts = serializers.SerializerMethodField()
+    manufacturer_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Die
-        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'current_set', 'active_alerts', 'version']
+        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'current_set', 'manufacturer', 'manufacturer_name', 'active_alerts', 'version']
         
     @extend_schema_field(serializers.CharField)
     def get_set_name(self, obj):
@@ -42,6 +54,10 @@ class DieListSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField)
     def get_machine_name(self, obj):
         return obj.current_set.machine.name if obj.current_set and obj.current_set.machine else ''
+
+    @extend_schema_field(serializers.CharField)
+    def get_manufacturer_name(self, obj):
+        return obj.manufacturer.name if obj.manufacturer else ''
 
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_active_alerts(self, obj):
@@ -65,12 +81,13 @@ class DieListSerializer(serializers.ModelSerializer):
 class DieDetailSerializer(serializers.ModelSerializer):
     set_name = serializers.SerializerMethodField()
     machine_name = serializers.SerializerMethodField()
+    manufacturer_name = serializers.SerializerMethodField()
     history = DieHistorySerializer(many=True, read_only=True)
     active_alerts = serializers.SerializerMethodField()
     
     class Meta:
         model = Die
-        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'remarks', 'created_at', 'updated_at', 'history', 'current_set', 'active_alerts', 'version']
+        fields = ['die_id', 'die_type', 'casing', 'status', 'set_name', 'machine_name', 'remarks', 'created_at', 'updated_at', 'history', 'current_set', 'manufacturer', 'manufacturer_name', 'active_alerts', 'version']
         
     @extend_schema_field(serializers.CharField)
     def get_set_name(self, obj):
@@ -79,6 +96,10 @@ class DieDetailSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField)
     def get_machine_name(self, obj):
         return obj.current_set.machine.name if obj.current_set and obj.current_set.machine else ''
+
+    @extend_schema_field(serializers.CharField)
+    def get_manufacturer_name(self, obj):
+        return obj.manufacturer.name if obj.manufacturer else ''
 
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_active_alerts(self, obj):
@@ -102,6 +123,8 @@ class DieDetailSerializer(serializers.ModelSerializer):
         return rep
 
 class DieCreateSerializer(serializers.ModelSerializer):
+    manufacturer = serializers.PrimaryKeyRelatedField(queryset=Manufacturer.objects.all(), required=False, allow_null=True)
+    manufacturer_name = serializers.SerializerMethodField()
     punched_size = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
     current_size = serializers.DecimalField(max_digits=7, decimal_places=3, required=False)
     
@@ -113,9 +136,13 @@ class DieCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Die
-        fields = ['die_id', 'die_type', 'casing', 'status', 'current_set', 'remarks',
+        fields = ['die_id', 'die_type', 'casing', 'status', 'current_set', 'manufacturer', 'manufacturer_name', 'remarks',
                   'punched_size', 'current_size', 'punched_width', 'current_width',
                   'punched_thickness', 'current_thickness', 'radius', 'version']
+                  
+    @extend_schema_field(serializers.CharField)
+    def get_manufacturer_name(self, obj):
+        return obj.manufacturer.name if obj.manufacturer else ''
                   
     def to_internal_value(self, data):
         if 'status' in data and data['status']:
@@ -240,6 +267,8 @@ def serialize_die_list_fast(dies_queryset):
             'set_name': die.current_set.name if die.current_set else '',
             'machine_name': die.current_set.machine.name if (die.current_set and die.current_set.machine) else '',
             'current_set': die.current_set_id,
+            'manufacturer': die.manufacturer_id,
+            'manufacturer_name': die.manufacturer.name if die.manufacturer else '',
             'active_alerts': active_alerts,
             'version': getattr(die, 'version', 1),
         }

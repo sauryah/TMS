@@ -8,7 +8,7 @@ from dies.views import (
     DieViewSet, ImportDiesView, ImportTemplateView, ImportLogsView,
     RenameDiesView, RenameTemplateView,
     DieToleranceViewSet, WearAlertViewSet, MachineDieStockViewSet,
-    DieInventoryRecountViewSet, EnamelMachineViewSet
+    DieInventoryRecountViewSet, EnamelMachineViewSet, ManufacturerViewSet
 )
 from users.views import (
     LoginView, LockView, LogoutView, UserViewSet, UserActivityLogViewSet, UserSessionViewSet,
@@ -38,6 +38,7 @@ router.register('wear-alerts', WearAlertViewSet, basename='wear-alert')
 router.register('machine-die-stock', MachineDieStockViewSet, basename='machine-die-stock')
 router.register('inventory-recounts', DieInventoryRecountViewSet, basename='inventory-recount')
 router.register('enamel-machines', EnamelMachineViewSet, basename='enamel-machine')
+router.register('manufacturers', ManufacturerViewSet, basename='manufacturer')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

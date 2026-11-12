@@ -28,6 +28,8 @@ export function useInventoryState() {
   const [dieType, setDieType] = useState(searchParams.get('die_type') || '')
   const [statusVal, setStatusVal] = useState(searchParams.get('status') || '')
   const [casing, setCasing] = useState(searchParams.get('casing') || '')
+  const [manufacturer, setManufacturer] = useState(searchParams.get('manufacturer') || '')
+  const debouncedManufacturer = useDebounce(manufacturer, 300)
   
   // Custom ranges
   const [sizeMin, setSizeMin] = useState(searchParams.get('size_min') || '')
@@ -50,7 +52,8 @@ export function useInventoryState() {
       searchParams.get('width_min') || 
       searchParams.get('width_max') || 
       searchParams.get('thick_min') || 
-      searchParams.get('thick_max')
+      searchParams.get('thick_max') ||
+      searchParams.get('manufacturer')
     )
     return active ? { type: 'search' } : null
   })
@@ -58,13 +61,14 @@ export function useInventoryState() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const isSearchActive = useMemo(() => {
-    return !!(q || dieType || statusVal || casing || sizeMin || sizeMax || widthMin || widthMax || thickMin || thickMax || locationQuery)
-  }, [q, dieType, statusVal, casing, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, locationQuery])
+    return !!(q || dieType || statusVal || casing || manufacturer || sizeMin || sizeMax || widthMin || widthMax || thickMin || thickMax || locationQuery)
+  }, [q, dieType, statusVal, casing, manufacturer, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, locationQuery])
   
   const [showFilters, setShowFilters] = useState(!!(
     searchParams.get('die_type') || 
     searchParams.get('status') || 
     searchParams.get('casing') || 
+    searchParams.get('manufacturer') || 
     searchParams.get('size_min') || 
     searchParams.get('size_max') || 
     searchParams.get('width_min') || 
@@ -74,11 +78,11 @@ export function useInventoryState() {
     locationQuery
   ))
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const hasActiveFilter = !!(debouncedQ || dieType || statusVal || casing || sizeMin || sizeMax || widthMin || widthMax || thickMin || thickMax || locationQuery)
+  const hasActiveFilter = !!(debouncedQ || dieType || statusVal || casing || debouncedManufacturer || sizeMin || sizeMax || widthMin || widthMax || thickMin || thickMax || locationQuery)
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedQ, dieType, statusVal, casing, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, debouncedLocationQuery, selectedNode?.type, selectedNode?.id])
+  }, [debouncedQ, dieType, statusVal, casing, debouncedManufacturer, sizeMin, sizeMax, widthMin, widthMax, thickMin, thickMax, debouncedLocationQuery, selectedNode?.type, selectedNode?.id])
 
 
   const [sortField, setSortField] = useState<string>('relevance')
@@ -116,6 +120,7 @@ export function useInventoryState() {
       dieType,
       statusVal,
       casing,
+      debouncedManufacturer,
       sizeMin,
       sizeMax,
       widthMin,
@@ -136,6 +141,7 @@ export function useInventoryState() {
       if (dieType) params.append('die_type', dieType)
       if (statusVal) params.append('status', statusVal)
       if (casing) params.append('casing', casing)
+      if (debouncedManufacturer) params.append('manufacturer', debouncedManufacturer)
       
       if (sizeMin) params.append('size_min', sizeMin)
       if (sizeMax) params.append('size_max', sizeMax)
@@ -389,6 +395,7 @@ export function useInventoryState() {
       'Type',
       'Casing',
       'Status',
+      'Manufacturer',
       'Location',
       'Assigned Set',
       'Current Size (mm)',
@@ -408,6 +415,7 @@ export function useInventoryState() {
         die.die_type || '',
         die.casing || '',
         die.status || '',
+        die.manufacturer_name || '',
         die.machine_name ? `Machine: ${die.machine_name}` : '',
         die.set_name || '',
         isRound ? (die.current_size || '') : '',
@@ -450,6 +458,8 @@ export function useInventoryState() {
     setStatusVal,
     casing,
     setCasing,
+    manufacturer,
+    setManufacturer,
     sizeMin,
     setSizeMin,
     sizeMax,

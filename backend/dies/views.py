@@ -2,7 +2,7 @@ import io
 import os
 import tempfile
 import openpyxl
-from django.db import transaction
+from django.db import transaction, models
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions, status, serializers
@@ -11,12 +11,16 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
-from dies.models import Die, ImportLog, MaintenanceLog, DieTolerance, WearAlert, MachineDieStock, DieInventoryRecount, DieInventoryRecountItem, EnamelMachine
+from dies.models import (
+    Die, ImportLog, MaintenanceLog, DieTolerance, WearAlert,
+    MachineDieStock, DieInventoryRecount, DieInventoryRecountItem,
+    EnamelMachine, Manufacturer
+)
 from dies.serializers import (
     DieListSerializer, DieDetailSerializer, DieCreateSerializer, 
     serialize_die_list_fast, ImportLogSerializer, MaintenanceLogSerializer,
     DieToleranceSerializer, WearAlertSerializer, MachineDieStockSerializer,
-    DieInventoryRecountSerializer, EnamelMachineSerializer
+    DieInventoryRecountSerializer, EnamelMachineSerializer, ManufacturerSerializer
 )
 from dies.services.import_service import ImportService
 from dies.services.recut_service import RecutService
@@ -53,7 +57,7 @@ class DieViewSet(viewsets.ModelViewSet):
     
     **Authentication:** Required (JWT Bearer token)
     """
-    queryset = Die.objects.select_related('rounddie', 'flatdie', 'current_set__machine').prefetch_related('wear_alerts')
+    queryset = Die.objects.select_related('rounddie', 'flatdie', 'current_set__machine', 'manufacturer').prefetch_related('wear_alerts')
     lookup_field = 'die_id'
 
     lookup_value_regex = r'(?:(?!/wear-prediction(?:/|$)|/maintenance-logs(?:/|$)|/recut(?:/|$))[^?#])+'
@@ -142,6 +146,13 @@ class DieViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(status=status_val)
         if casing:
             queryset = queryset.filter(casing=casing)
+            
+        manufacturer = self.request.query_params.get('manufacturer')
+        if manufacturer:
+            if manufacturer.isdigit():
+                queryset = queryset.filter(manufacturer_id=int(manufacturer))
+            else:
+                queryset = queryset.filter(manufacturer__name__iexact=manufacturer)
             
         if size_min:
             queryset = queryset.filter(rounddie__current_size__gte=size_min)
@@ -302,12 +313,12 @@ class ImportTemplateView(APIView):
         ws1 = wb.active
         ws1.title = "Round Die"
         headers_round = [
-            "die_id", "die_type", "casing", "status", "remarks", 
+            "die_id", "die_type", "casing", "status", "manufacturer", "remarks", 
             "current_set", "machine_name", "punched_size", "current_size"
         ]
         ws1.append(headers_round)
         example_round = [
-            "R-999", "ROUND", "25x10", "AVAILABLE", "Example round die",
+            "R-999", "ROUND", "25x10", "AVAILABLE", "Apex Tooling Corp", "Example round die",
             "Set A", "Machine A", 12.345, 12.345
         ]
         ws1.append(example_round)
@@ -315,13 +326,13 @@ class ImportTemplateView(APIView):
         # Sheet 2: Flat Die
         ws2 = wb.create_sheet(title="Flat Die")
         headers_flat = [
-            "die_id", "die_type", "casing", "status", "remarks",
+            "die_id", "die_type", "casing", "status", "manufacturer", "remarks",
             "current_set", "machine_name", "punched_width", "current_width",
             "punched_thickness", "current_thickness", "radius"
         ]
         ws2.append(headers_flat)
         example_flat = [
-            "F-999", "FLAT", "30x15", "AVAILABLE", "Example flat die",
+            "F-999", "FLAT", "30x15", "AVAILABLE", "Apex Tooling Corp", "Example flat die",
             "Set B", "Machine B", 50.123, 50.123, 15.456, 15.456, 1.500
         ]
         ws2.append(example_flat)
@@ -334,6 +345,7 @@ class ImportTemplateView(APIView):
             ["die_type", "Required", "Both", "Must be 'ROUND' or 'FLAT'"],
             ["casing", "Required", "Both", "Physical casing dimensions (e.g., 25x10, 30x15)"],
             ["status", "Required", "Both", "Must be one of: AVAILABLE, RUNNING, CLEANING, DAMAGED, POLISHING, MEASURING, INACTIVE"],
+            ["manufacturer", "Optional", "Both", "Die manufacturer/vendor name (creates new record if vendor doesn't exist)"],
             ["remarks", "Optional", "Both", "Free-form text comments"],
             ["current_set", "Optional", "Both", "The Set name or Set ID the die belongs to"],
             ["machine_name", "Optional", "Both", "Machine name to resolve duplicate set names"],
@@ -646,5 +658,20 @@ class DieInventoryRecountViewSet(viewsets.ModelViewSet):
         }))
         
         return Response({"detail": "Recount sheet submitted and stock levels updated successfully."})
+
+
+class ManufacturerViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for viewing and managing die manufacturers.
+    """
+    queryset = Manufacturer.objects.annotate(die_count=models.Count('dies')).order_by('name')
+    serializer_class = ManufacturerSerializer
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.IsAuthenticated()]
+        return [IsAdminOrRoot()]
+
 
 

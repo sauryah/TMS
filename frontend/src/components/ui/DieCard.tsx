@@ -54,6 +54,14 @@ export const DieCard = React.memo(function DieCard({ die, onClick, viewMode = 'g
               <MapPin className="h-3 w-3 mr-1 text-[#404040]" />
               {locationText}
             </span>
+            {die.manufacturer_name && (
+              <>
+                <span className="text-[#404040]">·</span>
+                <span className="text-zinc-400" title={`Manufacturer: ${die.manufacturer_name}`}>
+                  {die.manufacturer_name}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -112,6 +120,14 @@ export const DieCard = React.memo(function DieCard({ die, onClick, viewMode = 'g
             <MapPin className="h-3 w-3 mr-0.5 text-[#404040] shrink-0" />
             <span className="truncate max-w-[110px]" title={locationText}>{locationText}</span>
           </span>
+          {die.manufacturer_name && (
+            <>
+              <span className="text-[#404040]">·</span>
+              <span className="truncate max-w-[100px] text-zinc-400" title={`Manufacturer: ${die.manufacturer_name}`}>
+                {die.manufacturer_name}
+              </span>
+            </>
+          )}
         </div>
       </div>
 

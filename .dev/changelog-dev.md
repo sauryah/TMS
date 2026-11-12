@@ -1,5 +1,37 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-12 Dedicated Relational Manufacturer Entity Across Dual-Engine Architecture
+*   **Normalized Relational Schema & Migration**:
+    *   Created `Manufacturer` model in [`backend/dies/models.py`](backend/dies/models.py) with fields `name` (unique, indexed), `contact_person`, `email`, `phone`, `notes`, and `created_at`.
+    *   Added nullable foreign key `manufacturer` to `Die` with `on_delete=models.SET_NULL` and `related_name='dies'`.
+    *   Generated and applied migration [`backend/dies/migrations/0020_manufacturer_die_manufacturer.py`](backend/dies/migrations/0020_manufacturer_die_manufacturer.py).
+*   **Tamper-Evident Audit Ledger Integration**:
+    *   Updated [`backend/dies/signals.py`](backend/dies/signals.py) to track `manufacturer_id` and record human-readable vendor names in `old_value` and `new_value` under `field_name='manufacturer'`, preserving cryptographic SHA-256 hash chains (`hash_version=2`).
+*   **Django REST API & RBAC Security**:
+    *   Added `ManufacturerSerializer` in [`backend/dies/serializers.py`](backend/dies/serializers.py).
+    *   Exposed `manufacturer` (FK ID) and `manufacturer_name` (read-only string) across `DieListSerializer`, `DieDetailSerializer`, `DieCreateSerializer`, and `serialize_die_list_fast`.
+    *   Created `ManufacturerViewSet` in [`backend/dies/views.py`](backend/dies/views.py) with `IsAuthenticated` for reads and `IsAdminOrRoot` for mutating operations.
+    *   Registered `/api/v1/manufacturers/` route in [`backend/tms/urls.py`](backend/tms/urls.py).
+    *   Optimized `DieViewSet.get_queryset()` with `select_related('manufacturer')` and added `&manufacturer=` query parameter support.
+*   **Dual-Engine Search Synchronization**:
+    *   Added `manufacturer` to `searchableAttributes` and `filterableAttributes` in [`backend/search/meili.py`](backend/search/meili.py).
+    *   Updated `die_to_meili_document` in [`backend/search/tasks.py`](backend/search/tasks.py) and [`backend/dies/management/commands/sync_search.py`](backend/dies/management/commands/sync_search.py). Synced 3,087 dies to Meilisearch with 0 downtime.
+    *   Updated Go API in [`go-api/internal/database/database.go`](go-api/internal/database/database.go) to `LEFT JOIN dies_manufacturer dm ON d.manufacturer_id = dm.id` and scan `COALESCE(dm.name, '') as manufacturer`.
+    *   Updated [`go-api/internal/handlers/handlers.go`](go-api/internal/handlers/handlers.go) to support `&manufacturer=` search param filtering and cache key generation.
+*   **Bulk Spreadsheet Ingestion & Templates**:
+    *   Updated `ImportService` in [`backend/dies/services/import_service.py`](backend/dies/services/import_service.py) to read `manufacturer` column in CSV/XLSX spreadsheets with pre-cached, case-insensitive `get_or_create` vendor upserts.
+    *   Updated `ImportTemplateView` in [`backend/dies/views.py`](backend/dies/views.py) to include `manufacturer` column in Round Die and Flat Die sheets and field reference guide.
+*   **Frontend UI & Client Integration**:
+    *   Added `Manufacturer` interface to [`frontend/src/types.ts`](frontend/src/types.ts) and added `manufacturer` and `manufacturer_name` to `Die`.
+    *   Updated `DieCreateSchema` in [`frontend/src/types/validation.ts`](frontend/src/types/validation.ts).
+    *   Enhanced [`frontend/src/features/inventory/components/CreateDieModal.tsx`](frontend/src/features/inventory/components/CreateDieModal.tsx) with vendor dropdown selection and inline "+ Quick Add Vendor" creation.
+    *   Enhanced [`frontend/src/features/inventory/components/DieDetailPage.tsx`](frontend/src/features/inventory/components/DieDetailPage.tsx) with manufacturer display in Asset Identity and dropdown selector in the Edit drawer.
+    *   Added manufacturer indicators to [`frontend/src/components/ui/DieCard.tsx`](frontend/src/components/ui/DieCard.tsx) and catalog table in [`frontend/src/features/inventory/components/InventorySubViews.tsx`](frontend/src/features/inventory/components/InventorySubViews.tsx).
+    *   Added `05 MANUFACTURER` filter input to [`frontend/src/features/inventory/components/FilterPanel.tsx`](frontend/src/features/inventory/components/FilterPanel.tsx) and wired it to `useInventoryState.ts` and CSV export.
+*   **Verification**:
+    *   Added automated integration test suite in [`backend/dies/tests/test_manufacturer.py`](backend/dies/tests/test_manufacturer.py).
+    *   Verified 100% test pass: 241/241 Django tests, 8/8 Go API test packages, 0 ESLint errors/warnings, 0 TypeScript errors, 111/111 Vitest frontend tests, and Vite production build clean.
+
 ### 2026-11-12 Server-Enforced Session Lock & Cookie Revocation (LLM Council Implementation)
 *   **Server-Side Session Lock Enforcement**:
     *   Implemented `SessionService.lock_session(user, token_hash)` and `is_session_locked(user_id, token_hash)` using Redis caching (`locked_session:{user_id}:{token_hash}`).

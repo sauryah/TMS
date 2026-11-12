@@ -1,10 +1,22 @@
 import { DIE_STATUSES, DIE_TYPES, type DieStatus, type DieType } from './contracts/dieContracts'
 
+export interface Manufacturer {
+  id: number;
+  name: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  created_at?: string;
+}
+
 export interface Die {
   die_id: string;
   die_type: DieType;
   casing: string;
   status: DieStatus;
+  manufacturer?: number | null;
+  manufacturer_name?: string | null;
   remarks: string | null;
   current_set: number | null;
   current_set_name?: string;

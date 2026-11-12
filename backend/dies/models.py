@@ -4,11 +4,26 @@ from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import MinValueValidator
 from dies.contracts import DIE_STATUS_CHOICES, DIE_TYPE_CHOICES
 
+class Manufacturer(models.Model):
+    name           = models.CharField(max_length=100, unique=True)
+    contact_person = models.CharField(max_length=100, blank=True, default='')
+    email          = models.EmailField(blank=True, default='')
+    phone          = models.CharField(max_length=50, blank=True, default='')
+    notes          = models.TextField(blank=True, default='')
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
 class Die(models.Model):
     die_id       = models.CharField(max_length=50, unique=True)
     die_type     = models.CharField(max_length=10, choices=DIE_TYPE_CHOICES)
     casing       = models.CharField(max_length=50)
     status       = models.CharField(max_length=20, choices=DIE_STATUS_CHOICES, default='AVAILABLE')
+    manufacturer = models.ForeignKey(Manufacturer, null=True, blank=True, on_delete=models.SET_NULL, related_name='dies')
     current_set  = models.ForeignKey('machines.Set', null=True, blank=True, on_delete=models.SET_NULL)
     remarks      = models.TextField(blank=True)
     created_at   = models.DateTimeField(auto_now_add=True)

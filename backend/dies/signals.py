@@ -7,7 +7,7 @@ from users.context import get_current_user, get_current_ip, _thread_locals
 from dies.services.search_service import SearchService
 from dies.contracts import DIE_SAVE_ACTION
 
-DIE_WATCH_FIELDS = ['status', 'current_set_id', 'remarks', 'die_id', 'casing']
+DIE_WATCH_FIELDS = ['status', 'current_set_id', 'remarks', 'die_id', 'casing', 'manufacturer_id']
 
 def _get_change_context():
     user = get_current_user()
@@ -48,14 +48,33 @@ def log_die_changes(sender, instance, **kwargs):
                     new_set_name = str(new_val)
             old_str = old_set_name
             new_str = new_set_name
+            recorded_field = 'current_set_id'
+        elif field == 'manufacturer_id':
+            from dies.models import Manufacturer
+            old_m_name = ''
+            new_m_name = ''
+            if old_val:
+                try:
+                    old_m_name = Manufacturer.objects.filter(pk=old_val).values_list('name', flat=True).first() or ''
+                except Exception:
+                    old_m_name = str(old_val)
+            if new_val:
+                try:
+                    new_m_name = Manufacturer.objects.filter(pk=new_val).values_list('name', flat=True).first() or ''
+                except Exception:
+                    new_m_name = str(new_val)
+            old_str = old_m_name
+            new_str = new_m_name
+            recorded_field = 'manufacturer'
         else:
             old_str = str(old_val) if old_val is not None else ''
             new_str = str(new_val) if new_val is not None else ''
+            recorded_field = field
 
         if old_str != new_str:
             DieHistory.objects.create(
                 die=instance,
-                field_name=field,
+                field_name=recorded_field,
                 old_value=old_str,
                 new_value=new_str,
                 **ctx,

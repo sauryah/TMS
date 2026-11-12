@@ -8,6 +8,19 @@ Track implementation status across all phases.
 
 ## Platform Implementation Status
 
+### Dedicated Relational Manufacturer Entity Across Dual-Engine Architecture ✅
+**Status:** Complete  
+**Date:** 2026-11-12  
+
+**Completed:**
+- **Relational Schema & Migration**: Added `Manufacturer` model (`name` unique, `contact_person`, `email`, `phone`, `notes`, `created_at`) and foreign key `Die.manufacturer` with `on_delete=models.SET_NULL` (migration `0020_manufacturer_die_manufacturer.py`).
+- **Cryptographic Audit Ledger**: Extended `DieHistory` signals to record changes to `manufacturer` by human-readable name rather than database IDs, preserving cryptographic SHA-256 hash chains (`hash_version=2`).
+- **REST API & RBAC**: Added `/api/v1/manufacturers/` ViewSet (`IsAuthenticated` for reads, `IsAdminOrRoot` for creates/updates/deletes) and exposed `manufacturer` (FK ID) and `manufacturer_name` (read-only string) across die serializers.
+- **Dual-Engine Search Synchronization**: Added `manufacturer` to Meilisearch searchable and filterable attributes, updated document generation in Celery tasks and `sync_search`, and updated Go API query builder (`LEFT JOIN dies_manufacturer`) and filters.
+- **Bulk Spreadsheet Ingestion**: Enhanced `ImportService` to support `manufacturer` column with atomic case-insensitive `get_or_create` upserts and updated `ImportTemplateView`.
+- **Frontend Full-Stack UI**: Integrated manufacturer selection and inline quick-add in `CreateDieModal`, added manufacturer details and edit controls to `DieDetailPage`, displayed badges in `DieCard` and catalog tables, added filter in `FilterPanel`, and included manufacturer in CSV export.
+- **Comprehensive Verification**: 241/241 Django tests passing, 8/8 Go API test packages passing, 0 ESLint errors/warnings, 0 TypeScript errors, 111/111 Vitest tests passing, and Vite production build clean.
+
 ### Server-Enforced Session Lock & Cookie Revocation (LLM Council Implementation) ✅
 **Status:** Complete  
 **Date:** 2026-11-12  

@@ -62,6 +62,15 @@ const getInventoryColumns = (navigate: NavigateFunction): Column<Die>[] => [
     ),
   },
   {
+    key: 'manufacturer_name',
+    label: 'Manufacturer',
+    render: (row) => (
+      <span className="font-mono text-[var(--color-muted)] truncate max-w-[120px]" title={row.manufacturer_name || '—'}>
+        {row.manufacturer_name || '—'}
+      </span>
+    ),
+  },
+  {
     key: 'set_name',
     label: 'Set',
     render: (row) => (

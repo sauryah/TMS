@@ -12,6 +12,7 @@ export const DieCreateSchema = z.discriminatedUnion('die_type', [
     casing: z.string().min(1, 'Casing is required'),
     status: z.enum(DIE_STATUSES),
     current_set: z.number().nullable().optional(),
+    manufacturer: z.number().nullable().optional(),
     remarks: z.string().optional().default(''),
     
     // ROUND die specific fields
@@ -27,6 +28,7 @@ export const DieCreateSchema = z.discriminatedUnion('die_type', [
     casing: z.string().min(1, 'Casing is required'),
     status: z.enum(DIE_STATUSES),
     current_set: z.number().nullable().optional(),
+    manufacturer: z.number().nullable().optional(),
     remarks: z.string().optional().default(''),
     
     // FLAT die specific fields

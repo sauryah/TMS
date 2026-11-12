@@ -74,22 +74,23 @@ func requirePost(w http.ResponseWriter, r *http.Request) bool {
 }
 
 type SearchParams struct {
-	Q          string
-	DieType    string
-	Status     string
-	Casing     string
-	SizeMin    string
-	SizeMax    string
-	WidthMin   string
-	WidthMax   string
-	ThickMin   string
-	ThickMax   string
-	MachineID  string
-	SetID      string
-	Unassigned string
-	Location   string
-	Limit      int
-	Offset     int
+	Q            string
+	DieType      string
+	Status       string
+	Casing       string
+	Manufacturer string
+	SizeMin      string
+	SizeMax      string
+	WidthMin     string
+	WidthMax     string
+	ThickMin     string
+	ThickMax     string
+	MachineID    string
+	SetID        string
+	Unassigned   string
+	Location     string
+	Limit        int
+	Offset       int
 }
 
 func ParseSearchParams(r *http.Request) (*SearchParams, error) {
@@ -97,6 +98,7 @@ func ParseSearchParams(r *http.Request) (*SearchParams, error) {
 	dieType := r.URL.Query().Get("die_type")
 	statusVal := r.URL.Query().Get("status")
 	casing := r.URL.Query().Get("casing")
+	manufacturer := r.URL.Query().Get("manufacturer")
 	sizeMin := r.URL.Query().Get("size_min")
 	sizeMax := r.URL.Query().Get("size_max")
 	widthMin := r.URL.Query().Get("width_min")
@@ -138,19 +140,20 @@ func ParseSearchParams(r *http.Request) (*SearchParams, error) {
 
 	return &SearchParams{
 		Q: q, DieType: dieType, Status: statusVal,
-		Casing:  casing,
-		SizeMin: sizeMin, SizeMax: sizeMax,
-		WidthMin: widthMin, WidthMax: widthMax,
-		ThickMin: thickMin, ThickMax: thickMax,
-		MachineID: machineID, SetID: setID, Unassigned: unassigned,
-		Location: location,
-		Limit:    limit, Offset: offset,
+		Casing:       casing,
+		Manufacturer: manufacturer,
+		SizeMin:      sizeMin, SizeMax: sizeMax,
+		WidthMin:     widthMin, WidthMax: widthMax,
+		ThickMin:     thickMin, ThickMax: thickMax,
+		MachineID:    machineID, SetID: setID, Unassigned: unassigned,
+		Location:     location,
+		Limit:        limit, Offset: offset,
 	}, nil
 }
 
 func (p *SearchParams) CacheKey() string {
-	return fmt.Sprintf("search:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d",
-		p.Q, p.DieType, p.Status, p.Casing,
+	return fmt.Sprintf("search:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d",
+		p.Q, p.DieType, p.Status, p.Casing, p.Manufacturer,
 		p.SizeMin, p.SizeMax, p.WidthMin, p.WidthMax, p.ThickMin, p.ThickMax,
 		p.MachineID, p.SetID, p.Unassigned, p.Location, p.Limit, p.Offset,
 	)
@@ -585,6 +588,7 @@ func scoreDie(die database.DieRepresentation, q string) int {
 		strings.Contains(strings.ToLower(die.Location), qLower) ||
 		strings.Contains(strings.ToLower(die.SetName), qLower) ||
 		strings.Contains(strings.ToLower(die.MachineName), qLower) ||
+		strings.Contains(strings.ToLower(die.Manufacturer), qLower) ||
 		strings.Contains(strings.ToLower(die.Status), qLower) {
 		return 70
 	}
@@ -658,6 +662,9 @@ func (h *Handler) QueryMeilisearchAndPostgres(ctx context.Context, params *Searc
 	}
 	if params.Casing != "" {
 		filters = append(filters, fmt.Sprintf("casing = '%s'", escapeMeiliFilterValue(params.Casing)))
+	}
+	if params.Manufacturer != "" {
+		filters = append(filters, fmt.Sprintf("manufacturer = '%s'", escapeMeiliFilterValue(params.Manufacturer)))
 	}
 
 	if params.SizeMin != "" {

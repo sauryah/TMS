@@ -45,6 +45,8 @@ export interface DieDetailRecord {
   die_type: 'ROUND' | 'FLAT' | string
   casing: string
   status: string
+  manufacturer?: number | null
+  manufacturer_name?: string | null
   remarks?: string | null
   current_set?: string | number | null
   version?: number
@@ -217,6 +219,7 @@ export function DieDetailPage() {
   const [statusVal, setStatusVal] = useState('')
   const [remarks, setRemarks] = useState('')
   const [currentSetId, setCurrentSetId] = useState('')
+  const [manufacturerVal, setManufacturerVal] = useState('')
   
   const [dieIdVal, setDieIdVal] = useState('')
   const [casingVal, setCasingVal] = useState('')
@@ -257,6 +260,7 @@ export function DieDetailPage() {
       statusVal !== (die.status || 'AVAILABLE') ||
       remarks !== (die.remarks || '') ||
       currentSetId !== (die.current_set ? String(die.current_set) : '') ||
+      manufacturerVal !== (die.manufacturer ? String(die.manufacturer) : '') ||
       currentSize !== (die.current_size || '') ||
       currentWidth !== (die.current_width || '') ||
       currentThickness !== (die.current_thickness || '') ||
@@ -265,7 +269,7 @@ export function DieDetailPage() {
       punchedThickness !== (die.punched_thickness || '') ||
       radiusVal !== (die.radius || '')
     )
-  }, [die, casingVal, statusVal, remarks, currentSetId, currentSize, currentWidth, currentThickness, punchedSize, punchedWidth, punchedThickness, radiusVal])
+  }, [die, casingVal, statusVal, remarks, currentSetId, manufacturerVal, currentSize, currentWidth, currentThickness, punchedSize, punchedWidth, punchedThickness, radiusVal])
 
   const handleCloseEditDrawer = () => {
     if (isDirty) {
@@ -281,6 +285,7 @@ export function DieDetailPage() {
       setStatusVal(die.status || 'AVAILABLE')
       setRemarks(die.remarks || '')
       setCurrentSetId(die.current_set ? String(die.current_set) : '')
+      setManufacturerVal(die.manufacturer ? String(die.manufacturer) : '')
       setCurrentSize(die.current_size || '')
       setCurrentWidth(die.current_width || '')
       setCurrentThickness(die.current_thickness || '')
@@ -340,6 +345,7 @@ export function DieDetailPage() {
       setStatusVal(die.status || 'AVAILABLE')
       setRemarks(die.remarks || '')
       setCurrentSetId(die.current_set ? String(die.current_set) : '')
+      setManufacturerVal(die.manufacturer ? String(die.manufacturer) : '')
       setCurrentSize(die.current_size || '')
       setCurrentWidth(die.current_width || '')
       setCurrentThickness(die.current_thickness || '')
@@ -354,6 +360,12 @@ export function DieDetailPage() {
   const { data: setsList } = useQuery<SetOption[]>({
     queryKey: ['setsDropdownDetail'],
     queryFn: () => request('/api/sets/')
+  })
+
+  // Fetch manufacturers list for editing dropdown
+  const { data: manufacturersList } = useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ['manufacturersDropdownDetail'],
+    queryFn: () => request('/api/v1/manufacturers/')
   })
 
   // Mutation for updating die
@@ -446,6 +458,7 @@ export function DieDetailPage() {
       status: statusVal,
       remarks,
       current_set: currentSetId || null,
+      manufacturer: manufacturerVal ? Number(manufacturerVal) : null,
       version: die?.version
     }
     if (die?.die_type === 'ROUND') {
@@ -598,9 +611,13 @@ export function DieDetailPage() {
                   <span className="text-[#6b7280]">GEOMETRY PROFILE</span>
                   <span className="font-bold text-[#e4e4e4]">{die.die_type}</span>
                 </div>
-                <div className="flex justify-between py-1">
+                <div className="flex justify-between py-1 border-b border-[#1a1a1a]">
                   <span className="text-[#6b7280]">CASING PROFILE</span>
                   <span className="font-mono text-[#e4e4e4]">{die.casing || '—'}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-[#6b7280]">MANUFACTURER</span>
+                  <span className="font-mono text-[#e4e4e4]">{die.manufacturer_name || 'Unspecified'}</span>
                 </div>
               </div>
             </div>
@@ -842,6 +859,20 @@ export function DieDetailPage() {
               })) || []}
               placeholder="Select set to assign..."
               emptyLabel="— Unassigned —"
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-sm py-1.5 px-2.5 text-[#e4e4e4] focus:border-blue-500 focus:outline-none text-xs font-mono"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-medium text-[#6b7280] uppercase tracking-wider mb-1">MANUFACTURER</label>
+            <SearchableSelect
+              value={manufacturerVal}
+              onChange={(val) => setManufacturerVal(String(val))}
+              options={manufacturersList?.map((m) => ({
+                value: m.id,
+                label: m.name
+              })) || []}
+              placeholder="Select manufacturer..."
+              emptyLabel="— Unspecified —"
               className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-sm py-1.5 px-2.5 text-[#e4e4e4] focus:border-blue-500 focus:outline-none text-xs font-mono"
             />
           </div>

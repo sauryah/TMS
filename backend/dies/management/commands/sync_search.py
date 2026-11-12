@@ -18,8 +18,8 @@ class Command(BaseCommand):
             client.create_index(temp_index_name, {'primaryKey': 'id'})
             temp_idx = client.index(temp_index_name)
             temp_idx.update_settings({
-                'searchableAttributes': ['die_id', 'casing', 'status', 'set', 'machine', 'size_str', 'width_str', 'thickness_str', 'size', 'width', 'thickness'],
-                'filterableAttributes': ['die_type', 'status', 'casing', 'size', 'width', 'thickness', 'machine'],
+                'searchableAttributes': ['die_id', 'casing', 'status', 'set', 'machine', 'manufacturer', 'size_str', 'width_str', 'thickness_str', 'size', 'width', 'thickness'],
+                'filterableAttributes': ['die_type', 'status', 'casing', 'manufacturer', 'size', 'width', 'thickness', 'machine'],
                 'sortableAttributes':   ['die_id'],
                 'typoTolerance': {
                     'enabled': True,
@@ -32,7 +32,7 @@ class Command(BaseCommand):
             return
 
         self.stdout.write("Fetching all dies from database...")
-        dies = Die.objects.select_related('rounddie', 'flatdie', 'current_set__machine').all()
+        dies = Die.objects.select_related('rounddie', 'flatdie', 'current_set__machine', 'manufacturer').all()
         
         docs = []
         for die in dies:
@@ -45,6 +45,7 @@ class Command(BaseCommand):
                 'status':   die.status,
                 'set':      die.current_set.name if die.current_set else '',
                 'machine':  die.current_set.machine.name if die.current_set else '',
+                'manufacturer': die.manufacturer.name if die.manufacturer else '',
             }
             if hasattr(die, 'rounddie') and die.rounddie:
                 size_val = die.rounddie.current_size

@@ -3,7 +3,7 @@ import logging
 import openpyxl
 from typing import List, Tuple, Dict, Any, Optional
 from django.db import transaction
-from dies.models import Die, RoundDie, FlatDie
+from dies.models import Die, RoundDie, FlatDie, Manufacturer
 from machines.models import Set
 from users.context import _thread_locals
 from dies.services.validation_service import ValidationService
@@ -102,7 +102,7 @@ class ImportService:
         return None
 
     @staticmethod
-    def _process_row(row_data: Dict[str, Any], sets_by_id: Dict[int, Set], sets_by_name: Dict[str, List[Set]], racks_by_name: Optional[Dict[str, Any]] = None) -> Tuple[int, bool]:
+    def _process_row(row_data: Dict[str, Any], sets_by_id: Dict[int, Set], sets_by_name: Dict[str, List[Set]], racks_by_name: Optional[Dict[str, Any]] = None, manufacturers_by_name: Optional[Dict[str, Manufacturer]] = None) -> Tuple[int, bool]:
         """Processes a single row, validates and creates/updates the die. Returns (die_id, is_created)."""
         die_id = ValidationService.validate_die_id(row_data.get('die_id'))
 
@@ -118,16 +118,37 @@ class ImportService:
 
         current_set = ImportService._resolve_set(row_data, sets_by_id, sets_by_name)
 
+        manufacturer_obj = None
+        if 'manufacturer' in row_data:
+            manuf_raw = row_data.get('manufacturer')
+            if manuf_raw is not None and str(manuf_raw).strip():
+                manuf_name = str(manuf_raw).strip()
+                manuf_lower = manuf_name.lower()
+                if manufacturers_by_name is not None and manuf_lower in manufacturers_by_name:
+                    manufacturer_obj = manufacturers_by_name[manuf_lower]
+                else:
+                    existing_m = Manufacturer.objects.filter(name__iexact=manuf_name).first()
+                    if existing_m:
+                        manufacturer_obj = existing_m
+                    else:
+                        manufacturer_obj = Manufacturer.objects.create(name=manuf_name)
+                    if manufacturers_by_name is not None:
+                        manufacturers_by_name[manuf_lower] = manufacturer_obj
+
         with transaction.atomic():
+            defaults = {
+                'die_type': die_type,
+                'casing': casing,
+                'status': status_val,
+                'remarks': remarks,
+                'current_set': current_set,
+            }
+            if 'manufacturer' in row_data:
+                defaults['manufacturer'] = manufacturer_obj
+
             die, is_created = Die.objects.update_or_create(
                 die_id=die_id,
-                defaults={
-                    'die_type': die_type,
-                    'casing': casing,
-                    'status': status_val,
-                    'remarks': remarks,
-                    'current_set': current_set,
-                }
+                defaults=defaults
             )
 
             if die_type == 'ROUND':
@@ -185,7 +206,7 @@ class ImportService:
                     'errors': [{'row': 0, 'error': f"Failed to parse file: {str(e)}"}]
                 }
 
-            # Pre-cache all Sets and Racks to eliminate N+1 database reads
+            # Pre-cache all Sets, Racks, and Manufacturers to eliminate N+1 database reads
             all_sets = list(Set.objects.select_related('machine').all())
             sets_by_id = {s.id: s for s in all_sets}
             
@@ -197,11 +218,13 @@ class ImportService:
                     sets_by_name[name_lower] = []
                 sets_by_name[name_lower].append(s)
 
+            manufacturers_by_name = {m.name.lower(): m for m in Manufacturer.objects.all()}
+
             total_rows = len(rows)
             for idx, (line_num, row_data) in enumerate(rows):
                 try:
                     with transaction.atomic():
-                        die_id, is_created = ImportService._process_row(row_data, sets_by_id, sets_by_name)
+                        die_id, is_created = ImportService._process_row(row_data, sets_by_id, sets_by_name, manufacturers_by_name=manufacturers_by_name)
                         if is_created:
                             created += 1
                         else:

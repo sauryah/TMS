@@ -34,6 +34,8 @@ export function InventoryPage() {
     setStatusVal,
     casing,
     setCasing,
+    manufacturer,
+    setManufacturer,
     sizeMin,
     setSizeMin,
     sizeMax,
@@ -440,9 +442,11 @@ export function InventoryPage() {
                   thickMin={thickMin}
                   thickMax={thickMax}
                   locationQuery={locationQuery}
+                  manufacturer={manufacturer}
                   onDieTypeChange={setDieType}
                   onStatusChange={setStatusVal}
                   onCasingChange={setCasing}
+                  onManufacturerChange={setManufacturer}
                   onSizeMinChange={setSizeMin}
                   onSizeMaxChange={setSizeMax}
                   onWidthMinChange={setWidthMin}

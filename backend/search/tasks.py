@@ -23,6 +23,7 @@ def die_to_meili_document(die):
         'status':   die.status,
         'set':      die.current_set.name if die.current_set else '',
         'machine':  die.current_set.machine.name if die.current_set else '',
+        'manufacturer': die.manufacturer.name if die.manufacturer else '',
     }
     if hasattr(die, 'rounddie') and die.rounddie:
         size_val = die.rounddie.current_size
