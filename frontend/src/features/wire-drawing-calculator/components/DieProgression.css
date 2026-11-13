@@ -76,8 +76,8 @@ html[data-theme="light"] .die-progression {
 
 .die-progression__header {
   justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 16px;
+  gap: 12px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--dp-line);
 }
 
@@ -88,9 +88,9 @@ html[data-theme="light"] .die-progression {
 
 .die-progression__section-number {
   display: grid;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   place-items: center;
   border: 1px solid var(--dp-line);
   border-radius: 10px;
@@ -123,7 +123,7 @@ html[data-theme="light"] .die-progression {
 .die-progression__sort,
 .die-progression__schedule-count {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 30px;
   align-items: center;
   justify-content: center;
   gap: 7px;
@@ -172,15 +172,15 @@ html[data-theme="light"] .die-progression {
 }
 
 .die-progression__viewport {
-  margin: 16px -2px 0;
+  margin: 12px -2px 0;
 }
 
 .die-progression__track {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   align-items: stretch;
-  gap: 12px;
-  padding: 3px;
+  gap: 8px;
+  padding: 2px;
 }
 
 .die-progression__die {
@@ -188,12 +188,12 @@ html[data-theme="light"] .die-progression {
   display: flex;
   width: 100%;
   min-width: 0;
-  min-height: 220px;
+  min-height: 136px;
   flex-direction: column;
   justify-content: space-between;
   border: 1px solid var(--dp-line);
-  border-radius: 11px;
-  padding: 12px;
+  border-radius: 10px;
+  padding: 10px;
   color: var(--dp-text);
   background:
     linear-gradient(145deg, rgb(255 255 255 / 2%), transparent 58%),
@@ -234,7 +234,6 @@ html[data-theme="light"] .die-progression {
 }
 
 .die-progression__die-type,
-.die-progression__gauge-label,
 .die-progression__die-footer,
 .die-progression__connector-metrics span,
 .die-progression__footer {
@@ -277,17 +276,12 @@ html[data-theme="light"] .die-progression {
   background: color-mix(in srgb, var(--dp-danger) 9%, var(--dp-bg));
 }
 
-.die-progression__gauge-label {
-  margin-top: auto;
-  margin-bottom: 4px;
-}
-
 .die-progression__gauge {
   display: flex;
   align-items: baseline;
   gap: 6px;
   color: var(--dp-text);
-  font: 650 23px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 650 20px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: -0.055em;
   white-space: nowrap;
 }
@@ -301,8 +295,8 @@ html[data-theme="light"] .die-progression {
 
 .die-progression__die-footer {
   justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 7px;
+  margin-top: 6px;
+  padding-top: 5px;
   border-top: 1px solid var(--dp-line-soft);
 }
 
@@ -320,9 +314,9 @@ html[data-theme="light"] .die-progression {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-end;
-  gap: 5px;
-  margin-top: 12px;
-  padding-top: 9px;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 5px;
   border-top: 1px solid var(--dp-line-soft);
 }
 
@@ -339,7 +333,7 @@ html[data-theme="light"] .die-progression {
   position: relative;
   display: flex;
   width: 100%;
-  height: 42px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--dp-line-soft);
@@ -348,8 +342,8 @@ html[data-theme="light"] .die-progression {
 }
 
 .die-progression__wire {
-  width: min(100%, 180px);
-  height: 38px;
+  width: min(100%, 160px);
+  height: 22px;
   overflow: visible;
 }
 
@@ -368,21 +362,15 @@ html[data-theme="light"] .die-progression {
 .die-progression__connector-metrics {
   display: flex;
   width: 100%;
-  justify-content: center;
-  gap: 10px;
-}
-
-.die-progression__connector-metrics > div {
-  display: flex;
-  min-width: 45px;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .die-progression__connector-metrics span {
-  font-size: 7px;
+  font-size: 7.5px;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .die-progression__connector-metrics strong {
@@ -391,11 +379,11 @@ html[data-theme="light"] .die-progression {
   white-space: nowrap;
 }
 
-.die-progression__connector--reverse .die-progression__connector-metrics > div:first-child strong {
+.die-progression__connector--reverse .die-progression__connector-metrics > span:first-child strong {
   color: var(--dp-danger);
 }
 
-.die-progression__connector-metrics > div:last-child strong {
+.die-progression__connector-metrics > span:last-child strong {
   color: var(--dp-copper);
 }
 
@@ -404,8 +392,8 @@ html[data-theme="light"] .die-progression {
   top: 50%;
   left: 50%;
   display: grid;
-  width: 25px;
-  height: 25px;
+  width: 20px;
+  height: 20px;
   place-items: center;
   transform: translate(-50%, -50%);
   border: 1px solid color-mix(in srgb, var(--dp-accent) 55%, var(--dp-line));

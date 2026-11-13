@@ -11,7 +11,7 @@ Track implementation status across all phases.
 **Date:** 2026-11-14
 
 **Completed:**
-- Rebuilt the interactive die sequence as a responsive drafting grid with stronger gauge hierarchy, inlet/finish station labels, and each station's outgoing reduction and elongation metrics; the full schedule fits without horizontal scrolling.
+- Rebuilt the interactive die sequence as a compact responsive drafting grid with stronger gauge hierarchy, inlet/finish station labels, and each station's outgoing reduction and elongation metrics; the full schedule fits without horizontal scrolling.
 - Added coordinated Terminal, Classic, and Light palettes plus touch-visible and keyboard-focusable edit controls.
 - Preserved calculation and editing behavior; updated the component assertions to target the accessible labels.
 

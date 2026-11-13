@@ -30,7 +30,7 @@ export default function DieProgression({ dies, onDiesChange }: DieProgressionPro
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className="die-progression rounded-2xl border p-4 sm:p-5 lg:p-6 shadow-xl"
+      className="die-progression rounded-2xl border p-3 sm:p-4 lg:p-5 shadow-xl"
     >
       <div className="die-progression__content">
         <div className="die-progression__header">
@@ -100,129 +100,122 @@ export default function DieProgression({ dies, onDiesChange }: DieProgressionPro
                 return (
                   <motion.div
                     key={`${d}-${i}`}
-                      layout
-                      draggable={Boolean(onDiesChange)}
-                      role="listitem"
-                      aria-label={`Pass ${i + 1}, ${stationType.toLowerCase()}, ${d.toFixed(3)} millimeters`}
-                      data-testid={`die-card-${i}`}
-                      onDragStart={() => setDraggedIndex(i)}
-                      onDragEnter={() => {
-                        if (draggedIndex === null || draggedIndex === i || !onDiesChange) return;
-                        const updated = [...dies];
-                        const [movedItem] = updated.splice(draggedIndex, 1);
-                        updated.splice(i, 0, movedItem);
-                        setDraggedIndex(i);
-                        onDiesChange(updated);
-                      }}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDragEnd={() => setDraggedIndex(null)}
-                      onMouseEnter={() => setHoveredDieIndex(i)}
-                      onMouseLeave={() => setHoveredDieIndex(null)}
-                      className={`die-progression__die ${
-                        isDragging ? 'die-progression__die--dragging' : ''
-                      } ${hoveredDieIndex === i ? 'die-progression__die--hovered' : ''}`}
-                    >
-                      <div className="die-progression__die-heading">
-                        <span className="die-progression__die-number">{String(i + 1).padStart(2, '0')}</span>
-                        <span className="die-progression__die-type">{stationType}</span>
-                        {onDiesChange && dies.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDiesChange(dies.filter((_, idx) => idx !== i));
-                            }}
-                            className="die-progression__remove"
-                            title="Remove Pass"
-                            aria-label={`Remove pass ${i + 1}`}
-                          >
-                            <X className="h-3.5 w-3.5" aria-hidden="true" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="die-progression__gauge-label">DIE GAUGE</div>
-                      <div className="die-progression__gauge">
-                        <span>Ø {d.toFixed(3)}</span>
-                        <span className="die-progression__unit">mm</span>
-                      </div>
-
-                      {i < dies.length - 1 ? (
-                        <div
-                          data-testid={`die-connector-${i}`}
-                          onMouseEnter={() => setHoveredArrowIndex(i)}
-                          onMouseLeave={() => setHoveredArrowIndex(null)}
-                          className={`die-progression__connector ${hoveredArrowIndex === i ? 'die-progression__connector--active' : ''} ${isNegativeReduction ? 'die-progression__connector--reverse' : ''}`}
+                    layout
+                    draggable={Boolean(onDiesChange)}
+                    role="listitem"
+                    aria-label={`Pass ${i + 1}, ${stationType.toLowerCase()}, ${d.toFixed(3)} millimeters`}
+                    data-testid={`die-card-${i}`}
+                    onDragStart={() => setDraggedIndex(i)}
+                    onDragEnter={() => {
+                      if (draggedIndex === null || draggedIndex === i || !onDiesChange) return;
+                      const updated = [...dies];
+                      const [movedItem] = updated.splice(draggedIndex, 1);
+                      updated.splice(i, 0, movedItem);
+                      setDraggedIndex(i);
+                      onDiesChange(updated);
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragEnd={() => setDraggedIndex(null)}
+                    onMouseEnter={() => setHoveredDieIndex(i)}
+                    onMouseLeave={() => setHoveredDieIndex(null)}
+                    className={`die-progression__die ${
+                      isDragging ? 'die-progression__die--dragging' : ''
+                    } ${hoveredDieIndex === i ? 'die-progression__die--hovered' : ''}`}
+                  >
+                    <div className="die-progression__die-heading">
+                      <span className="die-progression__die-number">{String(i + 1).padStart(2, '0')}</span>
+                      <span className="die-progression__die-type">{stationType}</span>
+                      {onDiesChange && dies.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDiesChange(dies.filter((_, idx) => idx !== i));
+                          }}
+                          className="die-progression__remove"
+                          title="Remove Pass"
+                          aria-label={`Remove pass ${i + 1}`}
                         >
-                          <div className="die-progression__transition-heading">
-                            <span>PASS {String(i + 1).padStart(2, '0')} REDUCTION</span>
-                            <span>TO STATION {String(i + 2).padStart(2, '0')}</span>
-                          </div>
-                          <div className="die-progression__wire-wrap">
-                            <svg
-                              viewBox="0 0 92 38"
-                              className="die-progression__wire"
-                              role="img"
-                              aria-label={`Wire reduction from ${d.toFixed(3)} to ${dies[i + 1].toFixed(3)} millimeters`}
-                            >
-                              <defs>
-                                <linearGradient id={`die-wire-gradient-${i}`} x1="0" y1="0" x2="1" y2="0">
-                                  <stop offset="0%" stopColor="var(--dp-accent)" stopOpacity="0.3" />
-                                  <stop offset="100%" stopColor="var(--dp-copper)" stopOpacity="0.42" />
-                                </linearGradient>
-                              </defs>
-                              <path
-                                d={`M 2 ${19 - wireRadiusLeft / 2} L 90 ${19 - wireRadiusRight / 2} L 90 ${19 + wireRadiusRight / 2} L 2 ${19 + wireRadiusLeft / 2} Z`}
-                                fill={`url(#die-wire-gradient-${i})`}
-                                stroke="var(--dp-accent)"
-                                strokeOpacity="0.3"
-                                strokeWidth="0.7"
-                              />
-                              <line
-                                x1="2"
-                                y1="19"
-                                x2="90"
-                                y2="19"
-                                className="die-progression__wire-centerline"
-                              />
-                            </svg>
-
-                            {onDiesChange && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const midVal = Math.round(((d + dies[i + 1]) / 2) * 1000) / 1000;
-                                  const updated = [...dies];
-                                  updated.splice(i + 1, 0, midVal);
-                                  onDiesChange(updated);
-                                }}
-                                className="die-progression__insert"
-                                title={`Insert pass size between ${d} and ${dies[i + 1]}`}
-                                aria-label={`Insert pass size between ${d} and ${dies[i + 1]}`}
-                              >
-                                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="die-progression__connector-metrics">
-                            <div>
-                              <span>AREA RED.</span>
-                              <strong>{reductionFormatted}</strong>
-                            </div>
-                            <div>
-                              <span>ELONG.</span>
-                              <strong>+{elongationPercent.toFixed(1)}%</strong>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="die-progression__die-footer">
-                          <span>FINAL OUTPUT · {d.toFixed(3)} mm</span>
-                          {onDiesChange && <MoveHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
-                        </div>
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
                       )}
-                    </motion.div>
+                    </div>
+
+                    <div className="die-progression__gauge">
+                      <span>Ø {d.toFixed(3)}</span>
+                      <span className="die-progression__unit">mm</span>
+                    </div>
+
+                    {i < dies.length - 1 ? (
+                      <div
+                        data-testid={`die-connector-${i}`}
+                        onMouseEnter={() => setHoveredArrowIndex(i)}
+                        onMouseLeave={() => setHoveredArrowIndex(null)}
+                        className={`die-progression__connector ${hoveredArrowIndex === i ? 'die-progression__connector--active' : ''} ${isNegativeReduction ? 'die-progression__connector--reverse' : ''}`}
+                      >
+                        <div className="die-progression__transition-heading">
+                          <span>PASS {String(i + 1).padStart(2, '0')} REDUCTION</span>
+                          <span>TO STATION {String(i + 2).padStart(2, '0')}</span>
+                        </div>
+                        <div className="die-progression__wire-wrap">
+                          <svg
+                            viewBox="0 0 92 38"
+                            className="die-progression__wire"
+                            role="img"
+                            aria-label={`Wire reduction from ${d.toFixed(3)} to ${dies[i + 1].toFixed(3)} millimeters`}
+                          >
+                            <defs>
+                              <linearGradient id={`die-wire-gradient-${i}`} x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="var(--dp-accent)" stopOpacity="0.3" />
+                                <stop offset="100%" stopColor="var(--dp-copper)" stopOpacity="0.42" />
+                              </linearGradient>
+                            </defs>
+                            <path
+                              d={`M 2 ${19 - wireRadiusLeft / 2} L 90 ${19 - wireRadiusRight / 2} L 90 ${19 + wireRadiusRight / 2} L 2 ${19 + wireRadiusLeft / 2} Z`}
+                              fill={`url(#die-wire-gradient-${i})`}
+                              stroke="var(--dp-accent)"
+                              strokeOpacity="0.3"
+                              strokeWidth="0.7"
+                            />
+                            <line
+                              x1="2"
+                              y1="19"
+                              x2="90"
+                              y2="19"
+                              className="die-progression__wire-centerline"
+                            />
+                          </svg>
+
+                          {onDiesChange && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const midVal = Math.round(((d + dies[i + 1]) / 2) * 1000) / 1000;
+                                const updated = [...dies];
+                                updated.splice(i + 1, 0, midVal);
+                                onDiesChange(updated);
+                              }}
+                              className="die-progression__insert"
+                              title={`Insert pass size between ${d} and ${dies[i + 1]}`}
+                              aria-label={`Insert pass size between ${d} and ${dies[i + 1]}`}
+                            >
+                              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="die-progression__connector-metrics">
+                          <span>AREA <strong>{reductionFormatted}</strong></span>
+                          <span>ELONG. <strong>+{elongationPercent.toFixed(1)}%</strong></span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="die-progression__die-footer">
+                        <span>FINAL OUTPUT · {d.toFixed(3)} mm</span>
+                        {onDiesChange && <MoveHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
+                      </div>
+                    )}
+                  </motion.div>
                 );
               })}
             </AnimatePresence>

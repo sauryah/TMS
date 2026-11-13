@@ -2,7 +2,7 @@
 
 ### 2026-11-14 Schematic Drafting Pipeline Redesign
 *   **Interactive Pass Sequence**:
-    *   Replaced compact wrapped nodes with a responsive station-card grid that keeps the full sequence visible without horizontal scrolling. Each card shows its gauge, tapered transition, next station, area reduction, and elongation.
+    *   Replaced compact wrapped nodes with a tighter responsive station-card grid that keeps the full sequence visible without horizontal scrolling. Each card shows its gauge, tapered transition, next station, area reduction, and elongation.
     *   Added dedicated Terminal, Classic, and Light theme palettes, focus-visible controls, touch-visible insert/remove actions, and reduced-motion styling.
     *   Preserved sort, drag reorder, insert, remove, and gauge calculations; adjusted component tests to assert accessible labels.
 *   **Verification**:

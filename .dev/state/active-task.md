@@ -17,7 +17,7 @@ Track current work item for AI sessions.
 Redesign the interactive Schematic Drafting Pipeline as a clear, theme-aware pass sequence with drafting-style cards and connectors. Preserve gauge calculations and pass editing actions.
 
 ## Completed
-- Replaced the horizontal scrolling lane with a responsive wrapping grid; each station card shows its outgoing taper, next station, area reduction, and elongation.
+- Replaced the horizontal scrolling lane with a compact responsive grid; each station card shows its outgoing taper, next station, area reduction, and elongation.
 - Added coordinated Terminal, Classic, and Light palettes, focus-visible controls, and touch-friendly insert/remove actions.
 - Preserved gauge calculations, sorting, drag reordering, insert, and remove actions; updated the component test selectors for the accessible labels.
 - Updated frontend module documentation.
