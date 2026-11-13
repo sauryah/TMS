@@ -14,13 +14,13 @@ describe('DieProgression Component', () => {
     render(<DieProgression dies={dies} />);
 
     expect(screen.getByText('Schematic Drafting Pipeline')).toBeInTheDocument();
-    expect(screen.getByText('4 PASS SCHEDULE')).toBeInTheDocument();
+    expect(screen.getByLabelText('4 pass schedule')).toHaveTextContent('4 PASS SCHEDULE');
     expect(screen.getByText(/Drag to sequence passes/i)).toBeInTheDocument();
 
-    expect(screen.getByText('Pass 1')).toBeInTheDocument();
-    expect(screen.getByText('Pass 2')).toBeInTheDocument();
-    expect(screen.getByText('Pass 3')).toBeInTheDocument();
-    expect(screen.getByText('Pass 4')).toBeInTheDocument();
+    expect(screen.getByTestId('die-card-0')).toHaveAccessibleName('Pass 1, inlet, 4.500 millimeters');
+    expect(screen.getByTestId('die-card-1')).toHaveAccessibleName('Pass 2, die station, 3.800 millimeters');
+    expect(screen.getByTestId('die-card-2')).toHaveAccessibleName('Pass 3, die station, 3.200 millimeters');
+    expect(screen.getByTestId('die-card-3')).toHaveAccessibleName('Pass 4, finish, 2.700 millimeters');
 
     expect(screen.getByText('Ø 4.500')).toBeInTheDocument();
     expect(screen.getByText('Ø 3.800')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('DieProgression Component', () => {
     const pass2Card = screen.getByTestId('die-card-1');
     fireEvent.mouseEnter(pass2Card);
 
-    const deleteBtn = screen.getByTitle('Remove Pass');
+    const deleteBtn = screen.getByLabelText('Remove pass 2');
     expect(deleteBtn).toBeInTheDocument();
 
     fireEvent.click(deleteBtn);

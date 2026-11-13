@@ -1,5 +1,14 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-14 Schematic Drafting Pipeline Redesign
+*   **Interactive Pass Sequence**:
+    *   Replaced responsive wrapping with a left-to-right scrollable lane, larger gauge cards, clear inlet/finish labels, and tapered-wire connectors with area-reduction and elongation metrics.
+    *   Added dedicated Terminal, Classic, and Light theme palettes, focus-visible controls, touch-visible insert/remove actions, and reduced-motion styling.
+    *   Preserved sort, drag reorder, insert, remove, and gauge calculations; adjusted component tests to assert accessible labels.
+*   **Verification**:
+    *   ESLint and TypeScript passed; Vitest 115/115 tests passed across 30 files; Vite production build passed to `/tmp/tms-frontend-build`.
+    *   Vitest emitted a WebSocket bind warning in the restricted environment without affecting the test run. The authenticated page was not visually reviewed without test credentials.
+
 ### 2026-11-14 Precision Blueprint Workbench Redesign
 *   **Workbench Visual Design**:
     *   Added a scoped blue-green drafting palette with teal highlights, copper endpoints, a finer major/minor grid, and non-pulsing status markers.

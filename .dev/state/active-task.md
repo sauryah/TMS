@@ -7,19 +7,19 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Precision Blueprint Workbench Redesign
+**Task:** Schematic Drafting Pipeline Redesign
 **Status:** Complete
 **Started:** 2026-11-14
 **Target Completion:** 2026-11-14
 **Confidence:** 95%
 
 ## Task Description
-Give the wire drawing workbench a distinct precision-blueprint visual design, with a drafting grid, subdued teal and copper palette, clearer heatmap keys, and more room for the single-view CAD canvas. Preserve calculations and controls.
+Redesign the interactive Schematic Drafting Pipeline as a clear, theme-aware pass sequence with drafting-style cards and connectors. Preserve gauge calculations and pass editing actions.
 
 ## Completed
-- Applied a scoped blueprint-inspired dark theme with deep blue-green surfaces, thin drafting-grid accents, muted teal highlights, and copper heatmap endpoints.
-- Expanded the single-view canvas at wide widths while preserving balanced space for compare mode and pass telemetry; increased viewport height and refreshed stress/temperature legends.
-- Preserved all model calculations, view controls, and analytical-estimate disclosures.
+- Replaced wrapped pass cards with a left-to-right scrollable drafting lane, distinct inlet/finish stations, larger gauge labels, tapered wire illustrations, and separate area-reduction and elongation values.
+- Added coordinated Terminal, Classic, and Light palettes, focus-visible controls, and touch-friendly insert/remove actions.
+- Preserved gauge calculations, sorting, drag reordering, insert, and remove actions; updated the component test selectors for the accessible labels.
 - Updated frontend module documentation.
 
 ## Verification
