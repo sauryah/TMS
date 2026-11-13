@@ -32,17 +32,17 @@ export function MachineSetsPage() {
   const isWritable = role === 'ROOT' || role === 'ADMIN'
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 font-mono space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
       {/* Page Header */}
       <div className="border-b border-[var(--color-border)] pb-4">
         <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] font-bold uppercase tracking-wider mb-0.5">
           <Cpu className="h-3.5 w-3.5 text-blue-400" />
           <span>Machine & Set Registry</span>
         </div>
-        <h1 className="text-base md:text-lg font-bold text-[var(--color-text)] uppercase tracking-wide font-heading">
+        <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text)] tracking-tight font-heading">
           Machines & Sets
         </h1>
-        <p className="text-[var(--color-muted)] text-xs mt-0.5">
+        <p className="text-[var(--color-muted)] text-sm mt-1">
           Configure machine taxonomy, set allocations, and tooling assignments.
         </p>
       </div>

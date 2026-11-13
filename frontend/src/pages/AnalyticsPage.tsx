@@ -43,7 +43,7 @@ export function AnalyticsPage() {
   const storagePct = totalDies > 0 ? ((diesInStorage / totalDies) * 100).toFixed(1) : '0.0'
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 font-mono space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
       {/* Page Header */}
       <div className="border-b border-[var(--color-border)] pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -51,10 +51,10 @@ export function AnalyticsPage() {
             <BarChart3 className="h-3.5 w-3.5 text-blue-400" />
             <span>Fleet Telemetry & Insights</span>
           </div>
-          <h1 className="text-base md:text-lg font-bold text-[var(--color-text)] uppercase tracking-wide font-heading">
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text)] tracking-tight font-heading">
             Tool Room Analytics
           </h1>
-          <p className="text-[var(--color-muted)] text-xs mt-0.5">
+          <p className="text-[var(--color-muted)] text-sm mt-1">
             Real-time breakdown of die inventory count, profile types, and manufacturer allocation.
           </p>
         </div>

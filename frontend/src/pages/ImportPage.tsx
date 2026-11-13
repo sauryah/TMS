@@ -300,7 +300,7 @@ export function ImportPage() {
   )
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 font-mono">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
       {/* Back Link */}
       <div className="flex items-center justify-between print:hidden">
         <button 

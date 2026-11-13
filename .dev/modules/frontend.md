@@ -9,21 +9,20 @@ High-density manufacturing telemetry dashboard, CAD vector blueprint renderer, 3
 
 ### 1. Supported Themes
 The application supports three global visual modes managed via `ThemeContext.tsx` and CSS root tokens:
-- **Dark Terminal / Bloomberg-Tape** (`data-theme="terminal"`, default):
-  - **Canvas & Surfaces**: `#0a0a0a` (canvas), `#0f0f0f` (surfaces/cards), `#141414` (elevated/sidebar/hover).
-  - **Borders & Dividers**: 1px flat solid `#1a1a1a` (subtle) / `#2a2a2a` (visible active).
-  - **Typography**: 100% air-gapped self-hosted local fonts (`Inter` and `Plus Jakarta Sans` WOFF2) alongside pure monospace stack (`ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace`), uppercase section labels (`01`, `02`, `03...`), tabular numeric figures (`font-variant-numeric: tabular-nums`).
-  - **Status Accents**: Emerald `#10b981` (Available/Up), Blue `#3b82f6` (Running/Info), Amber `#f59e0b` (Maintenance/Warning), Purple `#8b5cf6` (Polishing), Orange `#f97316` (Damaged), Red `#ef4444` (Scrapped/Down), Gray `#6b7280` (Missing/Muted).
-- **Classic Slate / Industrial Modern** (`data-theme="classic"`):
-  - **Canvas & Surfaces**: Deep navy `#0B1220` (canvas), `#0F172A` (surfaces/cards), `#1E293B` (elevated).
-  - **Borders & Dividers**: `#1E293B` / `#334155`.
-  - **Typography**: Sans-serif (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif`).
-  - **Accents**: Cyan `#38BDF8`, Mint `#34D399`, Coral `#F87171`, Amber `#FBBF24`.
-- **Precision Light / Clean Industrial** (`data-theme="light"`):
-  - **Canvas & Surfaces**: Crisp slate `#F8FAFC` (canvas), `#FFFFFF` (surfaces/cards), `#F1F5F9` (elevated).
-  - **Borders & Dividers**: `#E2E8F0` / `#CBD5E1`.
-  - **Typography**: Clean industrial sans-serif with high contrast slate typography (`#0F172A`).
-  - **Accents**: Emerald `#059669`, Blue `#2563EB`, Amber `#D97706`, Rose `#E11D48`.
+- **Terminal / Graphite Operations** (`data-theme="terminal"`, default):
+  - **Canvas & Surfaces**: `#111719` canvas, `#182124` panels, `#202B2F` raised surfaces.
+  - **Borders & Dividers**: `#29363A` subtle / `#3A4A4E` visible.
+  - **Accent**: Copper `#FF946B` for primary actions and keyboard focus.
+- **Classic / Deep Slate Operations** (`data-theme="classic"`):
+  - **Canvas & Surfaces**: `#121D22` canvas, `#1A282D` panels, `#233339` raised surfaces.
+  - **Borders & Dividers**: `#2E3D42` subtle / `#44565C` visible.
+  - **Accent**: Warm copper `#FF9B70` with semantic status colors.
+- **Light / Paper Operations** (`data-theme="light"`):
+  - **Canvas & Surfaces**: `#F2F4F1` canvas, `#FFFFFF` panels, `#F7F8F5` raised surfaces.
+  - **Borders & Dividers**: `#D9E0DC` subtle / `#B8C5BE` visible.
+  - **Accent**: Deep copper `#A94324` for readable primary actions and focus.
+- **Typography**: Self-hosted `Inter` and `Plus Jakarta Sans` WOFF2 for interface text and headings; reserve the system monospace stack for identifiers, measurements, and audit data. Status colors remain semantic and use text labels.
+- **Compatibility**: `index.css` maps legacy fixed-palette utilities to each theme so existing screens receive the refreshed colors without rewriting their workflows. Print rules remain separate.
 
 ### 2. Access Control Rule: ROOT-Only Theme Switching
 - **Security Constraint**: Only authenticated users with `role === 'ROOT'` have permission to alter the system-wide visual theme.

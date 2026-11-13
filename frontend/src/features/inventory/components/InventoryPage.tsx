@@ -327,7 +327,7 @@ export function InventoryPage() {
   )
 
   return (
-    <div className="flex flex-col md:flex-row min-h-[calc(100vh-48px)] relative bg-[#0a0a0a] text-[#e4e4e4] font-mono">
+    <div className="flex flex-col md:flex-row min-h-[calc(100vh-56px)] relative bg-[#0a0a0a] text-[#e4e4e4]">
       
       {/* Sidebar Overlay (Mobile only) */}
       {isSidebarOpen && (
@@ -358,7 +358,7 @@ export function InventoryPage() {
       />
 
       {/* RIGHT CONTENT WORKSPACE */}
-      <div className="flex-1 min-w-0 bg-[#0a0a0a] flex flex-col font-mono">
+      <div className="flex-1 min-w-0 bg-[#0a0a0a] flex flex-col">
         
         {/* Toggle Sidebar Button for Mobile */}
         <div className="border-b border-[#2a2a2a] bg-[#0a0a0a] p-3 flex md:hidden items-center justify-between z-20">

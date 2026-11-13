@@ -1559,3 +1559,388 @@ textarea:focus {
     display: table-footer-group;
   }
 }
+
+/* --------------------------------------------------------------------------
+   TMS Operations Design System
+   A high-contrast graphite / paper system with a restrained copper signal.
+   Keep identifiers and measurements mono; use the system UI face for reading.
+   -------------------------------------------------------------------------- */
+html[data-theme="terminal"],
+.theme-terminal {
+  --color-bg: #111719;
+  --color-surface: #182124;
+  --color-surface-2: #202B2F;
+  --color-surface-elevated: #253135;
+  --color-border: #29363A;
+  --color-border-visible: #3A4A4E;
+  --color-text: #EFF3F1;
+  --color-text-secondary: #C0CAC6;
+  --color-muted: #A1AEA8;
+  --color-muted-dark: #7F8C86;
+  --color-accent: #FF946B;
+  --color-selection-bg: #A94324;
+  --color-selection-text: #FFFFFF;
+  --wdc-primary: #FF946B;
+  --wdc-primary-light: #FFB393;
+  --wdc-primary-dark: #D96A43;
+  --wdc-card: #182124;
+  --wdc-card-hover: #202B2F;
+  --wdc-input: #111719;
+  --wdc-text-secondary: #C0CAC6;
+  --wdc-border-focus: #FF946B;
+  --wdc-glass: #182124;
+  --wdc-steel: #202B2F;
+  --wdc-steel-light: #29363A;
+}
+
+html[data-theme="classic"],
+.theme-classic {
+  --color-bg: #121D22;
+  --color-surface: #1A282D;
+  --color-surface-2: #233339;
+  --color-surface-elevated: #2B3C42;
+  --color-border: #2E3D42;
+  --color-border-visible: #44565C;
+  --color-text: #F0F4F1;
+  --color-text-secondary: #C3CECA;
+  --color-muted: #A1B0AA;
+  --color-muted-dark: #81908B;
+  --color-accent: #FF9B70;
+  --color-selection-bg: #A94324;
+  --color-selection-text: #FFFFFF;
+  --wdc-primary: #FF9B70;
+  --wdc-primary-light: #FFB99A;
+  --wdc-primary-dark: #D96A43;
+  --wdc-card: #1A282D;
+  --wdc-card-hover: #233339;
+  --wdc-input: #121D22;
+  --wdc-text-secondary: #C3CECA;
+  --wdc-border-focus: #FF9B70;
+  --wdc-glass: #1A282D;
+  --wdc-steel: #233339;
+  --wdc-steel-light: #2E3D42;
+}
+
+html[data-theme="light"],
+.theme-light {
+  --color-bg: #F2F4F1;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F7F8F5;
+  --color-surface-elevated: #FFFFFF;
+  --color-border: #D9E0DC;
+  --color-border-visible: #B8C5BE;
+  --color-text: #18231F;
+  --color-text-secondary: #35463F;
+  --color-muted: #52625B;
+  --color-muted-dark: #687770;
+  --color-accent: #A94324;
+  --color-selection-bg: #A94324;
+  --color-selection-text: #FFFFFF;
+  --wdc-primary: #A94324;
+  --wdc-primary-light: #C75C37;
+  --wdc-primary-dark: #84351E;
+  --wdc-card: #FFFFFF;
+  --wdc-card-hover: #F7F8F5;
+  --wdc-input: #FFFFFF;
+  --wdc-text-secondary: #52625B;
+  --wdc-border-focus: #A94324;
+  --wdc-glass: #FFFFFF;
+  --wdc-steel: #F7F8F5;
+  --wdc-steel-light: #E8ECE9;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html body {
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+html h1,
+html h2,
+html h3,
+html h4,
+html h5,
+html h6,
+html .font-heading {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+  letter-spacing: -0.025em;
+  text-transform: none;
+}
+
+html .max-w-7xl { max-width: 1440px; }
+html .rounded-sm { border-radius: 8px !important; }
+html .rounded-md { border-radius: 10px !important; }
+
+html :where(button, input, select, textarea, a) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html :where(button, input, select, textarea) {
+  font-size: 14px;
+}
+
+html :where(input, select, textarea) {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border-visible);
+}
+
+html :where(input, select, textarea)::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+html :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent) !important;
+  outline-offset: 2px;
+}
+
+html nav[role="navigation"],
+html nav.sticky {
+  background-color: color-mix(in srgb, var(--color-bg) 94%, transparent) !important;
+  border-bottom-color: var(--color-border-visible) !important;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-border) 70%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+html nav.sticky > div {
+  max-width: 1600px;
+}
+
+html nav.sticky a[aria-current="page"],
+html nav.sticky button[aria-expanded="true"] {
+  border-bottom-color: var(--color-accent) !important;
+}
+
+html .glass-card,
+html .glass-panel {
+  border-color: var(--color-border) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+html .glass-input:focus,
+html input:focus,
+html select:focus,
+html textarea:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+html button[type="submit"],
+html .btn-primary,
+html .wdc-btn-primary {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: #FFFFFF !important;
+}
+
+html button[type="submit"]:hover,
+html .btn-primary:hover,
+html .wdc-btn-primary:hover {
+  filter: brightness(0.94);
+}
+
+html[data-theme="terminal"] .bg-\[\#0a0a0a\] { background-color: #111719 !important; }
+html[data-theme="terminal"] .bg-\[\#0f0f0f\] { background-color: #182124 !important; }
+html[data-theme="terminal"] .bg-\[\#141414\] { background-color: #202B2F !important; }
+html[data-theme="terminal"] .bg-\[\#1f1f1f\] { background-color: #29363A !important; }
+html[data-theme="terminal"] .border-\[\#1a1a1a\] { border-color: #29363A !important; }
+html[data-theme="terminal"] .border-\[\#2a2a2a\] { border-color: #3A4A4E !important; }
+html[data-theme="terminal"] .text-\[\#e4e4e4\] { color: #EFF3F1 !important; }
+html[data-theme="terminal"] .text-\[\#6b7280\] { color: #A1AEA8 !important; }
+html[data-theme="terminal"] .text-\[\#404040\] { color: #7F8C86 !important; }
+html[data-theme="terminal"] .hover\:bg-\[\#141414\]:hover { background-color: #202B2F !important; }
+html[data-theme="terminal"] .hover\:bg-\[\#1f1f1f\]:hover { background-color: #29363A !important; }
+html[data-theme="terminal"] .hover\:border-\[\#2a2a2a\]:hover { border-color: #53666B !important; }
+
+html[data-theme="classic"] .bg-\[\#0a0a0a\] { background-color: #121D22 !important; }
+html[data-theme="classic"] .bg-\[\#0f0f0f\] { background-color: #1A282D !important; }
+html[data-theme="classic"] .bg-\[\#141414\] { background-color: #233339 !important; }
+html[data-theme="classic"] .bg-\[\#1f1f1f\] { background-color: #2E3D42 !important; }
+html[data-theme="classic"] .border-\[\#1a1a1a\] { border-color: #2E3D42 !important; }
+html[data-theme="classic"] .border-\[\#2a2a2a\] { border-color: #44565C !important; }
+html[data-theme="classic"] .text-\[\#e4e4e4\] { color: #F0F4F1 !important; }
+html[data-theme="classic"] .text-\[\#6b7280\] { color: #A1B0AA !important; }
+html[data-theme="classic"] .text-\[\#404040\] { color: #81908B !important; }
+html[data-theme="classic"] .hover\:bg-\[\#141414\]:hover { background-color: #233339 !important; }
+html[data-theme="classic"] .hover\:bg-\[\#1f1f1f\]:hover { background-color: #2E3D42 !important; }
+html[data-theme="classic"] .hover\:border-\[\#2a2a2a\]:hover { border-color: #5D7076 !important; }
+
+html[data-theme="light"] .bg-\[\#0a0a0a\] { background-color: #F2F4F1 !important; }
+html[data-theme="light"] .bg-\[\#0f0f0f\] { background-color: #FFFFFF !important; }
+html[data-theme="light"] .bg-\[\#141414\] { background-color: #F7F8F5 !important; }
+html[data-theme="light"] .bg-\[\#1f1f1f\] { background-color: #E8ECE9 !important; }
+html[data-theme="light"] .border-\[\#1a1a1a\] { border-color: #D9E0DC !important; }
+html[data-theme="light"] .border-\[\#2a2a2a\] { border-color: #B8C5BE !important; }
+html[data-theme="light"] .text-\[\#e4e4e4\] { color: #18231F !important; }
+html[data-theme="light"] .text-\[\#6b7280\] { color: #52625B !important; }
+html[data-theme="light"] .text-\[\#404040\] { color: #687770 !important; }
+html[data-theme="light"] .hover\:bg-\[\#141414\]:hover { background-color: #F7F8F5 !important; }
+html[data-theme="light"] .hover\:bg-\[\#1f1f1f\]:hover { background-color: #E8ECE9 !important; }
+html[data-theme="light"] .hover\:border-\[\#2a2a2a\]:hover { border-color: #899991 !important; }
+html[data-theme="light"] .text-blue-400,
+html[data-theme="light"] .text-blue-300 { color: #A94324 !important; }
+html[data-theme="light"] .border-blue-500\/50 { border-color: rgba(169, 67, 36, 0.55) !important; }
+
+@media (max-width: 640px) {
+  html body { font-size: 14px; }
+  html .max-w-7xl { width: 100%; }
+  html nav.sticky > div { padding-left: 12px; padding-right: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html *, html *::before, html *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html nav.sticky,
+html nav.sticky .font-mono {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+html nav.sticky .font-mono {
+  letter-spacing: 0.01em;
+}
+
+html nav.sticky a[aria-current="page"] {
+  background-color: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)) !important;
+  color: var(--color-text) !important;
+}
+
+html nav.sticky a,
+html nav.sticky button {
+  min-height: 40px;
+}
+
+html nav.sticky img {
+  width: 22px;
+  height: 22px;
+}
+
+html .dashboard-page .stat-card {
+  min-height: 100px;
+  padding: 16px;
+  border-color: var(--color-border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+html .dashboard-page .stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-visible) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.11);
+}
+
+html .dashboard-page .stat-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  color: var(--color-muted);
+}
+
+html .dashboard-page .stat-count {
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+html .dashboard-page .glass-card {
+  border-radius: 12px !important;
+  padding: 22px;
+}
+
+html .dashboard-page .glass-card h2,
+html .dashboard-page .glass-card h3 {
+  font-size: 16px;
+}
+
+html .dashboard-page .glass-card p {
+  line-height: 1.55;
+}
+
+html .page-header h1 {
+  letter-spacing: -0.03em;
+}
+
+html .login-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+html .login-page::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 28px clamp(16px, 4vw, 64px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+html .login-card {
+  border-radius: 14px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16);
+}
+
+html .login-card input:not([type="checkbox"]) {
+  font-size: 15px;
+}
+
+html[data-theme="light"] .login-card {
+  box-shadow: 0 20px 60px rgba(24, 35, 31, 0.09);
+}
+
+html[data-theme] body {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  letter-spacing: 0;
+}
+
+html[data-theme] h1,
+html[data-theme] h2,
+html[data-theme] h3,
+html[data-theme] h4,
+html[data-theme] h5,
+html[data-theme] h6,
+html[data-theme] .font-heading {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+  letter-spacing: -0.025em;
+  text-transform: none;
+}
+
+html[data-theme] nav.sticky {
+  background-color: color-mix(in srgb, var(--color-bg) 94%, transparent) !important;
+  border-bottom-color: var(--color-border-visible) !important;
+}
+
+html[data-theme] button[type="submit"],
+html[data-theme] .btn-primary,
+html[data-theme] .wdc-btn-primary {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+@media print {
+  html body {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    font-family: Arial, sans-serif !important;
+  }
+}

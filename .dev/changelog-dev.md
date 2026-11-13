@@ -1,5 +1,19 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-14 Premium Enterprise Operations Visual Refresh
+*   **Three-Theme Design System**:
+    *   Reworked Terminal, Classic, and Light theme tokens into graphite, deep slate, and paper surfaces with readable borders and copper primary/focus accents.
+    *   Kept semantic operational status colors and the existing ROOT-only theme switching behavior.
+    *   Added compatibility mappings for existing fixed-palette utilities; preserved reduced-motion and print rules.
+*   **Shared App Presentation**:
+    *   Increased navigation height and control target sizes, refreshed active navigation treatment, and updated the shared page header hierarchy.
+    *   Switched page-level typography to the self-hosted sans-serif stack while retaining monospace on explicit data labels and identifiers.
+    *   Updated dashboard title/metrics and login spacing, input sizing, and sign-in action styling without changing data flows or authentication logic.
+*   **Review and Verification**:
+    *   Recorded the design review and implementation plan in `.dev/audits/premium-enterprise-design-council.md`.
+    *   ESLint and TypeScript passed; all 114 Vitest tests passed; Vite production build passed to `/tmp/tms-frontend-build`.
+    *   Confirmed the redesigned sign-in screen in the local browser preview. Protected operational screens were not opened without test credentials.
+
 ### 2026-11-13 Simplified Fleet Analytics & Manufacturer Breakdown Dashboard
 *   **Backend Aggregation API & Signal Invalidation**:
     *   Created `AnalyticsSummaryView` in [`backend/dies/views.py`](backend/dies/views.py) providing aggregated counts for total dies, round dies, flat dies, machine sets, and manufacturer-wise totals and percentages.

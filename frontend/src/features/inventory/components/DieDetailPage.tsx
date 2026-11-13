@@ -562,7 +562,7 @@ export function DieDetailPage() {
   )
 
   if (error || !die) return (
-    <div className="max-w-7xl mx-auto px-4 py-6 font-mono">
+    <div className="max-w-7xl mx-auto px-4 py-7">
       <div className="text-center py-8 bg-[#0f0f0f] border border-red-500/30 rounded-sm">
         <p className="text-red-400 font-mono text-xs uppercase">An error occurred loading asset.</p>
         <Link to="/inventory" className="text-blue-400 hover:underline mt-2 inline-block text-xs uppercase font-mono">← Back to Inventory</Link>

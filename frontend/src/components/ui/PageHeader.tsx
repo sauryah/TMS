@@ -16,11 +16,11 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, breadcrumbs = [], actions }: PageHeaderProps) {
   return (
-    <div className="border-b border-[var(--color-border-visible)] pb-3 mb-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+    <div className="border-b border-[var(--color-border-visible)] pb-5 mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4 page-header">
       <div className="space-y-1">
         {/* Breadcrumbs */}
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav aria-label="Breadcrumb" className="flex items-center space-x-1.5 text-[10px] font-medium uppercase tracking-wider text-[var(--color-muted)] font-mono">
+          <nav aria-label="Breadcrumb" className="flex items-center space-x-1.5 text-xs font-medium uppercase tracking-[0.1em] text-[var(--color-muted)] font-mono">
             {breadcrumbs.map((item, idx) => {
               const isLast = idx === breadcrumbs.length - 1
               return (
@@ -28,7 +28,7 @@ export function PageHeader({ title, subtitle, breadcrumbs = [], actions }: PageH
                   {item.href && !isLast ? (
                     <Link 
                       to={item.href} 
-                      className="text-blue-500 hover:opacity-80 transition-opacity"
+                      className="text-[var(--color-accent)] hover:opacity-80 transition-opacity"
                     >
                       {item.label}
                     </Link>
@@ -47,11 +47,11 @@ export function PageHeader({ title, subtitle, breadcrumbs = [], actions }: PageH
         )}
 
         {/* Title */}
-        <h1 className="text-base md:text-lg font-medium text-[var(--color-text)] uppercase tracking-[0.05em] leading-none font-mono">
+        <h1 className="text-2xl md:text-3xl font-semibold text-[var(--color-text)] leading-tight font-heading">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-xs text-[var(--color-muted)] font-mono">
+          <p className="text-sm text-[var(--color-muted)] mt-1">
             {subtitle}
           </p>
         )}

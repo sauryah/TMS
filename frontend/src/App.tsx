@@ -128,7 +128,7 @@ function AppContent() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-mono flex flex-col">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-sans flex flex-col">
       <div className="flex-grow">
 
         <Navbar />

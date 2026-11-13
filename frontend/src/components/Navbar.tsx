@@ -122,9 +122,9 @@ export function Navbar() {
   }
 
   return (
-    <nav className="border-b border-[var(--color-border-visible)] bg-[var(--color-bg)] sticky top-0 z-50 font-mono select-none print:hidden">
+    <nav className="border-b border-[var(--color-border-visible)] bg-[var(--color-bg)] sticky top-0 z-50 font-sans select-none print:hidden">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-        <div className="flex justify-between h-12">
+        <div className="flex justify-between min-h-14">
           <div className="flex items-center space-x-6">
             <Link
               to="/"

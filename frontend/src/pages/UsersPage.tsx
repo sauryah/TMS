@@ -21,7 +21,7 @@ export function UsersPage() {
 
   if (role !== 'ROOT') {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen text-[#e4e4e4] font-mono">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen text-[#e4e4e4]">
         <div className="flex flex-col items-center justify-center text-center p-12 bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm space-y-3">
           <Shield className="h-8 w-8 text-red-500" />
           <h2 className="text-xs font-medium uppercase tracking-[0.05em] text-[#e4e4e4]">01 ACCESS DENIED</h2>
@@ -43,7 +43,7 @@ export function UsersPage() {
   const currentTab = tabs.find(t => t.id === activeTab) || tabs[0]
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen text-[#e4e4e4] font-mono">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 min-h-screen text-[#e4e4e4]">
       {/* Title Header */}
       <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-sm p-4 md:p-5 mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">

@@ -321,12 +321,13 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 font-mono">
-      <div className="mb-5 pb-3 border-b border-[#2a2a2a] text-left">
-        <h1 className="text-base md:text-xl font-bold text-[#e4e4e4] tracking-tight font-heading">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 dashboard-page">
+      <div className="mb-6 pb-5 border-b border-[var(--color-border)] text-left dashboard-heading">
+        <p className="text-xs font-semibold text-[var(--color-accent)] uppercase tracking-[0.16em] mb-2">Toolroom / Operations</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text)] tracking-tight font-heading">
           Die Tracking Dashboard
         </h1>
-        <p className="text-xs text-[#6b7280] mt-0.5">Overview of facility inventory and search portal.</p>
+        <p className="text-sm text-[var(--color-muted)] mt-1">A live view of tooling availability, movement, and facility inventory.</p>
       </div>
 
       {isStatsLoading ? (

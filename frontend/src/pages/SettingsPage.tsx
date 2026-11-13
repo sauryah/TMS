@@ -334,7 +334,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 font-mono">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
       {/* Settings Center Header */}
       <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-[#2a2a2a]">
         <button
@@ -349,7 +349,7 @@ export function SettingsPage() {
             <Shield className="h-3.5 w-3.5 text-blue-500" />
             <span>01 SYSTEM CONFIGURATION</span>
           </div>
-          <h1 className="text-base font-medium text-[#e4e4e4] uppercase tracking-[0.05em]">Facility Configuration Center</h1>
+          <h1 className="text-2xl font-semibold text-[#e4e4e4] tracking-tight font-heading">Facility Configuration Center</h1>
         </div>
       </div>
 

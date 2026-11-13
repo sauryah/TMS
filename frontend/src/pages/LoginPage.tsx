@@ -140,29 +140,29 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#0a0a0a] font-mono">
-      <div className="max-w-sm w-full space-y-6 bg-[#0f0f0f] border border-[#2a2a2a] p-6 rounded-sm shadow-2xl font-mono">
-        <div className="flex items-center space-x-3 pb-3 border-b border-[#1a1a1a]">
-          <div className="p-1 bg-[#141414] border border-[#2a2a2a] rounded-sm flex items-center justify-center">
+    <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[var(--color-bg)] font-sans login-page">
+      <div className="max-w-md w-full space-y-6 bg-[var(--color-surface)] border border-[var(--color-border-visible)] p-7 sm:p-9 rounded-md shadow-2xl login-card">
+        <div className="flex items-center space-x-3 pb-5 border-b border-[var(--color-border)]">
+          <div className="p-2 bg-[var(--color-surface-2)] border border-[var(--color-border-visible)] rounded-md flex items-center justify-center">
             <img src="/icons/128x128.png" alt="TMS Logo" className="h-7 w-7 rounded-sm object-contain" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-[var(--color-text)] tracking-widest uppercase">TMS</h1>
-            <p className="text-[10px] text-[var(--color-muted)] uppercase tracking-wider font-mono">Tool Management System</p>
+            <h1 className="text-base font-bold text-[var(--color-text)] tracking-tight">TMS</h1>
+            <p className="text-xs text-[var(--color-muted)] tracking-wide">Tool Management System</p>
           </div>
         </div>
 
-        <div className="border-b border-[#1a1a1a] pb-3 text-left">
-          <div className="flex items-center space-x-2 text-blue-400 mb-1">
-            {mfaPending ? <KeyRound className="h-4 w-4 text-emerald-400" /> : <Shield className="h-4 w-4" />}
-            <span className="text-xs uppercase tracking-wider font-bold">
-              {mfaPending ? '02 BACKUP CODE AUTH' : '01 SYSTEM ACCESS'}
+        <div className="border-b border-[var(--color-border)] pb-5 text-left">
+          <div className="flex items-center space-x-2 text-[var(--color-accent)] mb-2">
+            {mfaPending ? <KeyRound className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+            <span className="text-xs uppercase tracking-[0.12em] font-semibold">
+              {mfaPending ? 'Step 02 · Backup code' : 'Secure facility access'}
             </span>
           </div>
-          <h2 className="text-sm font-medium text-[#e4e4e4] uppercase tracking-[0.05em]">
+          <h2 className="text-xl font-semibold text-[var(--color-text)] tracking-tight font-heading">
             {mfaPending ? 'Recovery Code Entry' : 'Facility Credentials'}
           </h2>
-          <p className="text-xs text-[#6b7280] mt-0.5">
+          <p className="text-sm text-[var(--color-muted)] mt-1.5 leading-relaxed">
             {mfaPending 
               ? `Enter one of your 8-character single-use backup codes for user ${mfaPending.username}.`
               : 'Authenticate to manage manufacturing assets and line tools.'}
@@ -170,12 +170,12 @@ export function LoginPage() {
         </div>
 
         {evictedInfo && !mfaPending && (
-          <div className="bg-[#141414] border border-amber-500/30 text-amber-300 rounded-sm p-3 text-xs font-mono text-left">
+          <div className="bg-[#141414] border border-amber-500/30 text-amber-300 rounded-sm p-3.5 text-sm text-left">
             <div className="flex items-center gap-1.5 mb-1">
               <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
               <span className="font-bold text-amber-200 uppercase">Session Evicted</span>
             </div>
-            <p className="text-[#6b7280] leading-normal text-[11px]">
+            <p className="text-[#6b7280] leading-normal text-xs">
               Logged in from another location. Previous token revoked.
             </p>
             {(evictedInfo.ip || evictedInfo.at) && (
@@ -191,7 +191,7 @@ export function LoginPage() {
           {mfaPending ? (
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] text-[#6b7280] uppercase tracking-wider mb-1 font-mono">
+                <label className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-1.5 font-medium">
                   Single-Use Backup Code (XXXX-XXXX)
                 </label>
                 <input 
@@ -201,12 +201,12 @@ export function LoginPage() {
                   required
                   value={mfaCode}
                   onChange={handleBackupCodeChange}
-                  className="w-full bg-[#0a0a0a] border border-emerald-500/60 focus:border-emerald-400 rounded-sm py-2.5 px-3 text-center text-lg tracking-[0.25em] text-emerald-300 focus:outline-none font-mono placeholder-[#404040]"
+                  className="w-full bg-[var(--color-bg)] border border-emerald-500/60 focus:border-emerald-400 rounded-sm min-h-12 py-2.5 px-3 text-center text-lg tracking-[0.25em] text-emerald-300 focus:outline-none font-mono placeholder-[#404040]"
                   placeholder="XXXX-XXXX"
                   autoComplete="one-time-code"
                   aria-label="Single-Use Backup Code"
                 />
-                <p className="text-[10px] text-[#6b7280] mt-1 text-center font-mono">
+                <p className="text-xs text-[#6b7280] mt-2 text-center">
                   Each code can only be used once.
                 </p>
               </div>
@@ -214,13 +214,13 @@ export function LoginPage() {
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] text-[#6b7280] uppercase tracking-wider mb-1 font-mono">Username</label>
+                <label className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-1.5 font-medium">Username</label>
                 <input 
                   type="text" 
                   required
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-2 px-3 text-[#e4e4e4] focus:outline-none text-xs font-mono placeholder-[#404040]"
+                  className="w-full bg-[var(--color-bg)] border border-[var(--color-border-visible)] focus:border-[var(--color-accent)] rounded-sm min-h-12 py-2.5 px-3 text-[var(--color-text)] focus:outline-none text-sm placeholder-[#404040]"
                   placeholder="Username ID"
                   autoComplete="username"
                   aria-label="Username"
@@ -228,13 +228,13 @@ export function LoginPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] text-[#6b7280] uppercase tracking-wider mb-1 font-mono">Password</label>
+                <label className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-1.5 font-medium">Password</label>
                 <input 
                   type="password" 
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full bg-[#0a0a0a] border border-[#2a2a2a] focus:border-blue-500 rounded-sm py-2 px-3 text-[#e4e4e4] focus:outline-none text-xs font-mono placeholder-[#404040]"
+                  className="w-full bg-[var(--color-bg)] border border-[var(--color-border-visible)] focus:border-[var(--color-accent)] rounded-sm min-h-12 py-2.5 px-3 text-[var(--color-text)] focus:outline-none text-sm placeholder-[#404040]"
                   placeholder="••••••••"
                   autoComplete="current-password"
                   aria-label="Password"
@@ -244,7 +244,7 @@ export function LoginPage() {
           )}
 
           {errorMsg && (
-            <div className="bg-[#141414] border border-red-500/30 text-red-400 rounded-sm p-2.5 text-xs flex items-center gap-2 font-mono">
+            <div className="bg-[#141414] border border-red-500/30 text-red-400 rounded-sm p-3 text-sm flex items-center gap-2">
               <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
               <span>{errorMsg}</span>
             </div>
@@ -253,7 +253,7 @@ export function LoginPage() {
           <button 
             type="submit"
             disabled={loading || (mfaPending !== null && mfaCode.replace(/[^A-Z0-9]/g, '').length < 8)}
-            className={`w-full bg-[#141414] hover:bg-[#1f1f1f] border ${mfaPending ? 'border-emerald-500/50 text-emerald-400 hover:text-emerald-300' : 'border-blue-500/50 text-blue-400 hover:text-blue-300'} py-2 rounded-sm text-xs font-mono uppercase font-bold transition flex items-center justify-center space-x-1.5 disabled:opacity-40 cursor-pointer`}
+            className={`w-full min-h-12 bg-[#141414] hover:bg-[#1f1f1f] border ${mfaPending ? 'border-emerald-500/50 text-emerald-400 hover:text-emerald-300' : 'border-blue-500/50 text-blue-400 hover:text-blue-300'} py-2.5 rounded-sm text-sm uppercase tracking-wide font-semibold transition flex items-center justify-center space-x-1.5 disabled:opacity-40 cursor-pointer`}
           >
             {loading ? (
               <>
@@ -273,7 +273,7 @@ export function LoginPage() {
                 setMfaCode('')
                 setErrorMsg(null)
               }}
-              className="w-full text-[11px] text-[#6b7280] hover:text-[var(--color-text)] flex items-center justify-center gap-1.5 py-1 font-mono transition cursor-pointer"
+              className="w-full text-xs text-[#6b7280] hover:text-[var(--color-text)] flex items-center justify-center gap-1.5 py-2 transition cursor-pointer"
             >
               <ArrowLeft className="h-3 w-3" />
               <span>Back to Username / Password</span>
@@ -282,8 +282,8 @@ export function LoginPage() {
         </form>
 
         {serverInfo && (
-          <div className="text-center pt-3 border-t border-[#1a1a1a]">
-            <p className="text-[10px] text-[#6b7280] font-mono flex items-center justify-center gap-1.5 uppercase">
+          <div className="text-center pt-4 border-t border-[var(--color-border)]">
+            <p className="text-xs text-[#6b7280] flex items-center justify-center gap-1.5 uppercase tracking-wide">
               <Globe className="h-3 w-3 text-blue-500" />
               <span>HOST: {serverInfo.ip}</span>
             </p>
