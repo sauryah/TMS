@@ -1,5 +1,17 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-14 Wire Drawing Workbench Model Alignment
+*   **Shared Analytical Field and Telemetry**:
+    *   Replaced independent hand-shaped stress and temperature profiles with samples from the generated Rust/WASM nodal field in the Canvas 2D die view; copied mesh buffers and exposed mesh dimensions for stable, tested sampling.
+    *   Used the existing pass-physics model for train hover, compare metrics, selected-pass telemetry, and exported pass estimates. Material, friction, approach angle, and inlet speed are shared; pass speed follows area conservation along the train.
+    *   Replaced the UI's heuristic burst marking with the engine's model flag. Removed FEA, validated-performance, standards-compliance, and equation-verification claims where the implementation does not support them.
+*   **Workbench Controls and Documentation**:
+    *   Kept display-mode selection visible and moved material/process, train-scene, geometry, and compare settings into an expandable panel. The educational explainer now starts collapsed.
+    *   Updated ADR 10 and the frontend module guide to describe the analytical field accurately; recorded the internal design review in `.dev/audits/wire-drawing-workbench-model-alignment-council.md`.
+*   **Verification**:
+    *   ESLint passed; TypeScript passed; Vitest 115/115 passed across 30 files; Vite production build passed to `/tmp/tms-frontend-build`.
+    *   The protected workbench was not visually reviewed because no test account was available.
+
 ### 2026-11-14 Premium Enterprise Operations Visual Refresh
 *   **Three-Theme Design System**:
     *   Reworked Terminal, Classic, and Light theme tokens into graphite, deep slate, and paper surfaces with readable borders and copper primary/focus accents.

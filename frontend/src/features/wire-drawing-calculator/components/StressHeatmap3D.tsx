@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RotateCcw,
@@ -24,12 +24,17 @@ import {
   Maximize,
   Ruler,
   FileText,
-  Flame,
   ShieldCheck,
   Cpu,
 } from 'lucide-react';
 import { PassData } from '../types';
 import { useWasmFeaSolver } from '../hooks/useWasmFeaSolver';
+import {
+  computePassPhysicsWasm,
+  sampleWasmFeaMesh,
+  WasmFeaMeshResult,
+  WasmPassPhysics,
+} from '../wasm/WasmBridge';
 
 interface StressHeatmap3DProps {
   passes: PassData[];
@@ -39,9 +44,9 @@ interface HoverInfo {
   x: number;
   y: number;
   axial: number;
-  stress: number;
-  temp: number;
-  strain: number;
+  stress: number | null;
+  temp: number | null;
+  strain: number | null;
 }
 
 interface TrainHoverInfo {
@@ -54,8 +59,8 @@ interface TrainHoverInfo {
   areaRed: number;
   elongation: number;
   speedMultiplier: number;
-  drawingForceN: number;
-  sigmaD: number;
+  drawingForceN: number | null;
+  sigmaD: number | null;
 }
 
 // 4-Zone Die Bore Architecture Types
@@ -73,7 +78,7 @@ export interface ZoneDetail {
 export const DIE_ZONES: Record<DieZoneType, ZoneDetail> = {
   all: {
     name: 'Full Die Assembly',
-    role: 'DIN 2812 Standard Continuous Wire Reduction',
+    role: 'Continuous wire reduction die profile',
     angleOrDim: 'Zones 1–4 Integrated',
     formula: 'σ_d = σ_flow · φ · ε · (1 + μ/tan α)',
     purpose: 'Complete die bore profile with entrance bell, reduction cone, bearing land, and back relief clearance.',
@@ -113,7 +118,7 @@ export const DIE_ZONES: Record<DieZoneType, ZoneDetail> = {
   },
 };
 
-// Mutable camera state to decouple 60/120 FPS rendering from React re-renders
+// Mutable camera state avoids React updates during pointer movement.
 export interface CameraState {
   rotX: number;
   rotY: number;
@@ -210,31 +215,38 @@ const LUT_18 = createTrigLUT(18); // Standard wire cylinder
 const LUT_24 = createTrigLUT(24); // Die Casing & Disc
 const LUT_36 = createTrigLUT(36); // High-Precision Single Die
 
-// Physical and material constants for wire drawing stress calculations
-const STRENGTH_COEFFICIENT_K = 315;
-const HARDENING_EXPONENT_N = 0.54;
-const FRICTION_COEFFICIENT_MU = 0.04;
-
-const computeDrawingStress = (pass: PassData, approachAngle2Alpha: number = 14) => {
-  if (!pass) return 0;
-  const areaRed = pass.areaReduction ?? 0;
-  const rFrac = Math.max(0.01, Math.min(0.9, areaRed / 100));
-  const alphaRadHalf = ((approachAngle2Alpha / 2) * Math.PI) / 180;
-  const epsilon = Math.log(1 / (1 - rFrac));
-  const sigmaFlow = STRENGTH_COEFFICIENT_K * Math.pow(Math.max(epsilon, 0.001), HARDENING_EXPONENT_N) / (HARDENING_EXPONENT_N + 1);
-  const phi = 0.88 + 0.12 * ((alphaRadHalf * 2) / rFrac) * (1 - rFrac);
-  return sigmaFlow * phi * epsilon * (1 + FRICTION_COEFFICIENT_MU / Math.tan(Math.max(alphaRadHalf, 0.01)));
+const calculatePassWireSpeedMpm = (
+  passes: PassData[],
+  pass: PassData,
+  inletLineSpeedMpm: number
+) => {
+  const initialDia = passes[0]?.fromDie ?? pass.fromDie;
+  return inletLineSpeedMpm * (initialDia * initialDia) / Math.max(pass.fromDie * pass.fromDie, 0.000001);
 };
 
-const computeDrawingForce = (pass: PassData, approachAngle2Alpha: number = 14) => {
-  if (!pass) return 0;
-  const sigmaD = computeDrawingStress(pass, approachAngle2Alpha);
-  const exitArea = Math.PI * Math.pow((pass.toDie ?? 1.0) / 2, 2);
-  return sigmaD * exitArea;
+const mapAxisFraction = (value: number, sourceBreaks: number[], targetBreaks: number[]) => {
+  const lastSegment = Math.min(sourceBreaks.length, targetBreaks.length) - 2;
+  if (lastSegment < 0) return 0;
+  const clampedValue = Math.max(sourceBreaks[0], Math.min(sourceBreaks[lastSegment + 1], value));
+  let segment = lastSegment;
+  for (let index = 0; index <= lastSegment; index++) {
+    if (clampedValue <= sourceBreaks[index + 1]) {
+      segment = index;
+      break;
+    }
+  }
+  const sourceSpan = Math.max(sourceBreaks[segment + 1] - sourceBreaks[segment], 0.000001);
+  const segmentFraction = (clampedValue - sourceBreaks[segment]) / sourceSpan;
+  const targetValue = targetBreaks[segment] +
+    (targetBreaks[segment + 1] - targetBreaks[segment]) * segmentFraction;
+  return Math.max(0, Math.min(1,
+    (targetValue - targetBreaks[0]) /
+    Math.max(targetBreaks[lastSegment + 1] - targetBreaks[0], 0.000001)
+  ));
 };
 
 // =========================================================================
-// 1. MULTI-PASS CONTINUOUS WIRE DRAWING TRAIN 3D CANVAS (60+ FPS OPTIMIZED)
+// 1. MULTI-PASS CONTINUOUS WIRE DRAWING TRAIN CANVAS
 // =========================================================================
 const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
   passes,
@@ -248,6 +260,7 @@ const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
   showVelocityTags,
   wireMaterial,
   dieNibMaterial,
+  physicsByPass,
   onHoverStation,
   canvasRef,
 }: {
@@ -262,6 +275,7 @@ const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
   showVelocityTags: boolean;
   wireMaterial: WireMaterialType;
   dieNibMaterial: DieNibMaterialType;
+  physicsByPass: Record<number, WasmPassPhysics>;
   onHoverStation: (info: TrainHoverInfo | null) => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }) {
@@ -283,8 +297,7 @@ const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
     const dout = p.toDie;
     const areaOut = Math.PI * Math.pow(dout / 2, 2);
     const speedMult = Math.max(1.0, initialArea / Math.max(0.0001, areaOut));
-    const forceN = computeDrawingForce(p);
-    const sigmaD = computeDrawingStress(p);
+    const physics = physicsByPass[idx];
 
     const rawRin = (din / initialDia) * 14;
     const rawRout = (dout / initialDia) * 14;
@@ -302,8 +315,8 @@ const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
       areaRed: p.areaReduction ?? 0,
       elongation: p.elongation ?? 0,
       speedMultiplier: speedMult,
-      drawingForceN: forceN,
-      sigmaD,
+      drawingForceN: physics?.drawing_force_n ?? null,
+      sigmaD: physics?.drawing_stress_sigma_d_mpa ?? null,
     };
   });
 
@@ -416,7 +429,7 @@ const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
     }
   }, [canvasRef, stations, cameraRef, onSelectPass]);
 
-  // High-Performance Zero-GC Render Loop
+  // Render loop for the multi-pass scene.
   useEffect(() => {
     let animId: number;
     let flowTime = 0;
@@ -1076,7 +1089,7 @@ const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
 });
 
 // =========================================================================
-// 2. SINGLE DIE DEEP DEFORMATION ZONE CANVAS (60+ FPS OPTIMIZED)
+// 2. SINGLE DIE DEFORMATION ZONE CANVAS
 // =========================================================================
 const SingleDieCanvas = React.memo(function SingleDieCanvas({
   pass,
@@ -1089,6 +1102,8 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
   selectedZone = 'all',
   wireMaterial,
   dieNibMaterial,
+  mesh,
+  centralBurstRisk,
   showDimensions,
   onHover,
   canvasRef,
@@ -1103,6 +1118,8 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
   selectedZone?: DieZoneType;
   wireMaterial: WireMaterialType;
   dieNibMaterial: DieNibMaterialType;
+  mesh: WasmFeaMeshResult | null;
+  centralBurstRisk: WasmPassPhysics['central_burst_risk'] | null;
   showDimensions: boolean;
   onHover?: (info: HoverInfo | null) => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -1135,20 +1152,7 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
 
   const din = pass?.fromDie ?? 3.0;
   const dout = pass?.toDie ?? 2.5;
-  const areaRed = pass?.areaReduction ?? 0;
-  const rFrac = Math.max(0.01, Math.min(0.9, areaRed / 100));
   const alphaRadHalf = ((approachAngle2Alpha / 2) * Math.PI) / 180;
-  const deltaParam = (approachAngle2Alpha * Math.PI / 180 / rFrac) * (1 + Math.sqrt(1 - rFrac));
-  const isCentralBurstRisk = deltaParam > 3.0 || approachAngle2Alpha > 18 || areaRed > 24;
-
-  const K = STRENGTH_COEFFICIENT_K;
-  const nPow = HARDENING_EXPONENT_N;
-  const mu = FRICTION_COEFFICIENT_MU;
-  const epsilon = Math.log(1 / (1 - rFrac));
-  const sigmaFlow = K * Math.pow(Math.max(epsilon, 0.001), nPow) / (nPow + 1);
-  const phi = 0.88 + 0.12 * ((alphaRadHalf * 2) / rFrac) * (1 - rFrac);
-  const sigmaD = sigmaFlow * phi * epsilon * (1 + mu / Math.tan(Math.max(alphaRadHalf, 0.01)));
-  const maxStress = sigmaFlow * 2.5;
 
   const scaleR = 20;
   const rIn = (din / 2) * scaleR;
@@ -1167,49 +1171,61 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
   const xReliefEnd = xBearEnd + reliefLen;
   const xExit = Math.max(xReliefEnd + 100, xConeEnd + 210);
 
+  const modelConeLength = Math.max(0.2, ((din - dout) / 2) / Math.tan(Math.max(alphaRadHalf, 0.01)));
+  const modelBearingLength = (bearingLengthLbRatio / 100) * dout;
+  const modelReliefLength = Math.max(
+    0.2,
+    Math.min(5, ((din - dout) / 2) / Math.tan((30 / 2) * Math.PI / 180))
+  );
+  const displayAxisBreaks = useMemo(
+    () => [xEntrance, xBellStart, xConeStart, xConeEnd, xBearEnd, xReliefEnd, xExit],
+    [xEntrance, xBellStart, xConeStart, xConeEnd, xBearEnd, xReliefEnd, xExit]
+  );
+  const modelAxisBreaks = useMemo(
+    () => [
+      -modelConeLength - 1.5,
+      -modelConeLength - 0.5,
+      -modelConeLength,
+      0,
+      modelBearingLength,
+      modelBearingLength + modelReliefLength,
+      modelBearingLength + modelReliefLength + 1,
+    ],
+    [modelConeLength, modelBearingLength, modelReliefLength]
+  );
   const rNibOuter = Math.max(rIn + 22, 36);
   const rDieCasingOuter = Math.max(rNibOuter + 30, 68);
   const xCasingFront = xBellStart - 10;
   const xCasingBack = xReliefEnd + 10;
   const casingChamfer = 5;
 
+  const sampleFieldAtX = useCallback((x: number) => {
+    if (!mesh) return null;
+    const axialFraction = mapAxisFraction(x, displayAxisBreaks, modelAxisBreaks);
+    return sampleWasmFeaMesh(mesh, axialFraction, 1);
+  }, [mesh, displayAxisBreaks, modelAxisBreaks]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!onHover) return;
+    if (!mesh) {
+      onHover(null);
+      return;
+    }
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const relX = (mouseX / rect.width) - 0.5;
-    const axialRange = 360;
-    const axialPos = relX * axialRange;
-    const axialMm = axialPos * 0.5;
-
-    let stressMPa: number;
-    if (axialPos < xConeStart) {
-      stressMPa = sigmaD * 0.25;
-    } else if (axialPos <= xConeEnd) {
-      const t = (axialPos - xConeStart) / (xConeEnd - xConeStart);
-      stressMPa = sigmaD * (0.4 + 0.55 * Math.pow(Math.max(0, Math.min(1, t)), 0.7));
-    } else if (axialPos <= xBearEnd) {
-      const tBear = (axialPos - xConeEnd) / Math.max(bearingLen, 1);
-      stressMPa = sigmaD * (0.85 + 0.1 * Math.max(0, Math.min(1, tBear)));
-    } else {
-      stressMPa = sigmaD * 0.35;
-    }
-
-    const localDeltaT = (sigmaD * epsilon) / (8960 * 385) * 1e6;
-
+    const screenFraction = rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
+    const displayX = xEntrance + screenFraction * (xExit - xEntrance);
+    const sample = sampleFieldAtX(displayX);
     onHover({
       x: e.clientX,
       y: e.clientY,
-      axial: axialMm,
-      stress: stressMPa,
-      temp: 25 + localDeltaT,
-      strain: axialPos >= xConeStart && axialPos <= xConeEnd
-        ? Math.max(0, Math.min(1, (axialPos - xConeStart) / (xConeEnd - xConeStart))) * epsilon
-        : axialPos > xConeEnd ? epsilon : 0,
+      axial: sample?.xMm ?? 0,
+      stress: sample?.vonMisesMpa ?? null,
+      temp: sample?.temperatureC ?? null,
+      strain: sample?.strain ?? null,
     });
-  }, [onHover, sigmaD, epsilon, xConeStart, xConeEnd, xBearEnd, bearingLen, canvasRef]);
+  }, [onHover, mesh, canvasRef, xEntrance, xExit, sampleFieldAtX]);
 
   const handleMouseLeave = useCallback(() => {
     if (onHover) onHover(null);
@@ -1336,60 +1352,22 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
         return '#3b82f6';
       };
 
-      const computeStressAtX = (x: number): number => {
-        let stressVal: number;
-        if (x < xConeStart) {
-          stressVal = sigmaD * 0.25 / maxStress;
-        } else if (x <= xConeEnd) {
-          const t = (x - xConeStart) / (xConeEnd - xConeStart);
-          stressVal = sigmaD * (0.4 + 0.55 * Math.pow(t, 0.7)) / maxStress;
-        } else if (x <= xBearEnd) {
-          const tBear = (x - xConeEnd) / Math.max(bearingLen, 1);
-          stressVal = sigmaD * (0.85 + 0.1 * tBear) / maxStress;
-        } else {
-          stressVal = sigmaD * 0.35 / maxStress;
-        }
-        if (areaRed > 24) stressVal *= 1.12;
-        return Math.max(0, Math.min(1, stressVal));
+      const computeStressAtX = (x: number): number | null => {
+        const sample = sampleFieldAtX(x);
+        if (!sample || !mesh) return null;
+        return Math.max(0, Math.min(1, sample.vonMisesMpa / Math.max(mesh.maxVonMises, 1)));
       };
 
-      const computeThermalAtX = (x: number): { temp: number; color: string } => {
-        const tAmbient = 25.0;
-        const deltaT_def = (sigmaD * epsilon) / (8960 * 385) * 1e6;
-        let localTemp: number;
-
-        if (x < xConeStart) {
-          localTemp = tAmbient;
-        } else if (x <= xConeEnd) {
-          const t = (x - xConeStart) / Math.max(1, xConeEnd - xConeStart);
-          localTemp = tAmbient + deltaT_def * Math.pow(t, 0.85) + 40.0 * Math.pow(t, 1.8);
-        } else if (x <= xBearEnd) {
-          const tBear = (x - xConeEnd) / Math.max(1, bearingLen);
-          localTemp = tAmbient + deltaT_def + 40.0 + 15.0 * (1.0 - tBear * 0.5);
-        } else if (x <= xReliefEnd) {
-          const tRelief = (x - xBearEnd) / Math.max(1, reliefLen);
-          localTemp = tAmbient + (deltaT_def + 40.0) * (1.0 - tRelief * 0.2);
-        } else {
-          const decay = Math.exp(-0.004 * (x - xReliefEnd));
-          localTemp = tAmbient + (deltaT_def + 30.0) * decay;
-        }
-
-        let color: string;
-        if (localTemp < 40) {
-          color = '#06b6d4';
-        } else if (localTemp < 70) {
-          color = '#10b981';
-        } else if (localTemp < 110) {
-          color = '#f59e0b';
-        } else if (localTemp < 145) {
-          color = '#ef4444';
-        } else if (localTemp < 175) {
-          color = '#f43f5e';
-        } else {
-          color = '#fdf4ff';
-        }
-
-        return { temp: localTemp, color };
+      const computeThermalAtX = (x: number): { temp: number; color: string } | null => {
+        const sample = sampleFieldAtX(x);
+        if (!sample || !mesh) return null;
+        const fraction = Math.max(0, Math.min(1,
+          (sample.temperatureC - 25) / Math.max(mesh.maxTemperature - 25, 1)
+        ));
+        return {
+          temp: sample.temperatureC,
+          color: `hsl(${190 - fraction * 190} 88% ${52 - fraction * 7}%)`,
+        };
       };
 
       const add3DCylinderSection = (
@@ -1430,8 +1408,7 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
             let fill = dieMat.coreColor;
             if (renderMode === 'thermal') {
               const midX = (xStart + xEnd) / 2;
-              const { color: boreThermColor } = computeThermalAtX(midX);
-              fill = boreThermColor;
+              fill = computeThermalAtX(midX)?.color ?? dieMat.coreColor;
             }
             addQuad(p1, p2, p3, p4, fill, 'rgba(51, 65, 85, 0.4)', 0.8, renderMode === 'thermal' ? 0.75 : innerLight);
           } else {
@@ -1441,15 +1418,13 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
             if (renderMode === 'realistic') {
               addQuad(p1, p2, p3, p4, mat.wireGradient[0], undefined, 1, lightFactor);
             } else if (renderMode === 'thermal') {
-              const { color: thermColor } = computeThermalAtX(midX);
-              addQuad(p1, p2, p3, p4, thermColor, undefined, 1, 0.95);
+              const therm = computeThermalAtX(midX);
+              addQuad(p1, p2, p3, p4, therm?.color ?? '#475569', undefined, 1, 0.95);
             } else if (renderMode === 'heatmap') {
-              const fill = midX >= xConeEnd && midX <= xBearEnd
-                ? `rgba(245, 158, 11, ${0.6 + 0.4 * stressVal})`
-                : stressToColor(stressVal);
+              const fill = stressVal === null ? '#475569' : stressToColor(stressVal);
               addQuad(p1, p2, p3, p4, fill, undefined, 1, 0.95);
             } else {
-              addQuad(p1, p2, p3, p4, stressToColor(stressVal), undefined, 1, 0.85);
+              addQuad(p1, p2, p3, p4, stressVal === null ? '#475569' : stressToColor(stressVal), undefined, 1, 0.85);
             }
           }
         }
@@ -1597,7 +1572,7 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
       }
 
       // 6. Central Burst Defect Chevrons
-      if (isCentralBurstRisk) {
+      if (centralBurstRisk === 'CriticalBurstRisk') {
         const numChevrons = 3;
         for (let c = 0; c < numChevrons; c++) {
           const xc = xConeStart + 15 + c * ((xConeEnd - xConeStart - 30) / (numChevrons - 1));
@@ -1709,11 +1684,11 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
   }, [
     pass, isPlaying, renderMode, selectedZone, approachAngle2Alpha,
     bearingLengthLbRatio, sliceAngleDeg, wireMaterial, dieNibMaterial,
-    showDimensions, din, dout, areaRed, alphaRadHalf, deltaParam,
-    isCentralBurstRisk, sigmaD, maxStress, bearingLen, reliefLen,
+    showDimensions, din, dout, alphaRadHalf,
+    centralBurstRisk, bearingLen, reliefLen,
     xConeStart, xConeEnd, xBearEnd, xExit, xEntrance, xBellStart, xReliefEnd,
     xCasingFront, xCasingBack, casingChamfer, rNibOuter, rDieCasingOuter,
-    coneLength, rIn, rOut, epsilon, cameraRef, canvasRef
+    coneLength, rIn, rOut, cameraRef, canvasRef, mesh, sampleFieldAtX
   ]);
 
   return (
@@ -1762,12 +1737,15 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
   // Material Themes
   const [wireMaterial, setWireMaterial] = useState<WireMaterialType>('copper');
   const [dieNibMaterial, setDieNibMaterial] = useState<DieNibMaterialType>('carbide');
+  const [frictionMu, setFrictionMu] = useState<number>(0.06);
+  const [inletLineSpeedMpm, setInletLineSpeedMpm] = useState<number>(600);
+  const [physicsByPass, setPhysicsByPass] = useState<Record<number, WasmPassPhysics>>({});
 
   // Train specific visual toggles
   const [showCapstans, setShowCapstans] = useState<boolean>(true);
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [showVelocityTags, setShowVelocityTags] = useState<boolean>(true);
-  const [showExplainer, setShowExplainer] = useState<boolean>(true);
+  const [showExplainer, setShowExplainer] = useState<boolean>(false);
 
   // Single Die specific parameters
   const [approachAngle2Alpha, setApproachAngle2Alpha] = useState<number>(14);
@@ -1943,6 +1921,15 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
       const { default: jsPDF } = await import('jspdf');
       await import('jspdf-autotable');
 
+      const passPhysics = await Promise.all(passes.map((pass) => computePassPhysicsWasm(
+        pass.fromDie,
+        pass.toDie,
+        approachAngle2Alpha,
+        frictionMu,
+        wireMaterial,
+        calculatePassWireSpeedMpm(passes, pass, inletLineSpeedMpm)
+      )));
+
       const doc = new jsPDF('landscape', 'mm', 'a4');
       const activeCanvas =
         activeViewMode === 'train'
@@ -1966,14 +1953,14 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(148, 163, 184);
-      doc.text('ISO 2812 & DIN 1547 COMPLIANT MULTI-PASS PASS SCHEDULE SPECIFICATION', 14, 18);
+      doc.text(`ANALYTICAL MODEL ESTIMATE · ${passes.length} PASSES · NOT VALIDATED FEM`, 14, 18);
 
       doc.setTextColor(56, 189, 248);
       doc.setFont('helvetica', 'bold');
       doc.text(`DOC REF: TMS-TDS-${Date.now().toString().slice(-6)}`, pageWidth - 65, 11);
       doc.setTextColor(148, 163, 184);
       doc.setFont('helvetica', 'normal');
-      doc.text(`DATE: ${new Date().toLocaleDateString()} | STATUS: CERTIFIED`, pageWidth - 65, 18);
+      doc.text(`DATE: ${new Date().toLocaleDateString()} | STATUS: ESTIMATE`, pageWidth - 65, 18);
 
       // 2. Process & Material Metadata Card
       doc.setFillColor(248, 250, 252);
@@ -1992,7 +1979,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(71, 85, 105);
-      doc.text('DIE NIB MATERIAL:', 18 + colW, 34);
+      doc.text('DIE NIB APPEARANCE:', 18 + colW, 34);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(15, 23, 42);
       doc.text(DIE_MATERIALS[dieNibMaterial].name, 18 + colW, 40);
@@ -2006,10 +1993,10 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(71, 85, 105);
-      doc.text('TOTAL PASSES / DRAFT:', 18 + colW * 3, 34);
+      doc.text('PROCESS ASSUMPTIONS:', 18 + colW * 3, 34);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(15, 23, 42);
-      doc.text(`${passes.length} Passes (Ø${(passes[0]?.fromDie ?? 0).toFixed(2)} → Ø${(passes[passes.length - 1]?.toDie ?? 0).toFixed(2)} mm)`, 18 + colW * 3, 40);
+      doc.text(`μ = ${frictionMu.toFixed(3)} | Inlet = ${inletLineSpeedMpm.toFixed(0)} m/min`, 18 + colW * 3, 40);
 
       // 3. Embedded 3D Canvas Snapshot & AutoTable Schedule
       let tableStartY = 50;
@@ -2033,12 +2020,8 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
         }
       }
 
-      const tableData = passes.map((p) => {
-        const sigmaD_p = computeDrawingStress(p, approachAngle2Alpha);
-        const forceN_p = computeDrawingForce(p, approachAngle2Alpha);
-        const rFrac_p = Math.max(0.01, Math.min(0.9, (p.areaReduction ?? 0) / 100));
-        const eps_p = Math.log(1 / (1 - rFrac_p));
-        const deltaT_p = (sigmaD_p * eps_p) / (8960 * 385) * 1e6;
+      const tableData = passes.map((p, index) => {
+        const physics = passPhysics[index];
         const initA = Math.PI * Math.pow((passes[0]?.fromDie ?? 1) / 2, 2);
         const outA = Math.PI * Math.pow((p.toDie ?? 1) / 2, 2);
         const speedM = initA / outA;
@@ -2049,9 +2032,9 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
           `${p.toDie.toFixed(3)}`,
           `${(p.areaReduction ?? 0).toFixed(1)}%`,
           `${(p.elongation ?? 0).toFixed(1)}%`,
-          `${forceN_p.toFixed(0)} N`,
-          `${sigmaD_p.toFixed(0)} MPa`,
-          `+${deltaT_p.toFixed(1)} °C`,
+          physics ? `${physics.drawing_force_n.toFixed(0)} N` : '—',
+          physics ? `${physics.drawing_stress_sigma_d_mpa.toFixed(0)} MPa` : '—',
+          physics ? `+${(physics.total_exit_temp_c - 25).toFixed(1)} °C` : '—',
           `${speedM.toFixed(2)}x`,
         ];
       });
@@ -2121,7 +2104,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
       // 5. Engineering Footer
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184);
-      doc.text('Prepared by: TMS Autonomous Engineering System | Verified against Avitzur/Siebel Upper Bound Friction Model', 14, pageHeight - 6);
+      doc.text('Calculated with the TMS analytical drawing model. Output has not been validated as finite-element analysis.', 14, pageHeight - 6);
       doc.text('Page 1 of 1 | CONFIDENTIAL & PROPRIETARY', pageWidth - 70, pageHeight - 6);
 
       doc.save(`TMS_TDS_PassSchedule_${passes.length}Passes.pdf`);
@@ -2165,14 +2148,70 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
   const din = activePassSingle?.fromDie ?? 3.0;
   const dout = activePassSingle?.toDie ?? 2.5;
 
-  const { physics: wasmPhysics, isWasmReady } = useWasmFeaSolver({
+  const selectedPassSpeedMpm = activePassSingle
+    ? calculatePassWireSpeedMpm(passes, activePassSingle, inletLineSpeedMpm)
+    : inletLineSpeedMpm;
+
+  const {
+    physics: wasmPhysics,
+    mesh: wasmMesh,
+    isLoading: isMeshLoading,
+    error: meshError,
+  } = useWasmFeaSolver({
     dInMm: din,
     dOutMm: dout,
     approachAngle2AlphaDeg: approachAngle2Alpha,
     bearingLengthLbRatioPct: bearingLengthLbRatio,
+    frictionMu,
     materialStr: wireMaterial,
+    wireSpeedMpm: selectedPassSpeedMpm,
     enabled: Boolean(hasPasses && activeViewMode === 'single'),
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    const passIndices = activeViewMode === 'train'
+      ? passes.map((_, index) => index)
+      : activeViewMode === 'compare'
+      ? Array.from(new Set([comparePassIdxA, comparePassIdxB]))
+      : [];
+
+    setPhysicsByPass({});
+    if (passIndices.length === 0) return () => { cancelled = true; };
+
+    void Promise.all(passIndices.map(async (index) => {
+      const pass = passes[index];
+      if (!pass) return [index, null] as const;
+      const speed = calculatePassWireSpeedMpm(passes, pass, inletLineSpeedMpm);
+      const physics = await computePassPhysicsWasm(
+        pass.fromDie,
+        pass.toDie,
+        approachAngle2Alpha,
+        frictionMu,
+        wireMaterial,
+        speed
+      );
+      return [index, physics] as const;
+    })).then((results) => {
+      if (cancelled) return;
+      const next: Record<number, WasmPassPhysics> = {};
+      results.forEach(([index, physics]) => {
+        if (physics) next[index] = physics;
+      });
+      setPhysicsByPass(next);
+    });
+
+    return () => { cancelled = true; };
+  }, [
+    passes,
+    activeViewMode,
+    comparePassIdxA,
+    comparePassIdxB,
+    approachAngle2Alpha,
+    frictionMu,
+    wireMaterial,
+    inletLineSpeedMpm,
+  ]);
 
   if (!passes || passes.length === 0) {
     return (
@@ -2194,18 +2233,13 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
     return `${sign}${delta.toFixed(3)}`;
   };
 
+  const selectedPhysics = activeViewMode === 'single'
+    ? wasmPhysics
+    : physicsByPass[selectedPassIdx] ?? null;
   const areaRed = activePassCurrent.areaReduction ?? 0;
-  const rFrac = Math.max(0.01, Math.min(0.9, areaRed / 100));
-  const alphaRadHalf = ((approachAngle2Alpha / 2) * Math.PI) / 180;
-
-  const K = STRENGTH_COEFFICIENT_K;
-  const nPow = HARDENING_EXPONENT_N;
-  const epsilon = Math.log(1 / (1 - rFrac));
-  const sigmaFlow = K * Math.pow(Math.max(epsilon, 0.001), nPow) / (nPow + 1);
-  const phi = 0.88 + 0.12 * ((alphaRadHalf * 2) / rFrac) * (1 - rFrac);
-  const sigmaD = sigmaFlow * phi * epsilon * (1 + FRICTION_COEFFICIENT_MU / Math.tan(Math.max(alphaRadHalf, 0.01)));
-  const deltaT = (sigmaD * epsilon) / (8960 * 385) * 1e6;
-  const forceN = computeDrawingForce(activePassCurrent, approachAngle2Alpha);
+  const sigmaD = selectedPhysics?.drawing_stress_sigma_d_mpa ?? null;
+  const forceN = selectedPhysics?.drawing_force_n ?? null;
+  const temperatureRise = selectedPhysics ? selectedPhysics.total_exit_temp_c - 25 : null;
 
   return (
     <motion.div
@@ -2234,7 +2268,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                 {passes.length} Passes Active
               </span>
               <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                60-120 FPS HIGH PERF
+                Canvas 2D
               </span>
               {isFullscreen && (
                 <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -2243,7 +2277,10 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
               )}
             </div>
             <p className="text-xs text-slate-400 m-0 mt-0.5">
-              Decoupled 60 FPS CAD engine &bull; Tungsten Carbide / PCD Nibs &bull; Solid Bullblock Capstans &bull; 4-Zone Bore Inspector
+              Interactive die layout &bull; Material-aware analytical estimates &bull; 4-zone bore inspector
+            </p>
+            <p className="text-[10px] text-amber-300 m-0 mt-1">
+              Analytical estimate · not validated finite-element analysis
             </p>
           </div>
         </div>
@@ -2280,10 +2317,25 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
             </button>
           </div>
 
+          {activeViewMode === 'single' && (
+            <select
+              aria-label="Single die display mode"
+              value={renderMode}
+              onChange={(e) => setRenderMode(e.target.value as typeof renderMode)}
+              className="bg-slate-900 text-[var(--color-text)] text-xs border border-slate-800 rounded-lg px-2.5 py-2 focus:outline-none focus:border-purple-500 cursor-pointer"
+            >
+              <option value="realistic">CAD view</option>
+              <option value="heatmap">Stress estimate</option>
+              <option value="thermal">Temperature estimate</option>
+              <option value="shear">Stress contour</option>
+              <option value="wireframe">Wireframe</option>
+            </select>
+          )}
+
           <button
             onClick={handleExportTDS}
             className="flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition shadow-sm cursor-pointer"
-            title="Export ISO/DIN Technical Data Sheet (PDF)"
+            title="Export process estimate (PDF)"
           >
             <FileText className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export TDS</span>
@@ -2334,11 +2386,18 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
         })}
       </div>
 
+      <details className="group rounded-xl border border-slate-900 bg-slate-950/40 shrink-0">
+        <summary className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <span className="font-semibold text-slate-200">Scene & model settings</span>
+          <span className="text-[10px] font-mono text-slate-400">
+            {WIRE_MATERIALS[wireMaterial].name} · μ {frictionMu.toFixed(3)} · {inletLineSpeedMpm.toFixed(0)} m/min inlet · 2α {approachAngle2Alpha}°
+          </span>
+        </summary>
       {/* Material & Physics Controls Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/80 p-3 rounded-xl border border-slate-900 text-xs font-mono shrink-0">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 text-[11px] font-bold">Wire Metal:</span>
+          <span className="text-slate-400 text-[11px] font-bold">Wire Material:</span>
             <select
               value={wireMaterial}
               onChange={(e) => setWireMaterial(e.target.value as WireMaterialType)}
@@ -2352,7 +2411,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 text-[11px] font-bold">Die Nib:</span>
+            <span className="text-slate-400 text-[11px] font-bold">Die Nib Appearance:</span>
             <select
               value={dieNibMaterial}
               onChange={(e) => setDieNibMaterial(e.target.value as DieNibMaterialType)}
@@ -2363,6 +2422,34 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
               <option value="diamond">Natural Diamond (ND)</option>
             </select>
           </div>
+
+          <label className="flex items-center gap-2 text-slate-300">
+            <span>Friction μ <strong className="text-amber-300">{frictionMu.toFixed(3)}</strong></span>
+            <input
+              aria-label="Friction coefficient"
+              type="range"
+              min="0"
+              max="0.2"
+              step="0.005"
+              value={frictionMu}
+              onChange={(e) => setFrictionMu(Number(e.target.value))}
+              className="w-24 accent-amber-500 cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 text-slate-300">
+            <span>Inlet speed <strong className="text-cyan-300">{inletLineSpeedMpm.toFixed(0)} m/min</strong></span>
+            <input
+              aria-label="Inlet line speed in meters per minute"
+              type="range"
+              min="100"
+              max="2000"
+              step="50"
+              value={inletLineSpeedMpm}
+              onChange={(e) => setInletLineSpeedMpm(Number(e.target.value))}
+              className="w-28 accent-cyan-500 cursor-pointer"
+            />
+          </label>
         </div>
 
         {activeViewMode === 'train' && (
@@ -2432,50 +2519,6 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
 
         {activeViewMode === 'single' && (
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center bg-slate-900 p-0.5 rounded border border-slate-800">
-              <button
-                onClick={() => setRenderMode('realistic')}
-                className={`px-2.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                  renderMode === 'realistic' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Realistic CAD
-              </button>
-              <button
-                onClick={() => setRenderMode('heatmap')}
-                className={`px-2.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                  renderMode === 'heatmap' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                FEA Heatmap
-              </button>
-              <button
-                onClick={() => setRenderMode('thermal')}
-                className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                  renderMode === 'thermal' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Flame className="w-3 h-3 text-amber-300" />
-                <span>Thermal IR</span>
-              </button>
-              <button
-                onClick={() => setRenderMode('shear')}
-                className={`px-2.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                  renderMode === 'shear' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Shear Slip
-              </button>
-              <button
-                onClick={() => setRenderMode('wireframe')}
-                className={`px-2.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                  renderMode === 'wireframe' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Wireframe
-              </button>
-            </div>
-
             {/* 4-Zone Die Bore Selector */}
             <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded border border-slate-800">
               <span className="text-slate-500 text-[10px] font-bold px-1.5">Zone:</span>
@@ -2598,6 +2641,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
           </div>
         </div>
       )}
+      </details>
 
       {/* Main 3D Viewport Grid */}
       <div className={`grid grid-cols-1 ${isFullscreen ? 'lg:grid-cols-12 flex-1 min-h-0' : 'lg:grid-cols-12'} gap-6 items-stretch`}>
@@ -2631,6 +2675,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                 showVelocityTags={showVelocityTags}
                 wireMaterial={wireMaterial}
                 dieNibMaterial={dieNibMaterial}
+                physicsByPass={physicsByPass}
                 onHoverStation={setTrainHoverInfo}
                 canvasRef={trainCanvasRef}
               />
@@ -2664,8 +2709,12 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                     <span>+{trainHoverInfo.elongation.toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between text-pink-400">
-                    <span className="text-slate-500">Pull Force:</span>
-                    <span>{trainHoverInfo.drawingForceN.toFixed(0)} N</span>
+                    <span className="text-slate-500">Model pull force:</span>
+                    <span>{trainHoverInfo.drawingForceN?.toFixed(0) ?? '—'} N</span>
+                  </div>
+                  <div className="flex justify-between text-purple-400">
+                    <span className="text-slate-500">Drawing Stress:</span>
+                    <span>{trainHoverInfo.sigmaD?.toFixed(0) ?? '—'} MPa</span>
                   </div>
                 </div>
               )}
@@ -2685,6 +2734,8 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                 selectedZone={selectedZone}
                 wireMaterial={wireMaterial}
                 dieNibMaterial={dieNibMaterial}
+                mesh={wasmMesh}
+                centralBurstRisk={wasmPhysics?.central_burst_risk ?? null}
                 showDimensions={showDimensions}
                 canvasRef={singleCanvasRef}
                 onHover={setSingleHoverInfo}
@@ -2698,18 +2749,18 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                     top: singleHoverInfo.y - (mainContainerRef.current?.getBoundingClientRect().top ?? 0) - 8,
                   }}
                 >
-                  <div className="text-slate-300 font-bold mb-1">Axial: {singleHoverInfo.axial.toFixed(1)} mm</div>
+                  <div className="text-slate-300 font-bold mb-1">Die axis: {singleHoverInfo.axial.toFixed(1)} mm</div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-pink-500 inline-block" />
-                    <span className="text-pink-400">{singleHoverInfo.stress.toFixed(0)} MPa</span>
+                    <span className="text-pink-400">{singleHoverInfo.stress?.toFixed(0) ?? '—'} MPa</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Thermometer className="w-2.5 h-2.5 text-amber-400" />
-                    <span className="text-amber-400">{singleHoverInfo.temp.toFixed(1)} &deg;C</span>
+                    <span className="text-amber-400">{singleHoverInfo.temp?.toFixed(1) ?? '—'} &deg;C</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-400">Strain:</span>
-                    <span className="text-cyan-400">{singleHoverInfo.strain.toFixed(3)}</span>
+                    <span className="text-cyan-400">{singleHoverInfo.strain?.toFixed(3) ?? '—'}</span>
                   </div>
                 </div>
               )}
@@ -2729,10 +2780,12 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                   sliceAngleDeg={sliceAngleDeg}
                   cameraRef={cameraRef}
                   isPlaying={isPlaying}
-                  renderMode={renderMode}
+                  renderMode="realistic"
                   selectedZone={selectedZone}
                   wireMaterial={wireMaterial}
                   dieNibMaterial={dieNibMaterial}
+                  mesh={null}
+                  centralBurstRisk={null}
                   showDimensions={false}
                   canvasRef={canvasRefA}
                   onHover={() => {}}
@@ -2750,10 +2803,12 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                   sliceAngleDeg={sliceAngleDeg}
                   cameraRef={cameraRef}
                   isPlaying={isPlaying}
-                  renderMode={renderMode}
+                  renderMode="realistic"
                   selectedZone={selectedZone}
                   wireMaterial={wireMaterial}
                   dieNibMaterial={dieNibMaterial}
+                  mesh={null}
+                  centralBurstRisk={null}
                   showDimensions={false}
                   canvasRef={canvasRefB}
                   onHover={() => {}}
@@ -2866,12 +2921,12 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                   <div className="flex-1 bg-amber-500" />
                   <div className="flex-1 bg-red-500" />
                 </div>
-                <span className="text-pink-400 font-bold">{sigmaFlow ? (sigmaFlow * 2.5).toFixed(0) : '—'} MPa</span>
+                <span className="text-pink-400 font-bold">{wasmMesh?.maxVonMises.toFixed(0) ?? '—'} MPa</span>
               </div>
             )}
             {activeViewMode === 'single' && renderMode === 'thermal' && (
               <div className="flex items-center space-x-2">
-                <span className="text-cyan-400">25°C Amb</span>
+                <span className="text-cyan-400">25°C</span>
                 <div className="w-24 h-1.5 rounded-full border border-slate-700 flex overflow-hidden">
                   <div className="flex-1 bg-cyan-500" />
                   <div className="flex-1 bg-emerald-500" />
@@ -2879,7 +2934,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                   <div className="flex-1 bg-red-500" />
                   <div className="flex-1 bg-pink-500" />
                 </div>
-                <span className="text-pink-400 font-bold">180°C Max</span>
+                <span className="text-pink-400 font-bold">{wasmMesh?.maxTemperature.toFixed(0) ?? '—'}°C</span>
               </div>
             )}
           </div>
@@ -2895,10 +2950,10 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
               <span>Pass #{activePassCurrent.pass} Telemetry</span>
             </h4>
             <div className="flex items-center gap-1.5">
-              {isWasmReady && (
+              {selectedPhysics && (
                 <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40 uppercase font-semibold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  WASM CORE
+                  <Cpu className="w-3 h-3" />
+                  Analytical estimate
                 </span>
               )}
               <span className="text-[10px] font-mono text-purple-400 font-bold bg-purple-950/40 px-2 py-0.5 rounded border border-purple-900/30 uppercase tracking-wide">
@@ -2957,6 +3012,16 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
 
           {activeViewMode !== 'compare' ? (
             <div className="space-y-2.5 font-mono text-xs">
+              <div className="p-3 bg-amber-950/20 rounded-lg border border-amber-900/40 space-y-1 text-[10px]">
+                <div className="font-bold text-amber-300">Model assumptions</div>
+                <div className="text-slate-400">Wire: {WIRE_MATERIALS[wireMaterial].name}</div>
+                <div className="text-slate-400">Friction μ: {frictionMu.toFixed(3)}</div>
+                <div className="text-slate-400">Inlet line speed: {inletLineSpeedMpm.toFixed(0)} m/min</div>
+                <div className="text-slate-400">Pass inlet speed: {selectedPassSpeedMpm.toFixed(0)} m/min</div>
+                <div className="text-amber-300/90">Analytical estimate; not validated FEM.</div>
+                {isMeshLoading && <div className="text-cyan-300">Updating field…</div>}
+                {meshError && <div className="text-red-300">Field unavailable: {meshError}</div>}
+              </div>
               <div className="flex justify-between p-2 bg-slate-900/40 rounded border border-slate-900">
                 <span className="text-slate-400">Inlet Diameter (d&sub1;):</span>
                 <span className="text-blue-400 font-bold">{(din).toFixed(3)} mm</span>
@@ -2976,24 +3041,30 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                 </span>
               </div>
               <div className="flex justify-between p-2 bg-slate-900/40 rounded border border-slate-900">
-                <span className="text-slate-400">Drawing Force (F&sub1;):</span>
-                <span className="text-pink-400 font-bold">{forceN.toFixed(0)} N</span>
+                <span className="text-slate-400">Model drawing force (F&sub1;):</span>
+                <span className="text-pink-400 font-bold">{forceN?.toFixed(0) ?? '—'} N</span>
               </div>
               <div className="flex justify-between p-2 bg-slate-900/40 rounded border border-slate-900">
-                <span className="text-slate-400">Drawing Stress (&sigma;<sub>d</sub>):</span>
-                <span className="text-purple-400 font-bold">{sigmaD.toFixed(0)} MPa</span>
+                <span className="text-slate-400">Model Drawing Stress:</span>
+                <span className="text-purple-400 font-bold">{sigmaD?.toFixed(0) ?? '—'} MPa</span>
               </div>
               <div className="flex justify-between p-2 bg-slate-900/40 rounded border border-slate-900">
-                <span className="text-slate-400">Temp Rise (&Delta;T):</span>
-                <span className="text-amber-400 font-bold">+{deltaT.toFixed(1)} &deg;C</span>
+                <span className="text-slate-400">Exit temp rise from 25°C:</span>
+                <span className="text-amber-400 font-bold">{temperatureRise === null ? '—' : `+${temperatureRise.toFixed(1)} °C`}</span>
               </div>
-              {wasmPhysics && (
+              {selectedPhysics && (
                 <div className="flex justify-between p-2 bg-purple-950/20 rounded border border-purple-900/40">
                   <span className="text-purple-300 flex items-center gap-1.5">
                     <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Wasm Power (P):</span>
+                    <span>Model drawing power:</span>
                   </span>
-                  <span className="text-purple-300 font-bold">{wasmPhysics.drawing_power_kw.toFixed(2)} kW</span>
+                  <span className="text-purple-300 font-bold">{selectedPhysics.drawing_power_kw.toFixed(2)} kW</span>
+                </div>
+              )}
+              {selectedPhysics && (
+                <div className="flex justify-between p-2 bg-slate-900/40 rounded border border-slate-900">
+                  <span className="text-slate-400">Model burst flag:</span>
+                  <span className="text-amber-300 font-bold">{selectedPhysics.central_burst_risk}</span>
                 </div>
               )}
             </div>
@@ -3029,13 +3100,30 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
                       <td className="py-1.5 text-right font-bold text-cyan-400">{calculateDelta(activePassA.areaReduction ?? 0, activePassB.areaReduction ?? 0)}%</td>
                     </tr>
                     <tr className="border-b border-slate-900/40">
-                      <td className="py-1.5 font-bold">Stress (MPa)</td>
-                      <td className="py-1.5">{computeDrawingStress(activePassA, approachAngle2Alpha).toFixed(0)}</td>
-                      <td className="py-1.5">{computeDrawingStress(activePassB, approachAngle2Alpha).toFixed(0)}</td>
-                      <td className="py-1.5 text-right font-bold text-purple-400">{calculateDelta(
-                        computeDrawingStress(activePassA, approachAngle2Alpha),
-                        computeDrawingStress(activePassB, approachAngle2Alpha)
-                      )}</td>
+                      <td className="py-1.5 font-bold">Model stress (MPa)</td>
+                      <td className="py-1.5">{physicsByPass[comparePassIdxA]?.drawing_stress_sigma_d_mpa.toFixed(0) ?? '—'}</td>
+                      <td className="py-1.5">{physicsByPass[comparePassIdxB]?.drawing_stress_sigma_d_mpa.toFixed(0) ?? '—'}</td>
+                      <td className="py-1.5 text-right font-bold text-purple-400">
+                        {physicsByPass[comparePassIdxA] && physicsByPass[comparePassIdxB]
+                          ? calculateDelta(
+                            physicsByPass[comparePassIdxA].drawing_stress_sigma_d_mpa,
+                            physicsByPass[comparePassIdxB].drawing_stress_sigma_d_mpa
+                          )
+                          : '—'}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-slate-900/40">
+                      <td className="py-1.5 font-bold">Drawing force (N)</td>
+                      <td className="py-1.5">{physicsByPass[comparePassIdxA]?.drawing_force_n.toFixed(0) ?? '—'}</td>
+                      <td className="py-1.5">{physicsByPass[comparePassIdxB]?.drawing_force_n.toFixed(0) ?? '—'}</td>
+                      <td className="py-1.5 text-right font-bold text-pink-400">
+                        {physicsByPass[comparePassIdxA] && physicsByPass[comparePassIdxB]
+                          ? calculateDelta(
+                            physicsByPass[comparePassIdxA].drawing_force_n,
+                            physicsByPass[comparePassIdxB].drawing_force_n
+                          )
+                          : '—'}
+                      </td>
                     </tr>
                   </tbody>
                 </table>

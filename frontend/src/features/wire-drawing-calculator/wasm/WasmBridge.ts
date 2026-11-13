@@ -46,9 +46,68 @@ export interface WasmFeaMeshConfig {
 export interface WasmFeaMeshResult {
   nodeCount: number;
   stride: number;
+  numAxialSlices: number;
+  numRadialRings: number;
+  numAngularSegments: number;
   maxVonMises: number;
   maxTemperature: number;
   nodes: Float32Array;
+}
+
+export interface WasmFeaMeshSample {
+  xMm: number;
+  vonMisesMpa: number;
+  temperatureC: number;
+  strain: number;
+  zoneId: number;
+}
+
+/** Samples the generated axisymmetric field by axial and radial fraction. */
+export function sampleWasmFeaMesh(
+  mesh: WasmFeaMeshResult,
+  axialFraction: number,
+  radialFraction = 1
+): WasmFeaMeshSample | null {
+  const { numAxialSlices, numRadialRings, numAngularSegments, stride, nodes } = mesh;
+  if (
+    numAxialSlices < 1 ||
+    numRadialRings < 1 ||
+    numAngularSegments < 1 ||
+    stride < 7 ||
+    nodes.length < numAxialSlices * numRadialRings * numAngularSegments * stride
+  ) {
+    return null;
+  }
+
+  const axialPosition = Math.max(0, Math.min(1, axialFraction)) * (numAxialSlices - 1);
+  const lowerSlice = Math.floor(axialPosition);
+  const upperSlice = Math.min(numAxialSlices - 1, lowerSlice + 1);
+  const axialBlend = axialPosition - lowerSlice;
+  const radialIndex = Math.round(
+    Math.max(0, Math.min(1, radialFraction)) * (numRadialRings - 1)
+  );
+
+  const lowerBase = (lowerSlice * numRadialRings + radialIndex) * numAngularSegments * stride;
+  const upperBase = (upperSlice * numRadialRings + radialIndex) * numAngularSegments * stride;
+  const read = (base: number, offset: number) => nodes[base + offset];
+  if (lowerSlice === upperSlice) {
+    return {
+      xMm: read(lowerBase, 0),
+      vonMisesMpa: read(lowerBase, 3),
+      temperatureC: read(lowerBase, 4),
+      strain: read(lowerBase, 5),
+      zoneId: read(lowerBase, 6),
+    };
+  }
+  const interpolate = (offset: number) =>
+    read(lowerBase, offset) + (read(upperBase, offset) - read(lowerBase, offset)) * axialBlend;
+  return {
+    xMm: interpolate(0),
+    vonMisesMpa: interpolate(3),
+    temperatureC: interpolate(4),
+    strain: interpolate(5),
+    zoneId: Math.round(interpolate(6)),
+  };
 }
 
 let wasmInitPromise: Promise<InitOutput> | null = null;
@@ -132,8 +191,8 @@ export async function computePassPhysicsWasm(
 }
 
 /**
- * Generates 3D FEA nodal grid with von Mises stress and temperature scalar fields.
- * Returns a zero-copy Float32Array slice from Wasm linear memory.
+ * Generates an equation-based analytical nodal field for visualization.
+ * The output is a stable copy of the generated values, not a validated FEM result.
  */
 export async function computeFeaMeshWasm(
   cfg: WasmFeaMeshConfig
@@ -167,19 +226,22 @@ export async function computeFeaMeshWasm(
       return null;
     }
 
-    // Zero-copy view into Wasm linear memory
+    // Keep the result stable if the shared Wasm engine generates another mesh.
     const memoryBuffer = initOutputInstance.memory.buffer;
-    const nodes = new Float32Array(memoryBuffer, ptr, len);
+    const nodes = new Float32Array(memoryBuffer, ptr, len).slice();
 
     return {
       nodeCount,
       stride,
+      numAxialSlices: cfg.numAxialSlices ?? 36,
+      numRadialRings: cfg.numRadialRings ?? 4,
+      numAngularSegments: cfg.numAngularSegments ?? 16,
       maxVonMises,
       maxTemperature,
       nodes,
     };
   } catch (err) {
-    console.error('[WasmBridge] Error computing FEA mesh:', err);
+    console.error('[WasmBridge] Error generating analytical field:', err);
     return null;
   }
 }

@@ -12,7 +12,7 @@ export class DrawingEngine {
         wasm.__wbg_drawingengine_free(ptr, 0);
     }
     /**
-     * Computes full FEA mesh and keeps nodal buffer in Wasm linear memory
+     * Generates an equation-based analytical nodal field and keeps the buffer in Wasm linear memory
      * @param {number} d_in_mm
      * @param {number} d_out_mm
      * @param {number} approach_angle_2alpha_deg

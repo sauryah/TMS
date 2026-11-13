@@ -45,10 +45,10 @@
 *   **Problem**: Tracking and deleting thousands of search cache keys via Redis Set lookups or keyspace scanning degrades throughput on high-frequency die status changes.
 *   **Decision**: Introduce an atomic 64-bit generation counter (`search_cache_gen`). Invalidation executes a single atomic `INCR search_cache_gen`, making all prior cached results immediate cache-misses in $O(1)$ time and allowing them to passively expire via Redis TTL.
 
-## ADR 10: Polyglot Rust / WebAssembly FEA Solver & Tooling Streamlining
+## ADR 10: Rust / WebAssembly Wire-Drawing Analytical Model & Tooling Streamlining
 *   **Date**: 2026-09-21
-*   **Problem**: Simulating non-linear Ludwik-Hollomon strain hardening and von Mises stress tensors in real-time JavaScript causes main-thread frame drops. Maintaining separate experimental microservices (Julia, C Edge Gateway) introduced excessive operational overhead.
-*   **Decision**: Implement a client-side Rust/WebAssembly volumetric FEA solver (`wasm-drawing-engine/`) exporting zero-copy linear memory buffers (`Float32Array`) directly to WebGL/Canvas. Decommission experimental live telemetry and Julia metallurgy microservices, focusing the platform strictly on the Rust/Wasm Wire Drawing Workbench (`TOOL-01`) and Die Series Generator (`TOOL-02`).
+*   **Problem**: Keeping wire-drawing calculations in a small client-side engine avoids duplicating the equations across frontend views. Maintaining separate experimental microservices (Julia, C Edge Gateway) introduced operational overhead.
+*   **Decision**: Keep pass mechanics and the equation-based nodal stress/temperature field in the client-side Rust/WebAssembly engine (`wasm-drawing-engine/`). The nodal field uses simplified analytical zone equations and heuristic stress components; it is not a numerical finite-element solve and is not validated FEM. The React workbench may visualize this field in its Canvas 2D renderer and must identify it as an estimate. Mesh values copied to the frontend remain stable if the shared Wasm engine generates another field. Decommission experimental live telemetry and Julia metallurgy microservices, focusing the platform on the Rust/Wasm Wire Drawing Workbench (`TOOL-01`) and Die Series Generator (`TOOL-02`).
 
 ## ADR 11: 100% Self-Hosted Local Typography & Privacy Hardening
 *   **Date**: 2026-09-24

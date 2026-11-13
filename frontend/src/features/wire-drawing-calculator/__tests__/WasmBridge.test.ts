@@ -4,6 +4,7 @@ import {
   computePassPhysicsWasm,
   computeFeaMeshWasm,
   checkCentralBurstWasm,
+  sampleWasmFeaMesh,
 } from '../wasm/WasmBridge';
 
 describe('WebAssembly Wire Drawing Engine (wasm-drawing-engine)', () => {
@@ -34,7 +35,7 @@ describe('WebAssembly Wire Drawing Engine (wasm-drawing-engine)', () => {
     expect(res.central_burst_risk).toBe('Safe');
   });
 
-  it('generates 3D FEA nodal grid with zero-copy Float32Array linear buffer', async () => {
+  it('generates a stable analytical nodal field with explicit mesh dimensions', async () => {
     const numSlices = 12;
     const numRings = 3;
     const numSegments = 8;
@@ -59,6 +60,9 @@ describe('WebAssembly Wire Drawing Engine (wasm-drawing-engine)', () => {
 
     expect(res.nodeCount).toBe(expectedNodeCount);
     expect(res.stride).toBe(7);
+    expect(res.numAxialSlices).toBe(numSlices);
+    expect(res.numRadialRings).toBe(numRings);
+    expect(res.numAngularSegments).toBe(numSegments);
     expect(res.nodes).toBeInstanceOf(Float32Array);
     expect(res.nodes.length).toBe(expectedNodeCount * 7);
     expect(res.maxVonMises).toBeGreaterThan(0);
@@ -78,6 +82,45 @@ describe('WebAssembly Wire Drawing Engine (wasm-drawing-engine)', () => {
     expect(vm0).toBeGreaterThanOrEqual(0);
     expect(temp0).toBeGreaterThanOrEqual(25.0);
     expect(zone0).toBeGreaterThanOrEqual(0);
+
+    await computeFeaMeshWasm({
+      dInMm: 1.0,
+      dOutMm: 0.9,
+      approachAngle2AlphaDeg: 14.0,
+      numAxialSlices: numSlices,
+      numRadialRings: numRings,
+      numAngularSegments: numSegments,
+    });
+    expect(res.nodes[3]).toBe(vm0);
+  });
+
+  it('samples and interpolates the analytical mesh by axial position', () => {
+    const stride = 7;
+    const nodes = new Float32Array([
+      0, 0, 0, 10, 25, 0, 0,
+      0, 0, 0, 10, 25, 0, 0,
+      10, 0, 0, 40, 55, 0.6, 2,
+      10, 0, 0, 40, 55, 0.6, 2,
+    ]);
+    const mesh = {
+      nodeCount: 4,
+      stride,
+      numAxialSlices: 2,
+      numRadialRings: 1,
+      numAngularSegments: 2,
+      maxVonMises: 40,
+      maxTemperature: 55,
+      nodes,
+    };
+
+    const midpoint = sampleWasmFeaMesh(mesh, 0.5);
+    expect(midpoint?.xMm).toBeCloseTo(5);
+    expect(midpoint?.vonMisesMpa).toBeCloseTo(25);
+    expect(midpoint?.temperatureC).toBeCloseTo(40);
+    expect(midpoint?.strain).toBeCloseTo(0.3);
+    expect(midpoint?.zoneId).toBe(1);
+    expect(sampleWasmFeaMesh(mesh, 1)?.vonMisesMpa).toBe(40);
+    expect(sampleWasmFeaMesh({ ...mesh, nodes: new Float32Array(2) }, 0.5)).toBeNull();
   });
 
   it('flags high-angle low-reduction passes as critical central burst risk', async () => {

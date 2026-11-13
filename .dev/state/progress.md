@@ -6,6 +6,19 @@ Track implementation status across all phases.
 **Read by:** AI agents.
 **Updated:** Each phase completion.
 
+### Wire Drawing Workbench Model Alignment ✅
+**Status:** Complete
+**Date:** 2026-11-14
+
+**Completed:**
+- Replaced the separate hand-shaped stress/temperature display with samples from the existing Rust/WASM analytical nodal field, including piecewise axis mapping to the die zones and stable copied mesh data.
+- Aligned train hover values, compare telemetry, selected-pass telemetry, and PDF estimates with the same material, friction, approach angle, and line-speed assumptions. The reference inlet speed scales across passes using area conservation.
+- Replaced the local heuristic burst flag with the engine output and relabeled the field as an analytical estimate, not validated FEM. Removed unsupported performance and standards-compliance claims.
+- Moved model/scene and geometry controls into a disclosure while keeping mode selection visible; collapsed the explainer by default.
+- Added mesh sampling coverage and documented the model scope and design review.
+
+**Verification:** ESLint passed; TypeScript passed; Vitest 115/115 passed across 30 files; Vite build passed to `/tmp/tms-frontend-build`. Protected workbench visual review was not performed without test credentials.
+
 ### Premium Enterprise Operations Visual Refresh ✅
 **Status:** Complete
 **Date:** 2026-11-14

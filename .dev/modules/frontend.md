@@ -1,7 +1,7 @@
 # React Frontend SPA (frontend.md)
 
 ## Purpose
-High-density manufacturing telemetry dashboard, CAD vector blueprint renderer, 3D von Mises stress heatmap, Sachs' slab theory deformation simulator, Rust/Wasm high-resolution FEA workbench, ISO/DIN Technical Data Sheet (TDS) vector reporting engine, shopfloor machine allocation views, Wire Drawing Elongation Calculator, die series generator, and spreadsheet import interfaces.
+High-density manufacturing telemetry dashboard, CAD vector blueprint renderer, analytical stress and temperature field viewer, Sachs' slab theory deformation simulator, Rust/Wasm wire-drawing model, process-estimate PDF reporting, shopfloor machine allocation views, Wire Drawing Elongation Calculator, die series generator, and spreadsheet import interfaces.
 
 ---
 
@@ -37,8 +37,8 @@ The application supports three global visual modes managed via `ThemeContext.tsx
 - **Theme Management**: `ThemeContext.tsx` (`useTheme()`) providing `theme`, `setTheme`, `toggleTheme`, and `canChangeTheme`.
 - **State Management**: `useInventoryState.ts` for inventory selection, tree navigation, search filters; `@tanstack/react-query` for API query caching.
 - **Resilience**: `lazyWithRetry.ts` for dynamic chunk recovery on new deployments; `ErrorBoundary.tsx` update fallback.
-- **3D Heatmap**: `StressHeatmap3D.tsx` (WebGL von Mises stress visualization, particle flow streams, cutaway slice plane, 3D chevron defect overlay).
-- **Rust/WebAssembly FEA Solver**: `wasm_drawing_engine` compiled with `wasm-pack` and bridged via `useWasmFeaSolver.ts` / `WasmBridge.ts` for client-side sub-millisecond 2D axisymmetric elastoplastic simulation.
+- **3D Workbench**: `StressHeatmap3D.tsx` (Canvas 2D die and train view, generated nodal stress/temperature field, cutaway view, and equation-based pass telemetry). Stress and temperature fields are analytical estimates, not validated FEM results.
+- **Rust/WebAssembly Drawing Model**: `wasm_drawing_engine` compiled with `wasm-pack` and bridged via `useWasmFeaSolver.ts` / `WasmBridge.ts` for client-side pass mechanics and a simplified axisymmetric analytical field. The bridge returns mesh dimensions and a stable copy for sampling/rendering.
 - **TDS Vector Print Engine**: `WireDrawingPrintReport.tsx`, `PrintSchematicPipeline.tsx`, `PrintPassChart.tsx`, and `PrintPreviewModal.tsx` providing ISO/DIN-compliant vector printouts with drafting pipelines and elongation/area-reduction pass curves.
 - **Inventory Set Series Auto-Sorting**: Set detail views automatically order assigned dies in descending sequence (big to small) via `compareDiesBySize` and `getDieSize` in `dieHelpers.ts`.
 - **Theory Workbench**: `TheoryPanel.tsx` (CAD die inspector SVG, math deformation simulator force equations).

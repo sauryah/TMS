@@ -53,12 +53,14 @@ export function useWasmFeaSolver({
   const [error, setError] = useState<string | null>(null);
 
   const isMountedRef = useRef(true);
+  const calculationIdRef = useRef(0);
 
   useEffect(() => {
     isMountedRef.current = true;
     ensureWasmInitialized().then((ready) => {
       if (isMountedRef.current) {
         setIsWasmReady(ready);
+        if (!ready) setError('The analytical wire-drawing model could not be loaded.');
       }
     });
 
@@ -69,11 +71,19 @@ export function useWasmFeaSolver({
 
   const runCalculation = useCallback(async () => {
     if (!enabled || dInMm <= dOutMm || dOutMm <= 0) {
+      calculationIdRef.current += 1;
+      setMesh(null);
+      setPhysics(null);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
+    const calculationId = ++calculationIdRef.current;
     setIsLoading(true);
     setError(null);
+    setMesh(null);
+    setPhysics(null);
 
     try {
       const cfg: WasmFeaMeshConfig = {
@@ -102,16 +112,16 @@ export function useWasmFeaSolver({
         ),
       ]);
 
-      if (isMountedRef.current) {
+      if (isMountedRef.current && calculationIdRef.current === calculationId) {
         setMesh(meshResult);
         setPhysics(physicsResult);
       }
     } catch (err) {
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Wasm FEA calculation error');
+      if (isMountedRef.current && calculationIdRef.current === calculationId) {
+        setError(err instanceof Error ? err.message : 'Wasm analytical model error');
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && calculationIdRef.current === calculationId) {
         setIsLoading(false);
       }
     }

@@ -7,31 +7,31 @@ Track current work item for AI sessions.
 **Updated:** Every session.
 
 ### Current Task
-**Task:** Premium Enterprise Operations Visual Refresh
+**Task:** Wire Drawing Workbench Model Alignment
 **Status:** Complete
 **Started:** 2026-11-14
 **Target Completion:** 2026-11-14
 **Confidence:** 95%
 
 ## Task Description
-Refresh the frontend in a premium enterprise direction inspired by the Equipment Ops workbench while preserving workflows, APIs, database schema, authentication, authorization, and routes.
+Align the workbench's visual field, pass telemetry, and exported estimate around its existing Rust/WASM analytical model; disclose model limits; and reduce control clutter without changing its equations, routes, or permissions.
 
 ## Completed
-- Added graphite, deep slate, and paper themes with copper primary actions, more legible interface typography, visible focus styling, and reduced-motion support.
-- Updated the app shell, navigation sizing, shared page header, dashboard framing, shared card/input styling, and login presentation.
-- Removed inherited monospace styling from page-level wrappers; explicit operational data and identifiers retain monospace styling.
-- Preserved existing routes, API calls, query behavior, form logic, MFA behavior, protected route rules, and schema.
-- Recorded the design review and updated frontend design-system documentation.
+- Render stress and temperature from sampled WASM nodal values; keep returned arrays stable between mesh generations and guard against stale async results.
+- Use selected wire material, friction, and inlet speed for pass physics, train/compare telemetry, and exported pass estimates. Scale inlet speed along the train by area conservation.
+- Replace heuristic central-burst markings with the engine's pass flag. Remove unsupported FEA, performance, standards-compliance, and verification claims from the workbench and its PDF.
+- Keep view selection visible, collapse material/process and geometry settings, and make the workbench explanation collapsed by default.
+- Document the model as an equation-based analytical field, record the internal council review, and update the frontend module/architecture docs.
 
 ## Verification
-- ESLint: passed with no findings.
+- ESLint: passed.
 - TypeScript: `npx tsc --noEmit` passed.
-- Vitest: 114/114 tests passed across 30 files.
+- Vitest: 115/115 tests passed across 30 files.
 - Vite production build: passed to `/tmp/tms-frontend-build` because existing files in `frontend/dist` are not writable in this environment.
-- Local browser preview: refreshed login screen visually checked; protected operational pages were not opened without a test account.
+- Browser visual review: not performed because the workbench is behind authentication and no test account was available.
 
 ## Next Steps
-- Await user instructions. Never `git push` without explicit user authorization.
+- Await user instructions. Never push without explicit user authorization.
 
 ## Blockers
 - None.

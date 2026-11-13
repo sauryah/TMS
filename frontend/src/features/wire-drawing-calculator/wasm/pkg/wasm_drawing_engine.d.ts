@@ -5,7 +5,7 @@ export class DrawingEngine {
     free(): void;
     [Symbol.dispose](): void;
     /**
-     * Computes full FEA mesh and keeps nodal buffer in Wasm linear memory
+     * Generates an equation-based analytical nodal field and keeps the buffer in Wasm linear memory
      */
     compute_mesh(d_in_mm: number, d_out_mm: number, approach_angle_2alpha_deg: number, bearing_length_lb_ratio_pct: number, back_relief_2beta_deg: number, friction_mu: number, material_str: string, wire_speed_mpm: number, num_axial_slices: number, num_radial_rings: number, num_angular_segments: number): void;
     get_max_temperature(): number;
