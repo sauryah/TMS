@@ -12,6 +12,7 @@ import { useRealtimeSync } from './hooks/useRealtimeSync'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 
 const DashboardPage = lazyWithRetry(() => import('./features/dashboard/components/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const AnalyticsPage = lazyWithRetry(() => import('./pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const InventoryPage = lazyWithRetry(() => import('./features/inventory/components/InventoryPage').then(m => ({ default: m.InventoryPage })))
 const DieDetailPage = lazyWithRetry(() => import('./features/inventory/components/DieDetailPage').then(m => ({ default: m.DieDetailPage })))
 const MachineSetsPage = lazyWithRetry(() => import('./pages/MachineSetsPage').then(m => ({ default: m.MachineSetsPage })))
@@ -159,6 +160,13 @@ function AppContent() {
               <ErrorBoundary>
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              </ErrorBoundary>
+            } />
+            <Route path="/analytics" element={
+              <ErrorBoundary>
+                <ProtectedRoute>
+                  <AnalyticsPage />
                 </ProtectedRoute>
               </ErrorBoundary>
             } />

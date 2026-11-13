@@ -1,7 +1,7 @@
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.db import transaction
-from dies.models import Die, RoundDie, FlatDie
+from dies.models import Die, RoundDie, FlatDie, Manufacturer
 from history.models import DieHistory
 from users.context import get_current_user, get_current_ip, _thread_locals
 from dies.services.search_service import SearchService
@@ -145,6 +145,11 @@ def _sync_die_from_related(instance):
         import logging
         logging.getLogger(__name__).error(f"Failed to check wear alerts in post-save signal: {e}")
     SearchService.queue_die_sync(die.id)
+    try:
+        from django.core.cache import cache
+        cache.delete("analytics_summary_v1")
+    except Exception:
+        pass
 
 
 @receiver(post_save, sender=Die)
@@ -163,3 +168,18 @@ def sync_flat_die_post_save(sender, instance, **kwargs):
 @receiver(post_delete, sender=Die)
 def delete_die_post_delete(sender, instance, **kwargs):
     SearchService.delete_die_document(instance.id, instance.die_id)
+    try:
+        from django.core.cache import cache
+        cache.delete("analytics_summary_v1")
+    except Exception:
+        pass
+
+
+@receiver([post_save, post_delete], sender=Manufacturer)
+def invalidate_analytics_on_manufacturer_change(sender, instance, **kwargs):
+    try:
+        from django.core.cache import cache
+        cache.delete("analytics_summary_v1")
+    except Exception:
+        pass
+

@@ -78,3 +78,29 @@ export function getStatusColorClass(status: DieStatus): string {
 }
 
 export { DIE_TYPES, DIE_STATUSES }
+
+export interface ManufacturerAnalytics {
+  id: number | null;
+  name: string;
+  total_dies: number;
+  round_dies: number;
+  flat_dies: number;
+  percentage: number;
+}
+
+export interface SetsSummary {
+  total_sets: number;
+  dies_in_sets: number;
+  dies_in_storage: number;
+}
+
+export interface AnalyticsSummary {
+  total_dies: number;
+  round_dies: number;
+  flat_dies: number;
+  total_sets: number;
+  total_manufacturers: number;
+  sets_summary: SetsSummary;
+  manufacturers: ManufacturerAnalytics[];
+}
+

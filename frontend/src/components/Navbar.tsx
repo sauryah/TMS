@@ -156,6 +156,18 @@ export function Navbar() {
                 Dashboard
               </NavLink>
               <NavLink
+                to="/analytics"
+                className={({ isActive }) =>
+                  `px-3 py-1.5 min-h-[32px] inline-flex items-center text-xs font-medium uppercase tracking-wider transition-colors font-mono border ${
+                    isActive
+                      ? 'bg-[var(--color-surface-2)] text-[var(--color-text)] border-[var(--color-border-visible)] border-b-blue-500'
+                      : 'text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] border-transparent'
+                  }`
+                }
+              >
+                Analytics
+              </NavLink>
+              <NavLink
                 to="/inventory"
                 onMouseEnter={prefetchInventory}
                 className={({ isActive }) =>
@@ -477,6 +489,13 @@ export function Navbar() {
             onTouchStart={prefetchDashboard}
           >
             Dashboard
+          </Link>
+          <Link
+            to="/analytics"
+            className="block text-[var(--color-text)] hover:bg-[var(--color-surface-2)] px-3 py-2 rounded-sm text-xs uppercase tracking-wider font-mono transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            Analytics
           </Link>
           <Link
             to="/inventory"

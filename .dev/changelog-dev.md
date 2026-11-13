@@ -1,5 +1,23 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-13 Simplified Fleet Analytics & Manufacturer Breakdown Dashboard
+*   **Backend Aggregation API & Signal Invalidation**:
+    *   Created `AnalyticsSummaryView` in [`backend/dies/views.py`](backend/dies/views.py) providing aggregated counts for total dies, round dies, flat dies, machine sets, and manufacturer-wise totals and percentages.
+    *   Registered `/api/v1/analytics/summary/` and `/api/analytics/summary/` routes in [`backend/tms/urls.py`](backend/tms/urls.py).
+    *   Added Redis caching (`analytics_summary_v1`) and tied cache eviction to `Die` and `Manufacturer` mutation signals in [`backend/dies/signals.py`](backend/dies/signals.py).
+    *   Added integration test suite in [`backend/dies/tests/test_analytics.py`](backend/dies/tests/test_analytics.py) covering authentication, count calculations, manufacturer breakdown, and signal-based cache invalidation.
+*   **Frontend UI & Navigation Integration**:
+    *   Added `AnalyticsSummary` and `ManufacturerAnalytics` types to [`frontend/src/types.ts`](frontend/src/types.ts).
+    *   Created [`frontend/src/pages/AnalyticsPage.tsx`](frontend/src/pages/AnalyticsPage.tsx) featuring top KPI ribbon (Total Dies, Round Dies, Flat Dies, Active Sets), interactive profile ratio bar, tooling set allocation status, and detailed manufacturer breakdown table with deep-link filtering.
+    *   Wired `/analytics` route into [`frontend/src/App.tsx`](frontend/src/App.tsx) and added navigation links into [`frontend/src/components/Navbar.tsx`](frontend/src/components/Navbar.tsx) (desktop & mobile).
+    *   Added unit tests in [`frontend/src/pages/__tests__/AnalyticsPage.test.tsx`](frontend/src/pages/__tests__/AnalyticsPage.test.tsx).
+*   **Verification**:
+    *   Django: 245/245 tests passing.
+    *   Vitest: 114/114 tests passing across 30 test files.
+    *   ESLint: 0 errors, 0 warnings.
+    *   TypeScript: `tsc --noEmit` 0 errors.
+    *   Vite: production bundle built cleanly in 7.96s with separate `AnalyticsPage` chunk.
+
 ### 2026-11-12 High-Contrast Multi-Theme Text Selection
 *   **Eliminated Low-Contrast Hardcoded Selection**:
     *   Removed `selection:bg-[#1f1f1f] selection:text-[#e4e4e4]` from the root wrapper div in [`frontend/src/App.tsx`](frontend/src/App.tsx) which previously caused cursor text selection to blend identically with dark cards, tables, and modal backgrounds (`#1f1f1f`).

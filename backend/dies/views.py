@@ -674,4 +674,97 @@ class ManufacturerViewSet(viewsets.ModelViewSet):
         return [IsAdminOrRoot()]
 
 
+class AnalyticsSummaryView(APIView):
+    """
+    API endpoint returning high-level fleet metrics:
+    - Total dies, Round dies vs Flat dies
+    - Total machine sets and allocation counts
+    - Manufacturer-wise breakdown (total, round, flat, percentage)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        tags=['Analytics'],
+        description="Retrieve fleet analytics summary: total dies, round vs flat, and manufacturer-wise breakdown."
+    )
+    def get(self, request):
+        from django.core.cache import cache
+        cache_key = "analytics_summary_v1"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        from django.db.models import Count, Q
+        from machines.models import Set
+
+        totals = Die.objects.aggregate(
+            total_dies=Count('id'),
+            round_dies=Count('id', filter=Q(die_type='ROUND')),
+            flat_dies=Count('id', filter=Q(die_type='FLAT')),
+            dies_in_sets=Count('id', filter=Q(current_set__isnull=False)),
+            dies_in_storage=Count('id', filter=Q(current_set__isnull=True)),
+        )
+        total_all = totals['total_dies']
+        total_sets = Set.objects.count()
+        total_manufacturers = Manufacturer.objects.count()
+
+        # Query all registered manufacturers annotated with die type counts
+        mfgs = Manufacturer.objects.annotate(
+            total_dies=Count('dies'),
+            round_dies=Count('dies', filter=Q(dies__die_type='ROUND')),
+            flat_dies=Count('dies', filter=Q(dies__die_type='FLAT')),
+        ).order_by('-total_dies', 'name')
+
+        mfg_list = []
+        for m in mfgs:
+            pct = round((m.total_dies / total_all) * 100, 1) if total_all > 0 else 0.0
+            mfg_list.append({
+                'id': m.id,
+                'name': m.name,
+                'total_dies': m.total_dies,
+                'round_dies': m.round_dies,
+                'flat_dies': m.flat_dies,
+                'percentage': pct,
+            })
+
+        # Unassigned dies (dies with no manufacturer foreign key)
+        unassigned = Die.objects.filter(manufacturer__isnull=True).aggregate(
+            total_dies=Count('id'),
+            round_dies=Count('id', filter=Q(die_type='ROUND')),
+            flat_dies=Count('id', filter=Q(die_type='FLAT')),
+        )
+        if unassigned['total_dies'] > 0:
+            pct = round((unassigned['total_dies'] / total_all) * 100, 1) if total_all > 0 else 0.0
+            mfg_list.append({
+                'id': None,
+                'name': 'Unassigned',
+                'total_dies': unassigned['total_dies'],
+                'round_dies': unassigned['round_dies'],
+                'flat_dies': unassigned['flat_dies'],
+                'percentage': pct,
+            })
+
+        # Sort with highest die count first
+        mfg_list.sort(key=lambda x: x['total_dies'], reverse=True)
+
+        data = {
+            'total_dies': totals['total_dies'],
+            'round_dies': totals['round_dies'],
+            'flat_dies': totals['flat_dies'],
+            'total_sets': total_sets,
+            'total_manufacturers': total_manufacturers,
+            'sets_summary': {
+                'total_sets': total_sets,
+                'dies_in_sets': totals['dies_in_sets'],
+                'dies_in_storage': totals['dies_in_storage'],
+            },
+            'manufacturers': mfg_list,
+        }
+
+        # Cache for 60 seconds
+        cache.set(cache_key, data, timeout=60)
+        return Response(data)
+
+
+
 

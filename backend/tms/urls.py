@@ -8,7 +8,8 @@ from dies.views import (
     DieViewSet, ImportDiesView, ImportTemplateView, ImportLogsView,
     RenameDiesView, RenameTemplateView,
     DieToleranceViewSet, WearAlertViewSet, MachineDieStockViewSet,
-    DieInventoryRecountViewSet, EnamelMachineViewSet, ManufacturerViewSet
+    DieInventoryRecountViewSet, EnamelMachineViewSet, ManufacturerViewSet,
+    AnalyticsSummaryView
 )
 from users.views import (
     LoginView, LockView, LogoutView, UserViewSet, UserActivityLogViewSet, UserSessionViewSet,
@@ -87,6 +88,7 @@ urlpatterns = [
     path('api/v1/history/unified/', UnifiedHistoryListView.as_view(), name='unified-history'),
     path('api/v1/history/print-records/next-ref/', PrintRecordNextRefView.as_view(), name='print-record-next-ref'),
     path('api/v1/history/print-records/', PrintRecordListView.as_view(), name='print-records'),
+    path('api/v1/analytics/summary/', AnalyticsSummaryView.as_view(), name='analytics-summary'),
 
     # Legacy fallbacks (used by frontend and e2e tests)
     path('api/auth/login/', LoginView.as_view()),
@@ -122,6 +124,7 @@ urlpatterns = [
     path('api/history/unified/', UnifiedHistoryListView.as_view()),
     path('api/history/print-records/next-ref/', PrintRecordNextRefView.as_view()),
     path('api/history/print-records/', PrintRecordListView.as_view()),
+    path('api/analytics/summary/', AnalyticsSummaryView.as_view()),
 
     path('internal/verify-token/', VerifyTokenView.as_view(), name='verify-token'),
     path('api/v1/', include(router.urls)),
