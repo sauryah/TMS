@@ -1,5 +1,14 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-14 Precision Blueprint Workbench Redesign
+*   **Workbench Visual Design**:
+    *   Added a scoped blue-green drafting palette with teal highlights, copper endpoints, a finer major/minor grid, and non-pulsing status markers.
+    *   Expanded the single-view canvas at wide breakpoints and increased its minimum height while retaining the comparison layout and pass telemetry space.
+    *   Replaced bright segmented legends with continuous stress and temperature ramps. Kept analytical estimate labeling and all calculation/control behavior intact.
+*   **Verification**:
+    *   ESLint passed; TypeScript passed; Vitest 115/115 passed across 30 files; Vite production build passed to `/tmp/tms-frontend-build`.
+    *   Vitest emitted a WebSocket bind warning in the restricted environment without affecting the test run. The authenticated workbench was not visually reviewed without test credentials.
+
 ### 2026-11-14 Wire Drawing Workbench Model Alignment
 *   **Shared Analytical Field and Telemetry**:
     *   Replaced independent hand-shaped stress and temperature profiles with samples from the generated Rust/WASM nodal field in the Canvas 2D die view; copied mesh buffers and exposed mesh dimensions for stable, tested sampling.

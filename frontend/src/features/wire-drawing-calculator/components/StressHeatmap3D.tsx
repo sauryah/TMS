@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { PassData } from '../types';
 import { useWasmFeaSolver } from '../hooks/useWasmFeaSolver';
+import './StressHeatmap3D.css';
 import {
   computePassPhysicsWasm,
   sampleWasmFeaMesh,
@@ -82,7 +83,7 @@ export const DIE_ZONES: Record<DieZoneType, ZoneDetail> = {
     angleOrDim: 'Zones 1–4 Integrated',
     formula: 'σ_d = σ_flow · φ · ε · (1 + μ/tan α)',
     purpose: 'Complete die bore profile with entrance bell, reduction cone, bearing land, and back relief clearance.',
-    color: '#a855f7',
+    color: '#78d2c4',
   },
   bell: {
     name: 'Zone 1: Bell Entrance Radius',
@@ -98,7 +99,7 @@ export const DIE_ZONES: Record<DieZoneType, ZoneDetail> = {
     angleOrDim: '2α = Approach Angle',
     formula: 'σ_m = 2/3 · Y · ln(d₁/d₂) / sin(α)',
     purpose: 'Compresses wire from inlet d₁ to exit d₂. The approach angle 2α minimizes total energy by balancing redundant shear strain and boundary friction.',
-    color: '#c084fc',
+    color: '#85cfc7',
   },
   bearing: {
     name: 'Zone 3: Parallel Bearing Land (Lb)',
@@ -462,20 +463,32 @@ const MultiPassTrainCanvas = React.memo(function MultiPassTrainCanvas({
       const height = displaySizeRef.current.h;
       ctx.clearRect(0, 0, width, height);
 
-      // Deep Industrial Studio Background (Single Fill)
-      ctx.fillStyle = '#060a12';
+      // Blueprint studio background.
+      ctx.fillStyle = '#0a1920';
       ctx.fillRect(0, 0, width, height);
 
-      // Batched Grid Lines in Single Path (Zero Overhead)
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.2)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(112, 181, 184, 0.08)';
+      ctx.lineWidth = 0.7;
       ctx.beginPath();
-      const gridSpacing = 40;
+      const gridSpacing = 32;
       for (let x = 0; x < width; x += gridSpacing) {
         ctx.moveTo(x, 0);
         ctx.lineTo(x, height);
       }
       for (let y = 0; y < height; y += gridSpacing) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(112, 181, 184, 0.16)';
+      ctx.beginPath();
+      const majorSpacing = gridSpacing * 5;
+      for (let x = 0; x < width; x += majorSpacing) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+      }
+      for (let y = 0; y < height; y += majorSpacing) {
         ctx.moveTo(0, y);
         ctx.lineTo(width, y);
       }
@@ -1255,19 +1268,31 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
       const height = displaySizeRef.current.h;
       ctx.clearRect(0, 0, width, height);
 
-      ctx.fillStyle = '#060a12';
+      ctx.fillStyle = '#0a1920';
       ctx.fillRect(0, 0, width, height);
 
-      // Batched Grid Lines
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(112, 181, 184, 0.08)';
+      ctx.lineWidth = 0.7;
       ctx.beginPath();
-      const gridSize = 40;
+      const gridSize = 32;
       for (let x = 0; x < width; x += gridSize) {
         ctx.moveTo(x, 0);
         ctx.lineTo(x, height);
       }
       for (let y = 0; y < height; y += gridSize) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(112, 181, 184, 0.16)';
+      ctx.beginPath();
+      const majorGridSize = gridSize * 5;
+      for (let x = 0; x < width; x += majorGridSize) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+      }
+      for (let y = 0; y < height; y += majorGridSize) {
         ctx.moveTo(0, y);
         ctx.lineTo(width, y);
       }
@@ -1342,14 +1367,14 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
       const maxCutoffRad = (sliceAngleDeg * Math.PI) / 180;
 
       const stressToColor = (stressVal: number): string => {
-        if (renderMode === 'wireframe') return 'rgba(59, 130, 246, 0.4)';
-        if (renderMode === 'shear') return `rgba(16, 185, 129, ${0.35 + stressVal * 0.6})`;
+        if (renderMode === 'wireframe') return 'rgba(120, 210, 196, 0.42)';
+        if (renderMode === 'shear') return `rgba(66, 178, 163, ${0.35 + stressVal * 0.6})`;
         const clamped = Math.max(0, Math.min(1, stressVal));
-        if (clamped > 0.85) return '#ec4899';
-        if (clamped > 0.7) return '#ef4444';
-        if (clamped > 0.5) return '#f59e0b';
-        if (clamped > 0.35) return '#10b981';
-        return '#3b82f6';
+        if (clamped > 0.85) return '#d96f58';
+        if (clamped > 0.7) return '#e69a68';
+        if (clamped > 0.5) return '#d6bf76';
+        if (clamped > 0.35) return '#70b9a9';
+        return '#2b8190';
       };
 
       const computeStressAtX = (x: number): number | null => {
@@ -1366,7 +1391,7 @@ const SingleDieCanvas = React.memo(function SingleDieCanvas({
         ));
         return {
           temp: sample.temperatureC,
-          color: `hsl(${190 - fraction * 190} 88% ${52 - fraction * 7}%)`,
+          color: `hsl(${174 - fraction * 174} 68% ${46 - fraction * 3}%)`,
         };
       };
 
@@ -2215,7 +2240,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
 
   if (!passes || passes.length === 0) {
     return (
-      <div className="wdc-panel bg-[#050913]/90 border border-slate-900 rounded-xl p-12 text-center">
+      <div className="wire-drawing-workbench wdc-panel bg-[#050913]/90 border border-slate-900 rounded-xl p-12 text-center">
         <Activity className="h-8 w-8 text-slate-600 mx-auto mb-3 text-purple-400" />
         <p className="text-slate-400 text-sm">No pass data available. Generate a die schedule to view the 3D multi-pass wire drawing workbench.</p>
       </div>
@@ -2225,6 +2250,12 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
   const activePassA = passes[comparePassIdxA] || passes[0];
   const activePassB = passes[comparePassIdxB] || passes[0];
   const activePassCurrent = passes[selectedPassIdx] || passes[0];
+  const viewportColumns = activeViewMode === 'compare'
+    ? 'lg:col-span-8 xl:col-span-8'
+    : 'lg:col-span-8 xl:col-span-9';
+  const sidebarColumns = activeViewMode === 'compare'
+    ? 'lg:col-span-4 xl:col-span-4'
+    : 'lg:col-span-4 xl:col-span-3';
 
   const calculateDelta = (vA: number, vB: number) => {
     const delta = vB - vA;
@@ -2247,7 +2278,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className={`wdc-panel bg-[#050913] border border-slate-900 rounded-xl relative overflow-hidden shadow-2xl space-y-4 select-none ${
+      className={`wire-drawing-workbench wdc-panel bg-[#050913] border border-slate-900 rounded-xl relative overflow-hidden shadow-2xl space-y-4 select-none ${
         isFullscreen
           ? 'fixed inset-0 z-[100] w-screen h-screen p-4 sm:p-6 flex flex-col justify-between overflow-y-auto'
           : 'p-6'
@@ -2257,12 +2288,12 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
       <div className="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-900 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/20 flex items-center justify-center">
-            <Activity className="h-5 w-5 animate-pulse" />
+            <Activity className="h-5 w-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-[var(--color-text)] m-0 font-heading">
-                3D CAD Wire Drawing Workbench
+                Precision CAD Studio
               </h3>
               <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 px-2 py-0.5 rounded-full uppercase tracking-wider">
                 {passes.length} Passes Active
@@ -2277,7 +2308,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
               )}
             </div>
             <p className="text-xs text-slate-400 m-0 mt-0.5">
-              Interactive die layout &bull; Material-aware analytical estimates &bull; 4-zone bore inspector
+              Wire drawing workbench &bull; Drafting view &bull; Analytical field estimates
             </p>
             <p className="text-[10px] text-amber-300 m-0 mt-1">
               Analytical estimate · not validated finite-element analysis
@@ -2644,7 +2675,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
       </details>
 
       {/* Main 3D Viewport Grid */}
-      <div className={`grid grid-cols-1 ${isFullscreen ? 'lg:grid-cols-12 flex-1 min-h-0' : 'lg:grid-cols-12'} gap-6 items-stretch`}>
+      <div className={`grid grid-cols-1 ${isFullscreen ? 'lg:grid-cols-12 flex-1 min-h-0' : 'lg:grid-cols-12'} gap-4 items-stretch`}>
         {/* Render Canvas Area with Decoupled CAD Navigation */}
         <div
           ref={mainContainerRef}
@@ -2657,9 +2688,7 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
             cursor: navTool === 'pan' ? 'grab' : 'crosshair',
             touchAction: 'none'
           }}
-          className={`${
-            isFullscreen ? 'lg:col-span-8 xl:col-span-9 h-full' : 'lg:col-span-8 min-h-[440px]'
-          } bg-slate-950/90 border border-slate-900 rounded-xl relative overflow-hidden shadow-inner p-2 flex items-stretch`}
+          className={`${viewportColumns} ${isFullscreen ? 'h-full' : 'min-h-[500px]'} bg-slate-950/90 border border-slate-900 rounded-xl relative overflow-hidden shadow-inner p-2 flex items-stretch`}
         >
           {activeViewMode === 'train' && (
             <div className="w-full relative h-full flex flex-col justify-between">
@@ -2907,43 +2936,36 @@ export default function StressHeatmap3D({ passes }: StressHeatmap3DProps) {
           {/* Bottom Legend */}
           <div className="absolute bottom-3 left-3 right-3 bg-slate-900/85 backdrop-blur border border-slate-800/80 px-3.5 py-1.5 rounded-xl flex items-center justify-between text-[10px] font-mono z-20">
             <div className="flex items-center gap-2 text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#78d2c4]" />
               <span>
                 <strong>Mouse Scroll:</strong> Zoom &bull; <strong>Left-Drag:</strong> Orbit &bull; <strong>Right/Middle-Drag:</strong> Pan &bull; <strong>Click Station:</strong> Inspect
               </span>
             </div>
             {activeViewMode === 'single' && renderMode === 'heatmap' && (
               <div className="flex items-center space-x-2">
-                <span className="text-blue-400">0 MPa</span>
-                <div className="w-20 h-1.5 rounded-full border border-slate-700 flex overflow-hidden">
-                  <div className="flex-1 bg-blue-500" />
-                  <div className="flex-1 bg-emerald-500" />
-                  <div className="flex-1 bg-amber-500" />
-                  <div className="flex-1 bg-red-500" />
-                </div>
-                <span className="text-pink-400 font-bold">{wasmMesh?.maxVonMises.toFixed(0) ?? '—'} MPa</span>
+                <span className="text-slate-300">0 MPa</span>
+                <div
+                  className="w-24 h-1.5 rounded-full border border-slate-700"
+                  style={{ background: 'linear-gradient(90deg, #2b8190, #70b9a9, #d6bf76, #e69a68, #d96f58)' }}
+                />
+                <span className="text-[#e2a07a] font-bold">{wasmMesh?.maxVonMises.toFixed(0) ?? '—'} MPa</span>
               </div>
             )}
             {activeViewMode === 'single' && renderMode === 'thermal' && (
               <div className="flex items-center space-x-2">
-                <span className="text-cyan-400">25°C</span>
-                <div className="w-24 h-1.5 rounded-full border border-slate-700 flex overflow-hidden">
-                  <div className="flex-1 bg-cyan-500" />
-                  <div className="flex-1 bg-emerald-500" />
-                  <div className="flex-1 bg-amber-500" />
-                  <div className="flex-1 bg-red-500" />
-                  <div className="flex-1 bg-pink-500" />
-                </div>
-                <span className="text-pink-400 font-bold">{wasmMesh?.maxTemperature.toFixed(0) ?? '—'}°C</span>
+                <span className="text-slate-300">25°C</span>
+                <div
+                  className="w-24 h-1.5 rounded-full border border-slate-700"
+                  style={{ background: 'linear-gradient(90deg, #35aaa4, #73c7a9, #d6bf76, #e69a68, #c95b5d)' }}
+                />
+                <span className="text-[#e2a07a] font-bold">{wasmMesh?.maxTemperature.toFixed(0) ?? '—'}°C</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Selected Pass Mechanics Sidebar */}
-        <div className={`${
-          isFullscreen ? 'lg:col-span-4 xl:col-span-3 h-full overflow-y-auto' : 'lg:col-span-4'
-        } bg-slate-950/90 border border-slate-900 rounded-xl p-5 space-y-4`}>
+        <div className={`${sidebarColumns} ${isFullscreen ? 'h-full overflow-y-auto' : ''} bg-slate-950/90 border border-slate-900 rounded-xl p-5 space-y-4`}>
           <div className="flex justify-between items-center pb-3 border-b border-slate-900">
             <h4 className="text-xs font-bold text-[var(--color-text)] uppercase tracking-wider m-0 font-heading flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-purple-400" />

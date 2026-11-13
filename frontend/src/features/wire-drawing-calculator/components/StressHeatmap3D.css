@@ -1,0 +1,81 @@
+.wire-drawing-workbench {
+  --wb-bg: #0b171d;
+  --wb-panel: #102128;
+  --wb-raised: #172a30;
+  --wb-control: #1c343a;
+  --wb-line: #2b474d;
+  --wb-line-strong: #3d6268;
+  --wb-accent: #78d2c4;
+  --wb-accent-strong: #187f7a;
+  --wb-copper: #e2a07a;
+  --wb-text: #e5edef;
+  --wb-muted: #9eb1b4;
+  color-scheme: dark;
+  background-color: var(--wb-bg) !important;
+  border-color: var(--wb-line) !important;
+  color: var(--wb-text);
+}
+
+.wire-drawing-workbench [class*="bg-[#050913]"],
+.wire-drawing-workbench [class*="bg-slate-950"] {
+  background-color: var(--wb-bg) !important;
+}
+
+.wire-drawing-workbench [class*="bg-slate-900"] {
+  background-color: var(--wb-panel) !important;
+}
+
+.wire-drawing-workbench [class*="bg-slate-800"] {
+  background-color: var(--wb-raised) !important;
+}
+
+.wire-drawing-workbench [class*="border-slate-900"] {
+  border-color: var(--wb-line) !important;
+}
+
+.wire-drawing-workbench [class*="border-slate-800"],
+.wire-drawing-workbench [class*="border-slate-700"] {
+  border-color: var(--wb-line-strong) !important;
+}
+
+.wire-drawing-workbench [class*="text-purple-"] {
+  color: var(--wb-accent) !important;
+}
+
+.wire-drawing-workbench [class*="bg-purple-600"] {
+  background-color: var(--wb-accent-strong) !important;
+}
+
+.wire-drawing-workbench [class*="bg-purple-500/15"],
+.wire-drawing-workbench [class*="bg-purple-950"] {
+  background-color: rgb(36 126 119 / 18%) !important;
+}
+
+.wire-drawing-workbench [class*="border-purple-"] {
+  border-color: rgb(120 210 196 / 45%) !important;
+}
+
+.wire-drawing-workbench [class*="ring-purple-"] {
+  --tw-ring-color: var(--wb-accent) !important;
+}
+
+.wire-drawing-workbench [class*="accent-purple-"] {
+  accent-color: var(--wb-accent-strong) !important;
+}
+
+.wire-drawing-workbench [class*="text-slate-400"] {
+  color: var(--wb-muted) !important;
+}
+
+.wire-drawing-workbench [class*="text-slate-300"],
+.wire-drawing-workbench [class*="text-slate-200"] {
+  color: var(--wb-text) !important;
+}
+
+.wire-drawing-workbench summary:focus-visible,
+.wire-drawing-workbench button:focus-visible,
+.wire-drawing-workbench select:focus-visible,
+.wire-drawing-workbench input:focus-visible {
+  outline: 2px solid var(--wb-accent) !important;
+  outline-offset: 2px;
+}
