@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowDownWideNarrow, MoveHorizontal, Plus, X } from 'lucide-react';
 import './DieProgression.css';
 
@@ -12,11 +12,19 @@ export default function DieProgression({ dies, onDiesChange }: DieProgressionPro
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [hoveredDieIndex, setHoveredDieIndex] = useState<number | null>(null);
   const [hoveredArrowIndex, setHoveredArrowIndex] = useState<number | null>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   if (dies.length === 0) return null;
 
   const isSortedDescending =
     dies.length <= 1 || dies.every((val, i, arr) => i === 0 || arr[i - 1] >= val);
+
+  const gaugeOccurrences = new Map<number, number>();
+  const dieKeys = dies.map((diameter) => {
+    const occurrence = gaugeOccurrences.get(diameter) ?? 0;
+    gaugeOccurrences.set(diameter, occurrence + 1);
+    return `die-${diameter}-${occurrence}`;
+  });
 
   const handleSortDescending = () => {
     if (!onDiesChange) return;
@@ -27,9 +35,9 @@ export default function DieProgression({ dies, onDiesChange }: DieProgressionPro
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.2 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.4, delay: prefersReducedMotion ? 0 : 0.2 }}
       className="die-progression rounded-2xl border p-3 sm:p-4 lg:p-5 shadow-xl"
     >
       <div className="die-progression__content">
@@ -99,18 +107,26 @@ export default function DieProgression({ dies, onDiesChange }: DieProgressionPro
 
                 return (
                   <motion.div
-                    key={`${d}-${i}`}
-                    layout
+                    key={dieKeys[i]}
+                    layout="position"
+                    transition={{
+                      layout: prefersReducedMotion
+                        ? { duration: 0 }
+                        : { type: 'tween', duration: 0.28, ease: 'easeOut' },
+                    }}
                     draggable={Boolean(onDiesChange)}
                     role="listitem"
                     aria-label={`Pass ${i + 1}, ${stationType.toLowerCase()}, ${d.toFixed(3)} millimeters`}
                     data-testid={`die-card-${i}`}
                     onDragStart={() => setDraggedIndex(i)}
-                    onDragEnter={() => {
+                    onDragEnter={(event) => {
+                      const relatedTarget = event.relatedTarget;
+                      if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) return;
                       if (draggedIndex === null || draggedIndex === i || !onDiesChange) return;
                       const updated = [...dies];
                       const [movedItem] = updated.splice(draggedIndex, 1);
                       updated.splice(i, 0, movedItem);
+                      if (updated.every((value, index) => Object.is(value, dies[index]))) return;
                       setDraggedIndex(i);
                       onDiesChange(updated);
                     }}

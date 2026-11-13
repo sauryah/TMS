@@ -6,6 +6,17 @@ Track implementation status across all phases.
 **Read by:** AI agents.
 **Updated:** Each phase completion.
 
+### Schematic Drafting Pipeline Reorder Motion ✅
+**Status:** Complete
+**Date:** 2026-11-14
+
+**Completed:**
+- Kept die card identities stable when the pass order changes, including duplicate gauge values.
+- Filtered nested drag-enter events and no-op moves; switched to position-only eased animation and removed the conflicting card transform transition.
+- Reduced-motion preferences disable layout tweening.
+
+**Verification:** ESLint, TypeScript, and Vite production build passed. Automated tests and interactive browser review were not run.
+
 ### CAD Visualizer Redesign and Light Theme Contrast ✅
 **Status:** Complete
 **Date:** 2026-11-14

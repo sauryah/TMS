@@ -1,5 +1,13 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-14 Schematic Drafting Pipeline Reorder Motion
+*   **Stable Reordering**:
+    *   Keyed cards by gauge and duplicate occurrence so moving a die preserves the same rendered card instead of unmounting and rebuilding it.
+    *   Ignored nested `dragenter` events and no-op reorder results to prevent rapid repeated movement while crossing content inside a station.
+    *   Animated positions with a short ease-out tween, removed the CSS transform transition from animated cards, and honored reduced-motion preferences.
+*   **Documentation and Review**: Updated the frontend module guide and recorded the design review in `.dev/audits/schematic-pipeline-reorder-motion-council.md`.
+*   **Verification**: ESLint and TypeScript passed; Vite production build passed to `/tmp/tms-pipeline-motion-build`. Automated tests and interactive browser review were not run.
+
 ### 2026-11-14 CAD Visualizer Redesign and Light Theme Contrast
 *   **CAD Visualizer**:
     *   Reframed the pass viewer with a compact technical drawing header, responsive metric chips, a theme-aware grid viewport, and clearer metadata and tooltips.
