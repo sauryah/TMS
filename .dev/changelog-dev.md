@@ -1,5 +1,15 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-14 CAD Visualizer Redesign and Light Theme Contrast
+*   **CAD Visualizer**:
+    *   Reframed the pass viewer with a compact technical drawing header, responsive metric chips, a theme-aware grid viewport, and clearer metadata and tooltips.
+    *   Replaced fixed dark SVG colors with separate Terminal, Classic, and Light drawing palettes; Light mode uses dark teal dimension labels, stronger geometry lines, and visible label plates.
+    *   Preserved die geometry, dimension hover/click/keyboard behavior, zoom and pan, and ROOT-only view controls.
+*   **Light Theme Text Contrast**:
+    *   Added targeted Light-mode mappings for neutral gray, slate, zinc, stone, and legacy pale gray text utilities while leaving semantic status and action colors intact.
+*   **Review**: Recorded the internal design review in `.dev/audits/cad-visualizer-light-theme-council.md`.
+*   **Verification**: ESLint and TypeScript passed; Vite production build passed to `/tmp/tms-cad-visualizer-build`. Automated tests and signed-in browser visual review were not run; no authenticated test session was available for the latter.
+
 ### 2026-11-14 Schematic Drafting Pipeline Redesign
 *   **Interactive Pass Sequence**:
     *   Replaced compact wrapped nodes with a tighter responsive station-card grid that keeps the full sequence visible without horizontal scrolling. Each card shows its gauge, tapered transition, next station, area reduction, and elongation.

@@ -1944,3 +1944,48 @@ html[data-theme] .wdc-btn-primary {
     font-family: Arial, sans-serif !important;
   }
 }
+
+/* Keep legacy neutral text utilities readable on Precision Light surfaces. */
+html[data-theme="light"] [class~="text-slate-100"],
+html[data-theme="light"] [class~="text-slate-200"],
+html[data-theme="light"] [class~="text-slate-300"],
+html[data-theme="light"] [class~="text-gray-100"],
+html[data-theme="light"] [class~="text-gray-200"],
+html[data-theme="light"] [class~="text-gray-300"],
+html[data-theme="light"] [class~="text-zinc-100"],
+html[data-theme="light"] [class~="text-zinc-200"],
+html[data-theme="light"] [class~="text-zinc-300"],
+html[data-theme="light"] [class~="text-neutral-100"],
+html[data-theme="light"] [class~="text-neutral-200"],
+html[data-theme="light"] [class~="text-neutral-300"],
+html[data-theme="light"] [class~="text-stone-100"],
+html[data-theme="light"] [class~="text-stone-200"],
+html[data-theme="light"] [class~="text-stone-300"] {
+  color: var(--color-text) !important;
+}
+
+html[data-theme="light"] [class~="text-slate-400"],
+html[data-theme="light"] [class~="text-slate-500"],
+html[data-theme="light"] [class~="text-slate-600"],
+html[data-theme="light"] [class~="text-gray-400"],
+html[data-theme="light"] [class~="text-gray-500"],
+html[data-theme="light"] [class~="text-gray-600"],
+html[data-theme="light"] [class~="text-zinc-400"],
+html[data-theme="light"] [class~="text-zinc-500"],
+html[data-theme="light"] [class~="text-zinc-600"],
+html[data-theme="light"] [class~="text-neutral-400"],
+html[data-theme="light"] [class~="text-neutral-500"],
+html[data-theme="light"] [class~="text-neutral-600"],
+html[data-theme="light"] [class~="text-stone-400"],
+html[data-theme="light"] [class~="text-stone-500"],
+html[data-theme="light"] [class~="text-stone-600"] {
+  color: var(--color-text-secondary) !important;
+}
+
+html[data-theme="light"] [class~="text-[#888]"],
+html[data-theme="light"] [class~="text-[#999]"],
+html[data-theme="light"] [class~="text-[#aaa]"],
+html[data-theme="light"] [class~="text-[#bbb]"],
+html[data-theme="light"] [class~="text-[#ccc]"] {
+  color: var(--color-muted) !important;
+}

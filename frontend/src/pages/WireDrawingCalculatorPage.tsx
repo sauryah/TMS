@@ -213,24 +213,35 @@ export function WireDrawingCalculatorPage() {
 
               {/* Pass CAD Visualizer */}
               {simulatedDie && selectedPass && (
-                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-4 rounded-sm shadow-xs font-mono">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)] pb-2 mb-3">
-                    <span className="text-xs font-bold text-[var(--color-text)] uppercase tracking-wider">
-                      Pass #{selectedPass.pass} CAD Visualizer (Ø {selectedPass.toDie.toFixed(3)} mm)
-                    </span>
-                    <span className="text-xs text-[var(--color-text-secondary)]">
-                      Inlet: Ø {selectedPass.fromDie.toFixed(3)} mm &bull; Reduction:{' '}
-                      <span className="text-emerald-500 font-bold">-{selectedPass.areaReduction.toFixed(2)}%</span> &bull;
-                      Elongation: <span className="text-blue-500 font-bold">+{selectedPass.elongation.toFixed(2)}%</span> &bull;
-                      Ratio: <span className="font-bold text-[var(--color-text)]">{selectedPass.reductionRatio.toFixed(2)}</span>
-                    </span>
-                  </div>
+                <section className="pass-cad-visualizer font-mono" aria-labelledby="pass-cad-visualizer-title">
+                  <header className="pass-cad-visualizer__header">
+                    <div>
+                      <p className="pass-cad-visualizer__eyebrow">Selected station · Pass {String(selectedPass.pass).padStart(2, '0')}</p>
+                      <h2 id="pass-cad-visualizer-title" className="pass-cad-visualizer__title">
+                        CAD visualizer <span>Ø {selectedPass.toDie.toFixed(3)} mm</span>
+                      </h2>
+                    </div>
+                    <div className="pass-cad-visualizer__metrics" aria-label="Pass metrics">
+                      <span className="pass-cad-visualizer__metric">
+                        <small>Inlet</small><strong>Ø {selectedPass.fromDie.toFixed(3)} mm</strong>
+                      </span>
+                      <span className="pass-cad-visualizer__metric is-reduction">
+                        <small>Reduction</small><strong>-{selectedPass.areaReduction.toFixed(2)}%</strong>
+                      </span>
+                      <span className="pass-cad-visualizer__metric is-elongation">
+                        <small>Elongation</small><strong>+{selectedPass.elongation.toFixed(2)}%</strong>
+                      </span>
+                      <span className="pass-cad-visualizer__metric">
+                        <small>Ratio</small><strong>{selectedPass.reductionRatio.toFixed(2)}</strong>
+                      </span>
+                    </div>
+                  </header>
                   <div className="max-w-md mx-auto">
                     <Suspense fallback={<BlueprintSkeleton />}>
                       <DieBlueprint die={simulatedDie} activeHighlight={null} onHoverDim={() => {}} />
                     </Suspense>
                   </div>
-                </div>
+                </section>
               )}
 
               {/* Graphical Die Progression & Reduction Taper Pipeline */}

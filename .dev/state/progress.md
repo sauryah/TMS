@@ -6,6 +6,17 @@ Track implementation status across all phases.
 **Read by:** AI agents.
 **Updated:** Each phase completion.
 
+### CAD Visualizer Redesign and Light Theme Contrast ✅
+**Status:** Complete
+**Date:** 2026-11-14
+
+**Completed:**
+- Reworked the pass CAD visualizer header, metrics, SVG viewport, controls, and metadata into a compact technical drawing panel.
+- Replaced fixed SVG colors with Terminal, Classic, and Light theme tokens; added Light-mode contrast mappings for low-contrast neutral text utilities.
+- Preserved die rendering, dimension interactions, zoom/pan, and ROOT-only view controls.
+
+**Verification:** ESLint, TypeScript, and Vite production build passed. Automated tests and signed-in browser visual review were not run; no authenticated test session was available for the latter.
+
 ### Schematic Drafting Pipeline Redesign ✅
 **Status:** Complete
 **Date:** 2026-11-14
