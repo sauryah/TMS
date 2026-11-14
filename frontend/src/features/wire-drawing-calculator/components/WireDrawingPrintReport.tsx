@@ -71,9 +71,6 @@ export const WireDrawingPrintReport: React.FC<WireDrawingPrintReportProps> = ({
             <span className="bg-slate-900 text-white px-1.5 py-0.2 text-[9px] font-bold tracking-wider rounded-xs font-mono">
               TMS
             </span>
-            <span className="text-[9px] font-bold text-slate-700 tracking-wider uppercase font-mono">
-              TOOL MANAGEMENT SYSTEM
-            </span>
           </div>
           <h1 className="text-[13px] font-extrabold text-slate-950 uppercase tracking-tight m-0 leading-tight">
             Wire Drawing Technical Data Sheet (TDS) & Drafting Schedule

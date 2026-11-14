@@ -37,7 +37,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               System Information
             </h2>
             <p className="text-[10px] text-[var(--color-muted)] font-bold font-mono uppercase">
-              TMS | Tool Management System (v{APP_VERSION})
+              TMS (v{APP_VERSION})
             </p>
           </div>
         </div>

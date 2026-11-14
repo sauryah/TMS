@@ -1,5 +1,20 @@
 # Engineering Implementation History (changelog-dev.md)
 
+### 2026-11-14 Replace Full Name "Tool Management System" with "TMS" in Frontend
+*   **Branding & Title Cleanliness**:
+    *   Updated [`frontend/index.html`](frontend/index.html): simplified `<title>` from `TMS — Tool Management System` to `TMS` and cleaned meta description and keyword tags.
+    *   Updated [`frontend/public/manifest.json`](frontend/public/manifest.json): updated `"name"` from `"Tool Management System"` to `"TMS"`.
+*   **Authentication & Layout Components**:
+    *   Updated [`frontend/src/pages/LoginPage.tsx`](frontend/src/pages/LoginPage.tsx): removed the sub-label `Tool Management System` under the main `TMS` header.
+    *   Updated [`frontend/src/components/Footer.tsx`](frontend/src/components/Footer.tsx): removed `TOOL MANAGEMENT SYSTEM` from the global page footer, rendering `TMS / v{APP_VERSION}`.
+    *   Updated [`frontend/src/components/AboutModal.tsx`](frontend/src/components/AboutModal.tsx) and [`frontend/src/components/ContactModal.tsx`](frontend/src/components/ContactModal.tsx): simplified modal sub-headers to strictly display `TMS`.
+    *   Updated [`frontend/src/features/wire-drawing-calculator/components/WireDrawingPrintReport.tsx`](frontend/src/features/wire-drawing-calculator/components/WireDrawingPrintReport.tsx): removed `TOOL MANAGEMENT SYSTEM` from printable engineering technical datasheets.
+*   **Verification**:
+    *   TypeScript: `tsc --noEmit` passed with 0 errors.
+    *   ESLint: passed with 0 errors, 0 warnings.
+    *   Vitest: 115/115 tests passing across 30 test files.
+    *   Vite: production bundle built cleanly in 8.21s.
+
 ### 2026-11-14 Schematic Drafting Pipeline Reorder Motion
 *   **Stable Reordering**:
     *   Keyed cards by gauge and duplicate occurrence so moving a die preserves the same rendered card instead of unmounting and rebuilding it.

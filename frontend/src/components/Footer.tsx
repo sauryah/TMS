@@ -19,8 +19,6 @@ export function Footer() {
             <div className="flex items-center space-x-2">
               <span className="text-[var(--color-text)] font-bold uppercase">TMS</span>
               <span className="text-[var(--color-border)]">/</span>
-              <span>TOOL MANAGEMENT SYSTEM</span>
-              <span className="text-[var(--color-border)]">/</span>
               <span className="font-mono text-[10px] text-[var(--color-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] px-1.5 py-0.5 rounded">
                 v{APP_VERSION}
               </span>

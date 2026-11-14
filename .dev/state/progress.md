@@ -6,6 +6,20 @@ Track implementation status across all phases.
 **Read by:** AI agents.
 **Updated:** Each phase completion.
 
+### Replace Full Name "Tool Management System" with "TMS" in Frontend ✅
+**Status:** Complete
+**Date:** 2026-11-14
+
+**Completed:**
+- Removed all expanded "Tool Management System" labels across the frontend web app, retaining exclusively the concise "TMS" brand.
+- Cleaned document title (`<title>TMS</title>`) and metadata tags in `frontend/index.html`.
+- Updated PWA Web App Manifest (`"name": "TMS"`).
+- Streamlined login screen header in `LoginPage.tsx`.
+- Removed full name from global layout footer in `Footer.tsx`.
+- Cleaned system information modals (`AboutModal.tsx`, `ContactModal.tsx`).
+- Simplified technical datasheet print report header in `WireDrawingPrintReport.tsx`.
+- **Verification:** 115/115 Vitest tests passing, 0 ESLint errors/warnings, 0 TypeScript errors, clean Vite production build.
+
 ### Schematic Drafting Pipeline Reorder Motion ✅
 **Status:** Complete
 **Date:** 2026-11-14

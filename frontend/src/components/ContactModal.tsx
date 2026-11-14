@@ -46,7 +46,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
               Contact Developer
             </h2>
             <p className="text-[10px] text-[var(--color-muted)] font-mono uppercase">
-              Tool Management System • Technical Inquiries
+              TMS • Technical Inquiries
             </p>
           </div>
         </div>

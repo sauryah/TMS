@@ -148,7 +148,6 @@ export function LoginPage() {
           </div>
           <div>
             <h1 className="text-base font-bold text-[var(--color-text)] tracking-tight">TMS</h1>
-            <p className="text-xs text-[var(--color-muted)] tracking-wide">Tool Management System</p>
           </div>
         </div>
 
